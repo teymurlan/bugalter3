@@ -1,4 +1,4 @@
-import { api } from './api.js';
+import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
 import { renderBooking } from './views/booking.js';
@@ -36,8 +36,8 @@ async function start() {
   configureTelegram();
   root.innerHTML = `<div class="loading"><div><div class="spinner"></div>Загружаем HOUSE CLEANING...</div></div>`;
 
-  if (!tg?.initData) {
-    root.innerHTML = `<section class="hero"><div class="brand"><div class="brand-mark">HC</div><div><div class="brand-title">HOUSE CLEANING</div><div class="brand-sub">Уборка квартир и домов</div></div></div><div class="hero-copy"><h1>Откройте в Telegram</h1><p>Это приложение использует безопасную авторизацию Telegram Mini App.</p></div></section><div class="card pad"><p class="page-subtitle">Откройте приложение через кнопку в боте HOUSE CLEANING. В обычном браузере авторизация отключена.</p></div>`;
+  if (!tg?.initData && !isDemoMode) {
+    root.innerHTML = `<section class="hero"><div class="brand"><div class="brand-mark">HC</div><div><div class="brand-title">HOUSE CLEANING</div><div class="brand-sub">Уборка квартир и домов</div></div></div><div class="hero-copy"><h1>Откройте в Telegram</h1><p>Это приложение использует безопасную авторизацию Telegram Mini App.</p></div></section><div class="card pad"><p class="page-subtitle">Откройте приложение через кнопку в боте HOUSE CLEANING. Для временного просмотра без backend добавьте <b>?demo=1</b> к адресу.</p></div>`;
     return;
   }
 
@@ -47,8 +47,8 @@ async function start() {
     nav.classList.remove('hidden');
     nav.querySelectorAll('[data-route]').forEach((button) => button.onclick = () => navigate(button.dataset.route));
 
-    const startParam = tg.initDataUnsafe?.start_param || '';
-    if (startParam.startsWith('order_')) {
+    const startParam = tg?.initDataUnsafe?.start_param || '';
+    if (!isDemoMode && startParam.startsWith('order_')) {
       const orderId = Number(startParam.slice(6));
       if (Number.isInteger(orderId)) return navigate('orders', { orderId });
     }
