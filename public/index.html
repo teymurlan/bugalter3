@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#05090c" />
+  <title>House Cleaning</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div id="app-shell">
+    <main id="app" aria-live="polite"></main>
+    <nav id="bottom-nav" class="bottom-nav hidden" aria-label="Главная навигация">
+      <button data-route="booking" class="nav-item active" type="button">
+        <span class="nav-icon">⌂</span><span>Новая уборка</span>
+      </button>
+      <button data-route="orders" class="nav-item" type="button">
+        <span class="nav-icon">▤</span><span>Мои заявки</span>
+      </button>
+      <button data-route="profile" class="nav-item" type="button">
+        <span class="nav-icon">●</span><span>Профиль</span>
+      </button>
+    </nav>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
