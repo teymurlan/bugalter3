@@ -1,0 +1,23 @@
+name = "house-cleaning-mini-app"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "house-cleaning"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "house-cleaning-photos"
+
+[vars]
+ENVIRONMENT = "production"
+BOT_USERNAME = "REPLACE_WITH_BOT_USERNAME"
+ADMIN_TELEGRAM_IDS = "REPLACE_WITH_ADMIN_TELEGRAM_ID"
