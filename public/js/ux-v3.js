@@ -24,7 +24,7 @@ function keyboardDoneButton() {
   button = document.createElement('button');
   button.id = 'keyboard-done';
   button.type = 'button';
-  button.textContent = 'Готово';
+  button.innerHTML = '<span>✓</span> Готово';
   button.className = 'keyboard-done hidden';
   button.onclick = () => document.activeElement?.blur?.();
   document.body.appendChild(button);
@@ -60,24 +60,10 @@ function enhanceHome() {
   const hero = document.querySelector('.home-hero');
   if (!hero || hero.dataset.v3Home === '1') return;
   hero.dataset.v3Home = '1';
-  const title = hero.querySelector('.hero-copy h1');
-  const text = hero.querySelector('.hero-copy p');
-  if (title) title.textContent = 'Чистый дом — в удобный для вас день';
-  if (text) text.textContent = 'Оформите уборку за несколько простых шагов: выберите услугу, укажите площадь, добавьте фото и выберите свободное время.';
 
   const benefits = document.querySelector('.quick-benefits');
   if (benefits) {
     benefits.innerHTML = '<div><b>2 минуты</b><span>понятное оформление</span></div><div><b>Фото объекта</b><span>точнее оценим работу</span></div><div><b>Свободные даты</b><span>видны сразу в календаре</span></div>';
-  }
-
-  const startCard = document.querySelector('.start-card');
-  if (startCard) {
-    const h2 = startCard.querySelector('h2');
-    const p = startCard.querySelector('p');
-    const button = startCard.querySelector('[data-start]');
-    if (h2) h2.textContent = 'Закажите уборку без звонков';
-    if (p) p.textContent = 'Все данные сохраняются в черновике. До отправки заявки вы сможете вернуться к любому шагу и всё изменить.';
-    if (button) button.textContent = 'Начать оформление';
   }
 }
 
@@ -138,6 +124,7 @@ async function enhanceCalendar() {
     if (!document.body.contains(strip) || (state.draft.date || input?.value || '') !== selectedValue) return;
     strip.innerHTML = results.map((data, index) => calendarDay(dates[index], data, selectedValue)).join('');
     strip.dataset.v3Selected = selectedValue;
+
     strip.querySelectorAll('[data-calendar-date]').forEach((button) => {
       button.onclick = () => {
         if (button.disabled) return;
@@ -151,7 +138,12 @@ async function enhanceCalendar() {
         }
       };
     });
-    strip.querySelector('.calendar-day.selected')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+
+    strip.querySelector('.calendar-day.selected')?.scrollIntoView({
+      inline: 'center',
+      block: 'nearest',
+      behavior: 'smooth',
+    });
   } catch (error) {
     console.warn('Nearby calendar enhancement failed', error);
   } finally {
