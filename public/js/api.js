@@ -8,7 +8,7 @@ export const isDemoMode = params.get('demo') === '1'
 const DEMO_ORDERS_KEY = 'hc-demo-orders-v2';
 const DEMO_USER_KEY = 'hc-demo-user-v1';
 const ACTIVE_STATUSES = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
-const SELF_CANCEL_STATUSES = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED']);
+const SELF_CANCEL_STATUSES = new Set(['NEW', 'REVIEW', 'CONFIRMED']);
 const DAILY_CAPACITY_M2 = 300;
 const CANCEL_CUTOFF_HOURS = 24;
 
@@ -41,7 +41,10 @@ function loadDemoOrders() {
   try { return JSON.parse(localStorage.getItem(DEMO_ORDERS_KEY) || '[]'); }
   catch { return []; }
 }
-function saveDemoOrders(orders) { localStorage.setItem(DEMO_ORDERS_KEY, JSON.stringify(orders)); }
+
+function saveDemoOrders(orders) {
+  localStorage.setItem(DEMO_ORDERS_KEY, JSON.stringify(orders));
+}
 
 function telegramDemoUser() {
   const user = tg?.initDataUnsafe?.user || {};
@@ -51,17 +54,22 @@ function telegramDemoUser() {
     username: user.username || '',
     first_name: user.first_name || 'Клиент',
     last_name: user.last_name || '',
-    name: '', phone: '', photo_url: user.photo_url || '',
+    name: '',
+    phone: '',
+    photo_url: user.photo_url || '',
   };
 }
 
 function loadDemoUser() {
   let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(DEMO_USER_KEY) || '{}'); } catch { /* ignore */ }
+  try { saved = JSON.parse(localStorage.getItem(DEMO_USER_KEY) || '{}'); }
+  catch { /* ignore */ }
   return { ...telegramDemoUser(), ...saved };
 }
 
-function serviceById(id) { return demoServices.find((service) => Number(service.id) === Number(id)); }
+function serviceById(id) {
+  return demoServices.find((service) => Number(service.id) === Number(id));
+}
 
 function capacityForDate(date) {
   const orders = loadDemoOrders().filter((order) => order.date === date && ACTIVE_STATUSES.has(order.status));
@@ -84,8 +92,7 @@ export function canSelfCancel(order) {
   return SELF_CANCEL_STATUSES.has(order?.status) && hoursUntilOrder(order) >= CANCEL_CUTOFF_HOURS;
 }
 
-async function notifyAdmin(order, event = 'created') {
-  if (!tg?.initData) return { ok: false, skipped: true };
+async function notifyBackend(order, event = 'created') {
   try {
     const response = await fetch('/api/demo-order', {
       method: 'POST',
@@ -96,7 +103,23 @@ async function notifyAdmin(order, event = 'created') {
     if (!response.ok) throw new Error(data?.error || `Ошибка уведомления ${response.status}`);
     return data;
   } catch (error) {
-    console.warn('Admin notification failed', error);
+    console.warn('Telegram notification failed', error);
+    return { ok: false, adminNotified: 0, clientNotified: false, error: error.message };
+  }
+}
+
+async function notifyStatus(order, status) {
+  try {
+    const response = await fetch('/api/demo-order-status', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ order, status, clientTelegramId: order.client_telegram_id || 0 }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.error || `Ошибка уведомления ${response.status}`);
+    return data;
+  } catch (error) {
+    console.warn('Client status notification failed', error);
     return { ok: false, error: error.message };
   }
 }
@@ -121,16 +144,31 @@ const demoApi = {
         botUsername: config.botUsername || '',
         managerUsername: config.managerUsername || config.botUsername || '',
         cancelCutoffHours: CANCEL_CUTOFF_HOURS,
+        adminConfigured: Boolean(config.adminConfigured),
+        reminder24hReady: Boolean(config.reminder24hReady),
       },
     };
   },
-  async orders() { return { ok: true, orders: loadDemoOrders() }; },
-  async adminOrders() { return { ok: true, demo: true, orders: loadDemoOrders() }; },
+
+  async orders() {
+    return { ok: true, orders: loadDemoOrders() };
+  },
+
+  async adminOrders() {
+    return { ok: true, demo: true, orders: loadDemoOrders() };
+  },
+
   async order(id) {
     const order = loadDemoOrders().find((item) => Number(item.id) === Number(id));
     if (!order) throw new Error('Заявка не найдена');
-    return { ok: true, order, addons: (order.addon_ids || []).map(serviceById).filter(Boolean), photos: [] };
+    return {
+      ok: true,
+      order,
+      addons: (order.addon_ids || []).map(serviceById).filter(Boolean),
+      photos: [],
+    };
   },
+
   async availability(date) {
     const capacity = capacityForDate(date);
     const orders = loadDemoOrders().filter((order) => order.date === date && ACTIVE_STATUSES.has(order.status));
@@ -141,39 +179,51 @@ const demoApi = {
     });
     return { date, closed: capacity.remainingM2 <= 0, slots, ...capacity };
   },
+
   async updateMe(payload) {
-    const next = { ...loadDemoUser(), name: (payload.name || '').trim(), phone: (payload.phone || '').trim() };
+    const next = {
+      ...loadDemoUser(),
+      name: (payload.name || '').trim(),
+      phone: (payload.phone || '').trim(),
+    };
     localStorage.setItem(DEMO_USER_KEY, JSON.stringify(next));
     return { ok: true, user: next };
   },
+
   async cancelOrder(id) {
     const orders = loadDemoOrders();
     const index = orders.findIndex((item) => Number(item.id) === Number(id));
     if (index < 0) throw new Error('Заявка не найдена');
     const current = orders[index];
     if (!SELF_CANCEL_STATUSES.has(current.status)) throw new Error('Эту заявку нельзя отменить самостоятельно');
-    const hours = hoursUntilOrder(current);
-    if (hours < CANCEL_CUTOFF_HOURS) throw new Error('До уборки осталось меньше 24 часов. Свяжитесь с менеджером');
+    if (hoursUntilOrder(current) < CANCEL_CUTOFF_HOURS) throw new Error('До уборки осталось меньше 24 часов. Свяжитесь с менеджером');
+
     orders[index] = { ...current, status: 'CANCELLED', cancelled_at: new Date().toISOString() };
     saveDemoOrders(orders);
-    await notifyAdmin(orders[index], 'cancelled');
-    return { ok: true, order: orders[index] };
+    const notification = await notifyBackend(orders[index], 'cancelled');
+    return { ok: true, order: orders[index], notification };
   },
+
   async adminSetStatus(id, status) {
     const orders = loadDemoOrders();
     const index = orders.findIndex((item) => Number(item.id) === Number(id));
     if (index < 0) throw new Error('Заявка не найдена');
-    orders[index] = { ...orders[index], status };
+    orders[index] = { ...orders[index], status, updated_at: new Date().toISOString() };
     saveDemoOrders(orders);
-    return { ok: true, order: orders[index] };
+    const notification = await notifyStatus(orders[index], status);
+    return { ok: true, order: orders[index], notification };
   },
+
   async createOrder(payload, photos) {
     const capacity = capacityForDate(payload.date);
     if (Number(payload.area) > capacity.remainingM2) throw new Error(`На эту дату осталось только ${capacity.remainingM2} м²`);
+
     const orders = loadDemoOrders();
     const id = orders.length ? Math.max(...orders.map((item) => Number(item.id) || 0)) + 1 : 1;
     const compactDate = String(payload.date || '').replaceAll('-', '').slice(2) || 'DEMO';
     const primary = serviceById(payload.serviceId);
+    const telegramUser = tg?.initDataUnsafe?.user || {};
+
     const order = {
       id,
       order_number: `HC-${compactDate}-${String(id).padStart(4, '0')}`,
@@ -181,20 +231,36 @@ const demoApi = {
       service_id: Number(payload.serviceId),
       service_name: primary?.name || 'Уборка',
       property_type: payload.propertyType,
-      area: Number(payload.area), rooms: Number(payload.rooms), bathrooms: Number(payload.bathrooms), pets: !!payload.pets,
-      city: payload.city, address: payload.address, apartment: payload.apartment || '', entrance: payload.entrance || '', floor: payload.floor || '',
-      address_comment: payload.addressComment || '', date: payload.date, time: payload.time,
-      customer_name: payload.customerName, phone: payload.phone, comment: payload.comment || '',
+      area: Number(payload.area),
+      rooms: Number(payload.rooms),
+      bathrooms: Number(payload.bathrooms),
+      pets: Boolean(payload.pets),
+      city: payload.city,
+      address: payload.address,
+      apartment: payload.apartment || '',
+      entrance: payload.entrance || '',
+      floor: payload.floor || '',
+      address_comment: payload.addressComment || '',
+      date: payload.date,
+      time: payload.time,
+      customer_name: payload.customerName,
+      phone: payload.phone,
+      comment: payload.comment || '',
       addon_ids: Array.isArray(payload.addonIds) ? payload.addonIds : [],
       addon_names: (payload.addonIds || []).map(serviceById).filter(Boolean).map((item) => item.name),
-      photo_count: Array.isArray(photos) ? photos.length : 0, photo_ids: '', estimated_price: null,
+      photo_count: Array.isArray(photos) ? photos.length : 0,
+      photo_ids: '',
+      estimated_price: null,
+      client_telegram_id: Number(telegramUser.id || 0),
       created_at: new Date().toISOString(),
     };
+
     orders.unshift(order);
     saveDemoOrders(orders);
-    const notification = await notifyAdmin(order, 'created');
+    const notification = await notifyBackend(order, 'created');
     return { ok: true, demo: true, order, notification };
   },
+
   photoUrl: () => '',
 };
 
@@ -204,9 +270,17 @@ const liveApi = {
   adminOrders: () => request('/api/admin/orders'),
   order: (id) => request(`/api/orders/${id}`),
   availability: (date) => request(`/api/availability?date=${encodeURIComponent(date)}`),
-  updateMe: (payload) => request('/api/me', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }),
+  updateMe: (payload) => request('/api/me', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }),
   cancelOrder: (id) => request(`/api/orders/${id}/cancel`, { method: 'POST' }),
-  adminSetStatus: (id, status) => request(`/api/admin/orders/${id}/status`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }),
+  adminSetStatus: (id, status) => request(`/api/admin/orders/${id}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  }),
   createOrder: async (payload, photos) => {
     const form = new FormData();
     form.append('payload', JSON.stringify(payload));
