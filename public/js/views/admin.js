@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, formatDate, showToast, STATUS_LABELS } from '../utils.js';
+import { escapeHtml, formatDate, modal, showToast, STATUS_LABELS } from '../utils.js';
 
 const GROUPS = {
   all: { label: 'Все', statuses: null },
@@ -45,11 +45,34 @@ function renderDashboard(root, navigate, orders, isDemo) {
   root.querySelectorAll('[data-filter]').forEach((button) => button.onclick = () => { currentFilter = button.dataset.filter; renderDashboard(root, navigate, orders, isDemo); });
   root.querySelectorAll('[data-status-select]').forEach((select) => select.onchange = async () => {
     const id = Number(select.dataset.statusSelect);
-    const previous = orders.find((o) => Number(o.id) === id)?.status;
+    const order = orders.find((item) => Number(item.id) === id);
+    const previous = order?.status;
+    const nextStatus = select.value;
+
+    if (!order || !previous || nextStatus === previous) return;
+
+    if (nextStatus === 'CONFIRMED' || nextStatus === 'CANCELLED') {
+      const isCancel = nextStatus === 'CANCELLED';
+      const approved = await modal({
+        title: isCancel ? 'Точно отменить заявку?' : 'Точно подтвердить заявку?',
+        text: isCancel
+          ? `${order.order_number || 'Эта заявка'} будет отменена. Клиент сразу получит уведомление об отмене.`
+          : `${order.order_number || 'Эта заявка'} будет подтверждена. Клиент сразу получит уведомление о подтверждении.`,
+        confirmText: isCancel ? 'Да, отменить' : 'Да, подтвердить',
+        cancelText: isCancel ? 'Нет, оставить заявку' : 'Нет, вернуться',
+        danger: isCancel,
+      });
+
+      if (!approved) {
+        select.value = previous;
+        return;
+      }
+    }
+
     try {
       select.disabled = true;
-      await api.adminSetStatus(id, select.value);
-      showToast('Статус обновлён');
+      await api.adminSetStatus(id, nextStatus);
+      showToast(nextStatus === 'CONFIRMED' ? 'Заявка подтверждена' : nextStatus === 'CANCELLED' ? 'Заявка отменена' : 'Статус обновлён');
       renderAdmin(root, navigate);
     } catch (error) {
       select.value = previous;
