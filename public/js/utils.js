@@ -31,16 +31,16 @@ export function showToast(message, error = false) {
 }
 showToast.timer = null;
 
-export function modal({ title, text, confirmText = 'Подтвердить', danger = false }) {
+export function modal({ title, text, confirmText = 'Да, подтвердить', cancelText = 'Нет, вернуться', danger = false }) {
   return new Promise((resolve) => {
     const root = document.createElement('div');
     root.className = 'modal-backdrop';
     root.innerHTML = `
-      <div class="modal">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
         <h3>${escapeHtml(title)}</h3>
         <p>${escapeHtml(text)}</p>
         <div class="modal-actions">
-          <button class="secondary-btn" data-cancel>Назад</button>
+          <button class="secondary-btn" data-cancel>${escapeHtml(cancelText)}</button>
           <button class="${danger ? 'danger-btn' : 'primary-btn'}" data-confirm>${escapeHtml(confirmText)}</button>
         </div>
       </div>`;
