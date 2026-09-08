@@ -34,6 +34,7 @@ showToast.timer = null;
 export function modal({ title, text, confirmText = 'Да, подтвердить', cancelText = 'Нет, вернуться', danger = false }) {
   return new Promise((resolve) => {
     const root = document.createElement('div');
+    const effectiveConfirmText = danger && confirmText === 'Отменить заявку' ? 'Да, отменить' : confirmText;
     root.className = 'modal-backdrop';
     root.innerHTML = `
       <div class="modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
@@ -41,7 +42,7 @@ export function modal({ title, text, confirmText = 'Да, подтвердить
         <p>${escapeHtml(text)}</p>
         <div class="modal-actions">
           <button class="secondary-btn" data-cancel>${escapeHtml(cancelText)}</button>
-          <button class="${danger ? 'danger-btn' : 'primary-btn'}" data-confirm>${escapeHtml(confirmText)}</button>
+          <button class="${danger ? 'danger-btn' : 'primary-btn'}" data-confirm>${escapeHtml(effectiveConfirmText)}</button>
         </div>
       </div>`;
     document.body.append(root);
