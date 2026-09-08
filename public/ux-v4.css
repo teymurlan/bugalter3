@@ -1,0 +1,33 @@
+/* UX v4: visible first CTA, photo hero, cleaner mobile hierarchy */
+.home-hero{
+  min-height:390px!important;
+  padding:24px 22px 26px!important;
+  border-radius:0 0 30px 30px!important;
+  background:
+    linear-gradient(180deg,rgba(5,9,12,.18) 0%,rgba(5,9,12,.48) 42%,rgba(5,9,12,.98) 100%),
+    url('https://images.unsplash.com/photo-1771371428960-35a50c2d4e7c?auto=format&fit=crop&fm=jpg&q=82&w=1600') center 58%/cover no-repeat!important;
+}
+.home-hero::before{background:linear-gradient(90deg,rgba(5,9,12,.50),rgba(5,9,12,.08) 55%,rgba(5,9,12,.26))!important}
+.home-hero::after{display:none!important}
+.home-hero .brand{padding:7px 10px 7px 7px;width:max-content;max-width:100%;border-radius:18px;background:rgba(5,9,12,.64);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08)}
+.home-hero .brand-mark{width:50px;height:50px;border-radius:16px;background:rgba(5,9,12,.72)}
+.home-hero .hero-copy{margin-top:auto;max-width:100%!important}
+.home-hero .hero-copy h1{max-width:560px;font-size:clamp(38px,10.5vw,58px)!important;line-height:.98!important;text-shadow:0 3px 24px rgba(0,0,0,.54)}
+.home-hero .hero-copy p{max-width:540px;color:#d1d8df;font-size:16px;line-height:1.45;text-shadow:0 2px 18px rgba(0,0,0,.6)}
+.hero-primary-cta{width:100%;min-height:64px;margin-top:18px;border:0;border-radius:19px;background:linear-gradient(135deg,#ffe08a,#f7bb38);color:#17120a;font-size:17px;font-weight:900;box-shadow:0 16px 34px rgba(0,0,0,.30),0 8px 26px rgba(247,187,56,.22)}
+.quick-benefits{margin-top:12px!important;gap:9px!important}
+.quick-benefits>div{min-height:82px!important;background:linear-gradient(145deg,rgba(17,27,35,.96),rgba(10,17,22,.96))!important;border-color:#24333e!important;box-shadow:none!important}
+.start-card{margin-top:12px;border-color:#25343f!important;box-shadow:0 18px 45px rgba(0,0,0,.22)!important}
+.start-card .primary-btn{display:none!important}
+.page-title.booking-title{font-size:clamp(33px,8.2vw,46px)!important;letter-spacing:-1.7px!important}
+.booking-title-block{margin-bottom:18px!important}
+.card.pad.form-card{padding:16px!important}
+.option-card{border-radius:18px!important}
+.wizard-actions{bottom:calc(84px + var(--safe-bottom))!important;background:linear-gradient(to top,var(--bg) 82%,transparent)!important}
+.wizard-actions .primary-btn,.wizard-actions .secondary-btn{min-height:58px!important}
+.calendar-card{border-radius:20px!important}
+.calendar-day{flex-basis:80px!important;min-height:112px!important}
+.bottom-nav{background:rgba(6,11,15,.97)!important;border-top-color:#1f2a32!important}
+.nav-item{font-size:11px!important}
+.notification-note{margin:12px 0 0;padding:12px 14px;border-radius:14px;background:rgba(99,207,122,.08);border:1px solid rgba(99,207,122,.22);color:#a9e8b5;font-size:12px;line-height:1.45}
+@media(max-width:390px){.home-hero{min-height:365px!important}.home-hero .hero-copy h1{font-size:39px!important}.quick-benefits{grid-template-columns:repeat(3,1fr)!important}.quick-benefits>div{padding:10px 8px!important}.quick-benefits b{font-size:14px!important}.quick-benefits span{font-size:9px!important}.hero-primary-cta{min-height:60px;font-size:16px}}
