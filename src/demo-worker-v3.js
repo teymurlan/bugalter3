@@ -115,7 +115,7 @@ async function handleCallback(query, env, origin) {
   await safeTelegram(env, 'editMessageText', {
     chat_id: query.message.chat.id,
     message_id: query.message.message_id,
-    text: `${cleanText}\n\n${statusLine}`,
+    text: `${escapeHtml(cleanText)}\n\n${statusLine}`,
     parse_mode: 'HTML',
     reply_markup: replyMarkup,
   });
