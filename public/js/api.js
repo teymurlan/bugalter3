@@ -8,7 +8,9 @@ export const isDemoMode = params.get('demo') === '1'
 const DEMO_ORDERS_KEY = 'hc-demo-orders-v2';
 const DEMO_USER_KEY = 'hc-demo-user-v1';
 const ACTIVE_STATUSES = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
+const SELF_CANCEL_STATUSES = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED']);
 const DAILY_CAPACITY_M2 = 300;
+const CANCEL_CUTOFF_HOURS = 24;
 
 const demoServices = [
   { id: 1, code: 'general', kind: 'primary', name: 'Генеральная уборка', description: 'Глубокая уборка всего объекта', price_per_m2: null, fixed_price: null, sort_order: 1 },
@@ -67,22 +69,60 @@ function capacityForDate(date) {
   return { capacityM2: DAILY_CAPACITY_M2, usedM2, remainingM2: Math.max(0, DAILY_CAPACITY_M2 - usedM2) };
 }
 
-async function notifyAdmin(order) {
-  if (!tg?.initData) return;
+function orderStartTimestamp(order) {
+  if (!order?.date || !order?.time) return NaN;
+  return Date.parse(`${order.date}T${order.time}:00+03:00`);
+}
+
+export function hoursUntilOrder(order) {
+  const start = orderStartTimestamp(order);
+  if (!Number.isFinite(start)) return -Infinity;
+  return (start - Date.now()) / 3600000;
+}
+
+export function canSelfCancel(order) {
+  return SELF_CANCEL_STATUSES.has(order?.status) && hoursUntilOrder(order) >= CANCEL_CUTOFF_HOURS;
+}
+
+async function notifyAdmin(order, event = 'created') {
+  if (!tg?.initData) return { ok: false, skipped: true };
   try {
-    await fetch('/api/demo-order', {
+    const response = await fetch('/api/demo-order', {
       method: 'POST',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ order }),
+      body: JSON.stringify({ order, event }),
     });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.error || `Ошибка уведомления ${response.status}`);
+    return data;
   } catch (error) {
     console.warn('Admin notification failed', error);
+    return { ok: false, error: error.message };
   }
+}
+
+async function demoConfig() {
+  try {
+    const response = await fetch('/api/demo-config', { headers: authHeaders() });
+    if (!response.ok) return {};
+    return await response.json();
+  } catch { return {}; }
 }
 
 const demoApi = {
   async bootstrap() {
-    return { ok: true, demo: true, user: loadDemoUser(), services: demoServices, config: { botUsername: '' } };
+    const config = await demoConfig();
+    return {
+      ok: true,
+      demo: true,
+      user: loadDemoUser(),
+      services: demoServices,
+      config: {
+        botUsername: config.botUsername || '',
+        managerUsername: config.managerUsername || config.botUsername || '',
+        cancelCutoffHours: CANCEL_CUTOFF_HOURS,
+      },
+    };
   },
   async orders() { return { ok: true, orders: loadDemoOrders() }; },
   async adminOrders() { return { ok: true, demo: true, orders: loadDemoOrders() }; },
@@ -110,8 +150,13 @@ const demoApi = {
     const orders = loadDemoOrders();
     const index = orders.findIndex((item) => Number(item.id) === Number(id));
     if (index < 0) throw new Error('Заявка не найдена');
-    orders[index] = { ...orders[index], status: 'CANCELLED' };
+    const current = orders[index];
+    if (!SELF_CANCEL_STATUSES.has(current.status)) throw new Error('Эту заявку нельзя отменить самостоятельно');
+    const hours = hoursUntilOrder(current);
+    if (hours < CANCEL_CUTOFF_HOURS) throw new Error('До уборки осталось меньше 24 часов. Свяжитесь с менеджером');
+    orders[index] = { ...current, status: 'CANCELLED', cancelled_at: new Date().toISOString() };
     saveDemoOrders(orders);
+    await notifyAdmin(orders[index], 'cancelled');
     return { ok: true, order: orders[index] };
   },
   async adminSetStatus(id, status) {
@@ -147,8 +192,8 @@ const demoApi = {
     };
     orders.unshift(order);
     saveDemoOrders(orders);
-    notifyAdmin(order);
-    return { ok: true, demo: true, order };
+    const notification = await notifyAdmin(order, 'created');
+    return { ok: true, demo: true, order, notification };
   },
   photoUrl: () => '',
 };
