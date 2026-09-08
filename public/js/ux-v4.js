@@ -1,5 +1,6 @@
 const app = document.querySelector('#app');
 let observerQueued = false;
+let lastHomeState = false;
 
 function isHome() {
   return Boolean(document.querySelector('.home-hero') && document.querySelector('[data-start]'));
@@ -8,11 +9,19 @@ function isHome() {
 function ensureHomeCta() {
   const home = isHome();
   app?.classList.toggle('home-screen', home);
+
   let cta = document.querySelector('#home-fixed-cta');
   if (!home) {
     cta?.remove();
+    lastHomeState = false;
     return;
   }
+
+  if (!lastHomeState) {
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+    lastHomeState = true;
+  }
+
   if (!cta) {
     cta = document.createElement('button');
     cta.id = 'home-fixed-cta';
@@ -27,31 +36,50 @@ function ensureHomeCta() {
 function polishHomeCopy() {
   const hero = document.querySelector('.home-hero');
   if (!hero) return;
+
   const eyebrow = hero.querySelector('.eyebrow');
   const title = hero.querySelector('.hero-copy h1');
   const text = hero.querySelector('.hero-copy p');
+
   if (eyebrow) eyebrow.textContent = 'HOUSE CLEANING · ЗАПИСЬ ОНЛАЙН';
-  if (title) title.textContent = 'Уборка в удобный день — без лишних звонков';
-  if (text) text.textContent = 'Выберите формат уборки, укажите площадь, добавьте фото и сразу посмотрите доступные даты. Заявка займёт около двух минут.';
+  if (title) title.textContent = 'Чистый дом — в удобный для вас день';
+  if (text) {
+    text.textContent = 'Выберите уборку, укажите площадь, добавьте фото объекта и сразу посмотрите свободные даты. Всё оформление занимает около двух минут.';
+  }
 }
 
 function polishStartCard() {
   const card = document.querySelector('.start-card');
   if (!card) return;
+
   const h2 = card.querySelector('h2');
   const p = card.querySelector('p');
-  const button = card.querySelector('[data-start]');
+  const trigger = card.querySelector('[data-start]');
+  const benefits = document.querySelector('.quick-benefits');
+
   if (h2) h2.textContent = 'Всё понятно на каждом шаге';
-  if (p) p.textContent = 'Черновик сохраняется автоматически. До отправки заявки можно вернуться назад и изменить любые данные.';
-  if (button) button.textContent = 'Начать оформление';
+  if (p) {
+    p.textContent = 'Черновик сохраняется автоматически. До отправки заявки можно вернуться назад и изменить любые данные.';
+  }
+
+  if (benefits && benefits.parentElement !== card) {
+    card.insertBefore(benefits, trigger || null);
+  }
+
+  if (trigger) {
+    trigger.classList.add('start-trigger-hidden');
+    trigger.setAttribute('aria-hidden', 'true');
+    trigger.tabIndex = -1;
+  }
 }
 
 function addNotificationHint() {
   const success = document.querySelector('.success');
   if (!success || success.querySelector('.notification-note')) return;
+
   const note = document.createElement('div');
   note.className = 'notification-note';
-  note.textContent = 'После отправки бот сразу пришлёт сообщение о получении заявки. Затем уведомит о подтверждении, завершении и отмене.';
+  note.textContent = 'Заявка отправлена только после успешного уведомления администратора. Бот также пришлёт вам сообщение о получении, подтверждении, завершении или отмене.';
   const card = success.querySelector('.success-order');
   card?.after(note);
 }
@@ -71,5 +99,6 @@ const observer = new MutationObserver(() => {
     run();
   });
 });
+
 observer.observe(document.documentElement, { childList: true, subtree: true });
 run();
