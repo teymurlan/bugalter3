@@ -1,33 +1,70 @@
-/* UX v4: visible first CTA, photo hero, cleaner mobile hierarchy */
+/* UX v4: visible CTA, premium photo hero, cleaner mobile hierarchy */
 .home-hero{
-  min-height:390px!important;
-  padding:24px 22px 26px!important;
+  min-height:360px!important;
+  margin-bottom:18px!important;
+  padding:24px 22px 30px!important;
   border-radius:0 0 30px 30px!important;
-  background:
-    linear-gradient(180deg,rgba(5,9,12,.18) 0%,rgba(5,9,12,.48) 42%,rgba(5,9,12,.98) 100%),
-    url('https://images.unsplash.com/photo-1771371428960-35a50c2d4e7c?auto=format&fit=crop&fm=jpg&q=82&w=1600') center 58%/cover no-repeat!important;
+  background-image:
+    linear-gradient(180deg,rgba(4,7,9,.20) 0%,rgba(4,7,9,.52) 42%,rgba(4,7,9,.97) 100%),
+    url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=82')!important;
+  background-size:cover!important;
+  background-position:center 52%!important;
+  border-bottom:1px solid rgba(247,187,56,.16)!important;
 }
-.home-hero::before{background:linear-gradient(90deg,rgba(5,9,12,.50),rgba(5,9,12,.08) 55%,rgba(5,9,12,.26))!important}
+.home-hero::before{background:radial-gradient(circle at 78% 26%,rgba(247,187,56,.19),transparent 24%)!important}
 .home-hero::after{display:none!important}
-.home-hero .brand{padding:7px 10px 7px 7px;width:max-content;max-width:100%;border-radius:18px;background:rgba(5,9,12,.64);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08)}
-.home-hero .brand-mark{width:50px;height:50px;border-radius:16px;background:rgba(5,9,12,.72)}
-.home-hero .hero-copy{margin-top:auto;max-width:100%!important}
-.home-hero .hero-copy h1{max-width:560px;font-size:clamp(38px,10.5vw,58px)!important;line-height:.98!important;text-shadow:0 3px 24px rgba(0,0,0,.54)}
-.home-hero .hero-copy p{max-width:540px;color:#d1d8df;font-size:16px;line-height:1.45;text-shadow:0 2px 18px rgba(0,0,0,.6)}
-.hero-primary-cta{width:100%;min-height:64px;margin-top:18px;border:0;border-radius:19px;background:linear-gradient(135deg,#ffe08a,#f7bb38);color:#17120a;font-size:17px;font-weight:900;box-shadow:0 16px 34px rgba(0,0,0,.30),0 8px 26px rgba(247,187,56,.22)}
-.quick-benefits{margin-top:12px!important;gap:9px!important}
-.quick-benefits>div{min-height:82px!important;background:linear-gradient(145deg,rgba(17,27,35,.96),rgba(10,17,22,.96))!important;border-color:#24333e!important;box-shadow:none!important}
-.start-card{margin-top:12px;border-color:#25343f!important;box-shadow:0 18px 45px rgba(0,0,0,.22)!important}
-.start-card .primary-btn{display:none!important}
-.page-title.booking-title{font-size:clamp(33px,8.2vw,46px)!important;letter-spacing:-1.7px!important}
-.booking-title-block{margin-bottom:18px!important}
-.card.pad.form-card{padding:16px!important}
+.home-hero .brand{padding:8px 10px;border-radius:18px;background:rgba(3,6,8,.46);backdrop-filter:blur(12px);width:max-content;max-width:100%;border:1px solid rgba(255,255,255,.07)}
+.home-hero .hero-copy{padding:20px 4px 0;max-width:96%!important;text-shadow:0 2px 16px rgba(0,0,0,.55)}
+.home-hero .hero-copy h1{max-width:560px;font-size:clamp(40px,10vw,60px)!important;line-height:.98!important}
+.home-hero .hero-copy p{max-width:560px;color:#d7dde4;font-size:16px;line-height:1.45}
+.quick-benefits{gap:9px!important;margin:0 0 14px!important}
+.quick-benefits>div{min-height:78px!important;padding:11px 12px!important;border-radius:18px!important;background:linear-gradient(150deg,#111a21,#0b1116)!important}
+.start-card{padding:18px!important;margin:12px 0 14px!important}
+.start-card h2{font-size:22px;letter-spacing:-.4px}
+.start-card .page-subtitle{font-size:14px}
+.start-card .primary-btn{display:block!important;min-height:58px!important}
+
+.home-fixed-cta{
+  position:fixed;
+  z-index:19;
+  left:50%;
+  bottom:calc(92px + var(--safe-bottom));
+  transform:translateX(-50%);
+  width:min(calc(100% - 28px),640px);
+  min-height:58px;
+  border:0;
+  border-radius:19px;
+  padding:14px 18px;
+  color:#17120a;
+  background:linear-gradient(135deg,#ffe18b,#f7bb38);
+  box-shadow:0 16px 40px rgba(0,0,0,.48),0 8px 22px rgba(247,187,56,.22);
+  font-size:17px;
+  font-weight:900;
+}
+.home-fixed-cta::after{content:'  →';font-size:20px}
+.keyboard-open .home-fixed-cta{display:none!important}
+#app.home-screen{padding-bottom:calc(178px + var(--safe-bottom))}
+
+.primary-btn,.secondary-btn,.danger-btn{border-radius:17px!important;min-height:56px!important;font-size:15px!important}
+.wizard-actions{bottom:calc(84px + var(--safe-bottom))!important;padding:10px 0 8px!important;background:linear-gradient(to top,var(--bg) 78%,rgba(5,9,12,.90) 88%,transparent)!important}
 .option-card{border-radius:18px!important}
-.wizard-actions{bottom:calc(84px + var(--safe-bottom))!important;background:linear-gradient(to top,var(--bg) 82%,transparent)!important}
-.wizard-actions .primary-btn,.wizard-actions .secondary-btn{min-height:58px!important}
-.calendar-card{border-radius:20px!important}
-.calendar-day{flex-basis:80px!important;min-height:112px!important}
-.bottom-nav{background:rgba(6,11,15,.97)!important;border-top-color:#1f2a32!important}
+.card.pad.form-card,.calendar-card,.review-card,.price-card{border-radius:20px!important}
+.field.floating .input,.field.floating .textarea,.field.floating .select{border-radius:15px!important;background:#0b1319!important}
+.field.floating:focus-within .input,.field.floating:focus-within .textarea,.field.floating:focus-within .select{background:#0d171e!important}
+.bottom-nav{height:calc(78px + var(--safe-bottom))!important;padding-top:6px!important;background:rgba(6,11,15,.97)!important}
 .nav-item{font-size:11px!important}
-.notification-note{margin:12px 0 0;padding:12px 14px;border-radius:14px;background:rgba(99,207,122,.08);border:1px solid rgba(99,207,122,.22);color:#a9e8b5;font-size:12px;line-height:1.45}
-@media(max-width:390px){.home-hero{min-height:365px!important}.home-hero .hero-copy h1{font-size:39px!important}.quick-benefits{grid-template-columns:repeat(3,1fr)!important}.quick-benefits>div{padding:10px 8px!important}.quick-benefits b{font-size:14px!important}.quick-benefits span{font-size:9px!important}.hero-primary-cta{min-height:60px;font-size:16px}}
+.nav-icon{font-size:22px!important}
+.calendar-strip{gap:8px!important;padding-bottom:12px!important}
+.calendar-day{flex-basis:84px!important;min-height:112px!important;border-radius:17px!important}
+.calendar-day.selected{background:linear-gradient(160deg,rgba(247,187,56,.15),#101820)!important;box-shadow:inset 0 0 0 1px var(--gold),0 12px 30px rgba(247,187,56,.13)!important}
+.calendar-near-label{margin-top:4px;font-size:13px;color:#f1f4f6}
+.notification-note{margin:14px 0 0;padding:12px 14px;border-radius:15px;border:1px solid rgba(99,207,122,.22);background:rgba(99,207,122,.07);color:#bfe9c8;font-size:12px;line-height:1.45}
+
+@media(max-width:390px){
+  .home-hero{min-height:330px!important;padding-left:18px!important;padding-right:18px!important}
+  .home-hero .hero-copy h1{font-size:42px!important}
+  .quick-benefits{grid-template-columns:1fr 1fr 1fr!important}
+  .quick-benefits b{font-size:14px!important}
+  .quick-benefits span{font-size:10px!important}
+  .home-fixed-cta{width:calc(100% - 22px);min-height:56px;font-size:16px}
+}
