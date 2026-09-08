@@ -1,0 +1,57 @@
+/* UX v5: keep address entry clear and unobstructed */
+.keyboard-open .wizard-actions,
+.keyboard-open .bottom-nav,
+.keyboard-open .home-fixed-cta{
+  display:none!important;
+}
+
+.keyboard-open #app{
+  padding-bottom:calc(28px + var(--safe-bottom))!important;
+}
+
+.keyboard-open .booking-top{
+  opacity:.9!important;
+}
+
+.keyboard-done{
+  position:fixed!important;
+  z-index:90!important;
+  width:auto!important;
+  min-width:132px!important;
+  min-height:48px!important;
+  left:auto!important;
+  right:12px!important;
+  bottom:auto!important;
+  top:var(--keyboard-done-top,calc(100dvh - 64px))!important;
+  transform:none!important;
+  padding:0 18px!important;
+  border-radius:16px!important;
+  border:1px solid rgba(247,187,56,.7)!important;
+  background:linear-gradient(135deg,#ffe18b,#f7bb38)!important;
+  color:#17120a!important;
+  font-size:15px!important;
+  font-weight:900!important;
+  box-shadow:0 12px 28px rgba(0,0,0,.42)!important;
+}
+
+.keyboard-open .field:focus-within{
+  scroll-margin-top:150px;
+  scroll-margin-bottom:110px;
+}
+
+.keyboard-open .focus-context{
+  width:min(calc(100% - 28px),530px)!important;
+  padding:10px 16px!important;
+  font-size:13px!important;
+  border-radius:15px!important;
+  text-align:left!important;
+}
+
+@media(max-width:390px){
+  .keyboard-done{
+    min-width:118px!important;
+    min-height:46px!important;
+    right:10px!important;
+    font-size:14px!important;
+  }
+}
