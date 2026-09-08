@@ -1,4 +1,5 @@
-import { api } from '../api.js';
+import { api, canSelfCancel, hoursUntilOrder } from '../api.js';
+import { state } from '../state.js';
 import { escapeHtml, formatDate, modal, STATUS_LABELS, showToast } from '../utils.js';
 
 const ACTIVE = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
@@ -11,9 +12,9 @@ export async function renderOrders(root, navigate, params = {}) {
     const active = data.orders.filter((order) => ACTIVE.has(order.status));
     const history = data.orders.filter((order) => !ACTIVE.has(order.status));
     root.innerHTML = `
-      <h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Активные и завершённые уборки</p>
-      ${section('Активные', active, navigate)}
-      ${section('История', history, navigate)}`;
+      <h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Здесь можно проверить статус, детали и условия отмены</p>
+      ${section('Активные', active)}
+      ${section('История', history)}`;
     bindCards(root, navigate);
     await loadOrderCardPhotos(root);
   } catch (error) {
@@ -21,15 +22,20 @@ export async function renderOrders(root, navigate, params = {}) {
   }
 }
 
-function section(title, orders, navigate) {
+function section(title, orders) {
   return `<div class="order-section-title"><h2 style="margin:0">${title}</h2><span class="badge-count">${orders.length}</span></div>
     ${orders.length ? orders.map(orderCard).join('') : `<div class="empty card">${title === 'Активные' ? 'Активных заявок пока нет' : 'История пока пустая'}</div>`}`;
 }
 
 function orderCard(order) {
+  const hours = hoursUntilOrder(order);
+  const cancelHint = ACTIVE.has(order.status) && Number.isFinite(hours)
+    ? (hours >= 24 ? 'Самостоятельная отмена доступна до 24 часов до начала' : 'До начала меньше 24 часов — отмена через менеджера')
+    : '';
   return `<article class="card order-card" data-order="${order.id}">
     <div class="order-top"><div><div class="order-name">${escapeHtml(order.customer_name)}</div><div class="profile-meta">${escapeHtml(order.order_number || '')}</div></div><span class="status ${order.status}">${escapeHtml(STATUS_LABELS[order.status] || order.status)}</span></div>
     <div class="order-meta"><span>⌖ ${escapeHtml(`${order.city}, ${order.address}`)}</span><span>≡ ${escapeHtml(order.service_name)}</span><span>□ ${formatDate(order.date)} · ${escapeHtml(order.time)}</span></div>
+    ${cancelHint ? `<div class="profile-meta" style="margin:0 0 12px">${escapeHtml(cancelHint)}</div>` : ''}
     ${order.photo_count ? cardPhotos(order) : ''}
     <button class="primary-btn" type="button">Открыть заявку</button>
   </article>`;
@@ -60,10 +66,33 @@ function bindCards(root, navigate) {
   root.querySelectorAll('[data-order]').forEach((card) => card.onclick = () => navigate('orders', { orderId: Number(card.dataset.order) }));
 }
 
+function managerUsername() {
+  return String(state.bootstrap?.config?.managerUsername || state.bootstrap?.config?.botUsername || '').replace(/^@/, '');
+}
+
+function openManager(order) {
+  const username = managerUsername();
+  if (!username) return showToast('Контакт менеджера пока не настроен', true);
+  const orderNumber = order?.order_number || '';
+  const url = `https://t.me/${username}?start=manager${orderNumber ? '_' + encodeURIComponent(orderNumber) : ''}`;
+  const tg = window.Telegram?.WebApp;
+  if (tg?.openTelegramLink) tg.openTelegramLink(url);
+  else window.open(url, '_blank');
+}
+
+function managerCard(order, urgent = false) {
+  return `<div class="manager-card"><strong>${urgent ? 'Нужно отменить или изменить заказ?' : 'Есть вопрос по заказу?'}</strong><p>${urgent ? 'До уборки осталось меньше 24 часов. Самостоятельная отмена закрыта — напишите менеджеру, чтобы решить вопрос.' : 'Менеджер поможет изменить детали заявки, адрес, время или ответит на вопрос.'}</p><button type="button" class="manager-btn" data-manager>Связаться с менеджером</button></div>`;
+}
+
 async function renderOrderDetails(root, navigate, id) {
   try {
     const data = await api.order(id);
     const order = data.order;
+    const selfCancel = canSelfCancel(order);
+    const hours = hoursUntilOrder(order);
+    const urgent = ACTIVE.has(order.status) && Number.isFinite(hours) && hours < 24;
+    const showManager = ACTIVE.has(order.status);
+
     root.innerHTML = `
       <button class="secondary-btn" style="width:auto;min-height:44px;padding:10px 14px;margin-bottom:18px" data-back>← Назад</button>
       <h1 class="page-title">${escapeHtml(order.order_number || `Заявка #${order.id}`)}</h1>
@@ -78,18 +107,23 @@ async function renderOrderDetails(root, navigate, id) {
         ${row('Доп. услуги', data.addons.length ? data.addons.map((item) => item.name).join(', ') : 'Нет')}
         ${row('Контакт', `${order.customer_name}, ${order.phone}`)}
       </div>
+      <div class="cancel-policy"><strong>Отмена:</strong> заявку можно отменить самостоятельно не позднее чем за 24 часа до выбранного времени. Позже — только через менеджера.</div>
       <h2 class="section-title">Фото объекта</h2>
-      <div class="photo-grid">${data.photos.map((photo, index) => `<div class="photo-thumb"><img data-protected-photo="${photo.id}" alt="Фото ${index + 1}"></div>`).join('') || '<div class="empty card">Фото отсутствуют</div>'}</div>
-      ${['NEW','REVIEW'].includes(order.status) ? '<button class="danger-btn" style="margin-top:24px" data-cancel>Отменить заявку</button>' : ''}`;
+      <div class="photo-grid">${data.photos.map((photo, index) => `<div class="photo-thumb"><img data-protected-photo="${photo.id}" alt="Фото ${index + 1}"></div>`).join('') || '<div class="empty card">Фото сохранены в черновике этого устройства</div>'}</div>
+      ${selfCancel ? '<button class="danger-btn" style="margin-top:24px" data-cancel>Отменить заявку</button>' : ''}
+      ${showManager ? managerCard(order, urgent) : ''}`;
+
     root.querySelector('[data-back]').onclick = () => navigate('orders');
+    root.querySelector('[data-manager]')?.addEventListener('click', () => openManager(order));
     await loadProtectedPhotos(root, id);
+
     const cancel = root.querySelector('[data-cancel]');
     if (cancel) cancel.onclick = async () => {
-      if (!await modal({ title: 'Отменить уборку?', text: 'Вы уверены, что хотите отменить эту заявку?', confirmText: 'Отменить заявку', danger: true })) return;
+      if (!await modal({ title: 'Отменить уборку?', text: 'Заявка будет отменена, а администратор сразу получит уведомление.', confirmText: 'Отменить заявку', danger: true })) return;
       try {
         cancel.disabled = true;
         await api.cancelOrder(id);
-        showToast('Заявка отменена');
+        showToast('Заявка отменена. Администратор уведомлён');
         renderOrders(root, navigate, { orderId: id });
       } catch (error) {
         cancel.disabled = false;
