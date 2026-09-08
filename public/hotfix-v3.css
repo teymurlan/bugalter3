@@ -1,0 +1,32 @@
+/* UX v3: keyboard-safe forms, calmer CTA sizes and selected-date calendar */
+.primary-btn,.secondary-btn,.danger-btn{min-height:62px;border-radius:19px;font-size:16px;padding:16px 19px}
+.start-card .primary-btn{min-height:66px;font-size:17px}
+.option-card{min-height:96px}
+.property-chip{min-height:46px;padding:12px 16px}
+.input,.textarea,.select{font-size:16px}
+
+.keyboard-open .wizard-actions,.keyboard-open .bottom-nav{display:none!important}
+.keyboard-open #app{padding-bottom:calc(24px + var(--safe-bottom))}
+.keyboard-open .booking-top{opacity:.72}
+.keyboard-done{position:fixed;z-index:75;right:14px;top:calc(10px + env(safe-area-inset-top,0px));min-width:72px;height:42px;border:1px solid rgba(247,187,56,.55);border-radius:999px;background:#151e26;color:var(--gold);font-size:13px;font-weight:900;padding:0 14px;box-shadow:0 10px 28px rgba(0,0,0,.34)}
+.keyboard-open .focus-context{padding-right:92px;padding-left:18px;text-align:left}
+
+.wizard-actions{gap:12px;padding:12px 0}
+.wizard-actions .secondary-btn{min-width:0}
+.wizard-actions .primary-btn{min-width:0}
+
+.calendar-near-label{margin:2px 2px 10px;color:#d7dde3;font-size:12px;font-weight:850}
+.calendar-strip{scroll-padding-inline:calc(50% - 41px)}
+.calendar-day.selected{transform:translateY(-2px) scale(1.02)}
+
+.manager-card{margin-top:16px;padding:15px;border-radius:17px;border:1px solid rgba(247,187,56,.22);background:rgba(247,187,56,.06)}
+.manager-card strong{display:block;margin-bottom:5px}
+.manager-card p{margin:0 0 12px;color:var(--muted);font-size:13px;line-height:1.45}
+.manager-btn{width:100%;min-height:54px;border:1px solid rgba(247,187,56,.35);border-radius:16px;background:#151e26;color:var(--gold);font-weight:850}
+.cancel-policy{margin-top:18px;padding:13px 14px;border-radius:15px;background:#0a1116;border:1px solid #202c35;color:var(--muted);font-size:12px;line-height:1.45}
+.cancel-policy strong{color:var(--text)}
+
+@media(max-width:390px){
+  .primary-btn,.secondary-btn,.danger-btn{min-height:58px;font-size:15px}
+  .wizard-actions{grid-template-columns:.78fr 1.22fr}
+}
