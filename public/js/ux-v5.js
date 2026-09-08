@@ -30,6 +30,15 @@ function keepFieldVisible() {
   }, 220);
 }
 
+function polishAddressFields() {
+  document.querySelectorAll('[data-field="city"],[data-field="address"],[data-field="apartment"],[data-field="entrance"],[data-field="floor"],[data-field="addressComment"]').forEach((field) => {
+    field.setAttribute('autocomplete', 'off');
+    field.setAttribute('autocorrect', 'off');
+    field.setAttribute('spellcheck', 'false');
+    field.setAttribute('enterkeyhint', 'done');
+  });
+}
+
 document.addEventListener('focusin', (event) => {
   const target = event.target;
   if (!isTextControl(target)) return;
@@ -49,7 +58,14 @@ document.addEventListener('focusout', () => {
       return;
     }
     activeField = null;
-  }, 220);
+  }, 260);
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' || !activeField) return;
+  if (activeField instanceof HTMLTextAreaElement) return;
+  event.preventDefault();
+  activeField.blur();
 });
 
 viewport?.addEventListener('resize', () => {
@@ -58,3 +74,7 @@ viewport?.addEventListener('resize', () => {
 });
 viewport?.addEventListener('scroll', positionDoneButton);
 window.addEventListener('resize', positionDoneButton);
+
+const observer = new MutationObserver(polishAddressFields);
+observer.observe(document.documentElement, { childList: true, subtree: true });
+polishAddressFields();
