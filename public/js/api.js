@@ -74,7 +74,11 @@ function serviceById(id) {
 function capacityForDate(date) {
   const orders = loadDemoOrders().filter((order) => order.date === date && ACTIVE_STATUSES.has(order.status));
   const usedM2 = orders.reduce((sum, order) => sum + Number(order.area || 0), 0);
-  return { capacityM2: DAILY_CAPACITY_M2, usedM2, remainingM2: Math.max(0, DAILY_CAPACITY_M2 - usedM2) };
+  return {
+    capacityM2: DAILY_CAPACITY_M2,
+    usedM2,
+    remainingM2: Math.max(0, DAILY_CAPACITY_M2 - usedM2),
+  };
 }
 
 function orderStartTimestamp(order) {
@@ -89,39 +93,43 @@ export function hoursUntilOrder(order) {
 }
 
 export function canSelfCancel(order) {
-  return SELF_CANCEL_STATUSES.has(order?.status) && hoursUntilOrder(order) >= CANCEL_CUTOFF_HOURS;
+  return SELF_CANCEL_STATUSES.has(order?.status)
+    && hoursUntilOrder(order) >= CANCEL_CUTOFF_HOURS;
 }
 
 async function notifyBackend(order, event = 'created') {
-  try {
-    const response = await fetch('/api/demo-order', {
-      method: 'POST',
-      headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ order, event }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data?.error || `Ошибка уведомления ${response.status}`);
-    return data;
-  } catch (error) {
-    console.warn('Telegram notification failed', error);
-    return { ok: false, adminNotified: 0, clientNotified: false, error: error.message };
+  const response = await fetch('/api/demo-order', {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ order, event }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.ok) {
+    const details = Array.isArray(data?.adminErrors) && data.adminErrors.length
+      ? ` (${data.adminErrors[0]})`
+      : '';
+    throw new Error(`${data?.error || `Ошибка уведомления ${response.status}`}${details}`);
   }
+  return data;
 }
 
 async function notifyStatus(order, status) {
-  try {
-    const response = await fetch('/api/demo-order-status', {
-      method: 'POST',
-      headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ order, status, clientTelegramId: order.client_telegram_id || 0 }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data?.error || `Ошибка уведомления ${response.status}`);
-    return data;
-  } catch (error) {
-    console.warn('Client status notification failed', error);
-    return { ok: false, error: error.message };
+  const response = await fetch('/api/demo-order-status', {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      order,
+      status,
+      clientTelegramId: order.client_telegram_id || 0,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.ok || !data?.clientNotified) {
+    throw new Error(data?.error || `Не удалось уведомить клиента (${response.status})`);
   }
+  return data;
 }
 
 async function demoConfig() {
@@ -129,7 +137,9 @@ async function demoConfig() {
     const response = await fetch('/api/demo-config', { headers: authHeaders() });
     if (!response.ok) return {};
     return await response.json();
-  } catch { return {}; }
+  } catch {
+    return {};
+  }
 }
 
 const demoApi = {
@@ -194,32 +204,61 @@ const demoApi = {
     const orders = loadDemoOrders();
     const index = orders.findIndex((item) => Number(item.id) === Number(id));
     if (index < 0) throw new Error('Заявка не найдена');
-    const current = orders[index];
-    if (!SELF_CANCEL_STATUSES.has(current.status)) throw new Error('Эту заявку нельзя отменить самостоятельно');
-    if (hoursUntilOrder(current) < CANCEL_CUTOFF_HOURS) throw new Error('До уборки осталось меньше 24 часов. Свяжитесь с менеджером');
 
-    orders[index] = { ...current, status: 'CANCELLED', cancelled_at: new Date().toISOString() };
+    const current = orders[index];
+    if (!SELF_CANCEL_STATUSES.has(current.status)) {
+      throw new Error('Эту заявку нельзя отменить самостоятельно');
+    }
+    if (hoursUntilOrder(current) < CANCEL_CUTOFF_HOURS) {
+      throw new Error('До уборки осталось меньше 24 часов. Свяжитесь с менеджером');
+    }
+
+    const cancelled = {
+      ...current,
+      status: 'CANCELLED',
+      cancelled_at: new Date().toISOString(),
+    };
+
+    const notification = await notifyBackend(cancelled, 'cancelled');
+    if (Number(notification.adminNotified || 0) < 1) {
+      throw new Error('Отмена не сохранена: администратор не получил уведомление');
+    }
+
+    orders[index] = cancelled;
     saveDemoOrders(orders);
-    const notification = await notifyBackend(orders[index], 'cancelled');
-    return { ok: true, order: orders[index], notification };
+    return { ok: true, order: cancelled, notification };
   },
 
   async adminSetStatus(id, status) {
     const orders = loadDemoOrders();
     const index = orders.findIndex((item) => Number(item.id) === Number(id));
     if (index < 0) throw new Error('Заявка не найдена');
-    orders[index] = { ...orders[index], status, updated_at: new Date().toISOString() };
+
+    const next = {
+      ...orders[index],
+      status,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (['CONFIRMED', 'COMPLETED', 'CANCELLED'].includes(status)) {
+      await notifyStatus(next, status);
+    }
+
+    orders[index] = next;
     saveDemoOrders(orders);
-    const notification = await notifyStatus(orders[index], status);
-    return { ok: true, order: orders[index], notification };
+    return { ok: true, order: next, notification: { clientNotified: true } };
   },
 
   async createOrder(payload, photos) {
     const capacity = capacityForDate(payload.date);
-    if (Number(payload.area) > capacity.remainingM2) throw new Error(`На эту дату осталось только ${capacity.remainingM2} м²`);
+    if (Number(payload.area) > capacity.remainingM2) {
+      throw new Error(`На эту дату осталось только ${capacity.remainingM2} м²`);
+    }
 
     const orders = loadDemoOrders();
-    const id = orders.length ? Math.max(...orders.map((item) => Number(item.id) || 0)) + 1 : 1;
+    const id = orders.length
+      ? Math.max(...orders.map((item) => Number(item.id) || 0)) + 1
+      : 1;
     const compactDate = String(payload.date || '').replaceAll('-', '').slice(2) || 'DEMO';
     const primary = serviceById(payload.serviceId);
     const telegramUser = tg?.initDataUnsafe?.user || {};
@@ -247,7 +286,10 @@ const demoApi = {
       phone: payload.phone,
       comment: payload.comment || '',
       addon_ids: Array.isArray(payload.addonIds) ? payload.addonIds : [],
-      addon_names: (payload.addonIds || []).map(serviceById).filter(Boolean).map((item) => item.name),
+      addon_names: (payload.addonIds || [])
+        .map(serviceById)
+        .filter(Boolean)
+        .map((item) => item.name),
       photo_count: Array.isArray(photos) ? photos.length : 0,
       photo_ids: '',
       estimated_price: null,
@@ -255,10 +297,24 @@ const demoApi = {
       created_at: new Date().toISOString(),
     };
 
+    if (!order.client_telegram_id) {
+      throw new Error('Не удалось определить Telegram ID. Закройте Mini App и откройте его заново из бота.');
+    }
+
+    const notification = await notifyBackend(order, 'created');
+    if (Number(notification.adminNotified || 0) < 1) {
+      throw new Error('Заявка не отправлена: администратор не получил уведомление');
+    }
+
     orders.unshift(order);
     saveDemoOrders(orders);
-    const notification = await notifyBackend(order, 'created');
-    return { ok: true, demo: true, order, notification };
+
+    return {
+      ok: true,
+      demo: true,
+      order,
+      notification,
+    };
   },
 
   photoUrl: () => '',
