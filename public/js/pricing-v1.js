@@ -30,7 +30,7 @@ function applyRatesToState() {
   services.forEach((service) => {
     if (service.kind !== 'primary') return;
     const rate = rateFor(service);
-    if (rate > 0) service.price_per_m2 = rate;
+    if (rate > 0 && Number(service.price_per_m2 || 0) !== rate) service.price_per_m2 = rate;
   });
 }
 
@@ -62,13 +62,14 @@ function decorateServiceCards() {
     const service = services.find((item) => Number(item.id) === Number(card.dataset.service));
     const rate = rateFor(service);
     if (!rate) return;
+    const value = `от ${rub.format(rate)} ₽/м²`;
     let price = card.querySelector('.hc-service-rate');
     if (!price) {
       price = document.createElement('span');
       price.className = 'hc-service-rate';
       card.appendChild(price);
     }
-    price.textContent = `от ${rub.format(rate)} ₽/м²`;
+    if (price.textContent !== value) price.textContent = value;
   });
 
   const grid = document.querySelector('.service-grid');
@@ -125,8 +126,9 @@ function decorateReviewPrice() {
   const { rate, area, total } = estimateFor();
   if (!rate || !area) return;
 
+  const value = `от ${rub.format(total)} ₽`;
   const price = card.querySelector('.price');
-  if (price) price.textContent = `от ${rub.format(total)} ₽`;
+  if (price && price.textContent !== value) price.textContent = value;
 
   let details = card.querySelector('.hc-review-price-details');
   if (!details) {
@@ -134,7 +136,11 @@ function decorateReviewPrice() {
     details.className = 'hc-review-price-details';
     card.appendChild(details);
   }
-  details.innerHTML = `<span>${rub.format(area)} м² × ${rub.format(rate)} ₽/м²</span><p>Предварительный расчёт. <b>Точную стоимость рассчитает менеджер</b> после просмотра фотографий и оценки объекта.</p>`;
+  const signature = `${area}:${rate}:${total}`;
+  if (details.dataset.signature !== signature) {
+    details.dataset.signature = signature;
+    details.innerHTML = `<span>${rub.format(area)} м² × ${rub.format(rate)} ₽/м²</span><p>Предварительный расчёт. <b>Точную стоимость рассчитает менеджер</b> после просмотра фотографий и оценки объекта.</p>`;
+  }
 }
 
 function decorate() {
@@ -144,10 +150,20 @@ function decorate() {
   decorateReviewPrice();
 }
 
-const observer = new MutationObserver(() => decorate());
+let scheduled = false;
+function scheduleDecorate() {
+  if (scheduled) return;
+  scheduled = true;
+  requestAnimationFrame(() => {
+    scheduled = false;
+    decorate();
+  });
+}
+
+const observer = new MutationObserver(scheduleDecorate);
 const root = document.querySelector('#app');
 if (root) observer.observe(root, { childList: true, subtree: true });
 
-document.addEventListener('DOMContentLoaded', decorate, { once: true });
-setTimeout(decorate, 250);
-setTimeout(decorate, 900);
+document.addEventListener('DOMContentLoaded', scheduleDecorate, { once: true });
+setTimeout(scheduleDecorate, 250);
+setTimeout(scheduleDecorate, 900);
