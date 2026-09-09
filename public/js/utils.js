@@ -16,12 +16,15 @@ export function formatDate(value) {
   if (!value) return '—';
   const raw = String(value).trim();
   const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) return `${iso[3]}/${iso[2]}/${iso[1].slice(-2)}`;
+  if (iso) return `${iso[3]}.${iso[2]}.${iso[1]}`;
   const ru = raw.match(/^(\d{2})[./-](\d{2})[./-](\d{2}|\d{4})$/);
-  if (ru) return `${ru[1]}/${ru[2]}/${ru[3].slice(-2)}`;
+  if (ru) {
+    const year = ru[3].length === 2 ? `20${ru[3]}` : ru[3];
+    return `${ru[1]}.${ru[2]}.${year}`;
+  }
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return raw;
-  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' }).format(date);
+  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
 }
 
 export function formatTime(value) {
