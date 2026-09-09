@@ -51,11 +51,17 @@ function configureFocusContext() {
   });
 }
 
-function moveIndicator(button) {
+function moveIndicator(button, retry = 0) {
   if (!button) return;
   requestAnimationFrame(() => {
-    const center = button.offsetLeft + button.offsetWidth / 2;
-    nav.style.setProperty('--indicator-x', `${center}px`);
+    const navRect = nav.getBoundingClientRect();
+    const buttonRect = button.getBoundingClientRect();
+    if ((!navRect.width || !buttonRect.width) && retry < 4) {
+      setTimeout(() => moveIndicator(button, retry + 1), 40);
+      return;
+    }
+    const center = buttonRect.left - navRect.left + buttonRect.width / 2;
+    nav.style.setProperty('--indicator-x', `${Math.round(center)}px`);
   });
 }
 
@@ -75,8 +81,14 @@ function configureNavSync() {
     if (root.querySelector('.home-hero') || root.querySelector('.booking-top')) setActiveNav('home');
   };
   const observer = new MutationObserver(sync);
-  observer.observe(root, { childList: true });
-  window.addEventListener('resize', () => moveIndicator(nav.querySelector('.nav-item.active')));
+  observer.observe(root, { childList: true, subtree: false });
+
+  if ('ResizeObserver' in window) {
+    const resizeObserver = new ResizeObserver(() => moveIndicator(nav.querySelector('.nav-item.active')));
+    resizeObserver.observe(nav);
+  } else {
+    window.addEventListener('resize', () => moveIndicator(nav.querySelector('.nav-item.active')));
+  }
 }
 
 function haptic() {
@@ -141,7 +153,9 @@ async function start() {
       if (Number.isInteger(orderId)) return navigate('orders', { orderId });
     }
 
-    navigate(adminMode ? 'admin' : 'home');
+    const initialRoute = adminMode ? 'admin' : 'home';
+    navigate(initialRoute);
+    requestAnimationFrame(() => requestAnimationFrame(() => setActiveNav(initialRoute)));
   } catch (error) {
     root.innerHTML = `<div class="card pad" style="margin-top:60px"><h2>Не удалось открыть приложение</h2><p class="page-subtitle">${escapeHtml(error.message || 'Ошибка')}</p><button class="primary-btn" onclick="location.reload()">Попробовать снова</button></div>`;
   }
