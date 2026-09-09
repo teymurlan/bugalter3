@@ -1,0 +1,29 @@
+name: KP module checks
+
+on:
+  push:
+    branches:
+      - feature/kp-generator
+  pull_request:
+    paths:
+      - 'src/kp-math.js'
+      - 'src/demo-worker-v10.js'
+      - 'public/kp/**'
+      - 'tests/kp-math.test.mjs'
+      - 'wrangler.jsonc'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check src/kp-math.js
+          node --check src/demo-worker-v10.js
+          node --check public/kp/kp.js
+      - name: Calculation tests
+        run: node tests/kp-math.test.mjs
