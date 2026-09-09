@@ -1,0 +1,125 @@
+/* House Cleaning KP mobile/premium UX layer */
+html { -webkit-text-size-adjust: 100%; scroll-padding-bottom: 120px; }
+body { overflow-x: hidden; overscroll-behavior-y: contain; }
+
+.topbar { align-items: center; }
+.brand-lockup { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-logo-shell { width: 64px; height: 48px; flex: 0 0 auto; border-radius: 12px; overflow: hidden; border: 1px solid #5a461d; background: #242424; box-shadow: 0 8px 26px rgba(0,0,0,.28); }
+.brand-logo-shell img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.brand-copy { min-width: 0; }
+.brand-copy .eyebrow { margin-bottom: 4px; }
+.brand-copy h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.editor-panel { background: radial-gradient(circle at 12% 0%, rgba(215,179,90,.055), transparent 23%), linear-gradient(180deg,#111214,#0d0e10); }
+.section-head { padding-top: 4px; }
+.section-head h2 { letter-spacing: -.01em; }
+
+.quick-service-card {
+  margin: 0 0 14px;
+  padding: 14px;
+  border: 1px solid #4b3b1c;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(35,30,18,.96), rgba(17,18,20,.98));
+  box-shadow: inset 0 1px rgba(255,255,255,.025), 0 12px 34px rgba(0,0,0,.16);
+}
+.quick-service-title { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom: 12px; }
+.quick-service-title strong { font-size: 15px; }
+.quick-service-title span { font-size: 11px; color: var(--gold); letter-spacing: .08em; text-transform: uppercase; }
+.quick-service-grid { display:grid; grid-template-columns: minmax(0,1.7fr) .62fr .72fr .8fr; gap:9px; align-items:end; }
+.quick-service-card label { margin:0; }
+.quick-service-card label > span { font-size:10px; color:#aaa79e; text-transform:uppercase; letter-spacing:.06em; }
+.quick-service-actions { display:grid; grid-template-columns: 1.4fr .8fr; gap:8px; margin-top:10px; }
+.quick-service-add { min-height: 46px; }
+.quick-service-custom { min-height: 46px; }
+.preset-row { display:none !important; }
+
+.item { position:relative; padding:14px; border-radius:17px; background: linear-gradient(180deg,#18191c,#131417); box-shadow: inset 0 1px rgba(255,255,255,.025); }
+.item-card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+.item-index { color:var(--gold); font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+.item-remove-text { border:0; background:transparent; color:#df7777; font-size:12px; padding:5px 0 5px 8px; }
+.item-name-row { margin-bottom:9px; }
+.item-grid { display:grid; grid-template-columns: .55fr .8fr 1fr; gap:8px; }
+.item .item-field { margin:0; }
+.item .item-field input { min-height:44px; }
+.item-card-total { margin-top:11px; padding-top:10px; border-top:1px solid #292a2f; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.item-card-total span { font-size:11px; color:#96979d; text-transform:uppercase; letter-spacing:.08em; }
+.item-total { min-height:auto; justify-content:flex-end; font-size:18px; }
+.remove-item { display:none !important; }
+
+input, select, textarea { caret-color: var(--gold-2); }
+input::placeholder, textarea::placeholder { color:#62636a; }
+
+.keyboard-bar {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 120;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 8px 8px 13px;
+  border-radius:14px;
+  border:1px solid #4d3c1b;
+  background: rgba(16,16,17,.96);
+  backdrop-filter: blur(18px);
+  box-shadow:0 14px 44px rgba(0,0,0,.42);
+}
+.keyboard-bar span { color:#aaa79e; font-size:12px; }
+.keyboard-bar button { border:1px solid #d1ac51; background:linear-gradient(180deg,#f3d98b,#cda443); color:#17120a; font-weight:800; border-radius:10px; padding:9px 17px; }
+body.keyboard-open .sticky-actions { opacity:0; pointer-events:none; transform:translateY(14px); }
+.sticky-actions { transition: opacity .16s ease, transform .16s ease; }
+
+.service-flash { animation: serviceFlash .5s ease; }
+@keyframes serviceFlash { 0% { box-shadow:0 0 0 0 rgba(215,179,90,.28); } 100% { box-shadow:0 0 0 16px rgba(215,179,90,0); } }
+
+@media (max-width: 720px) {
+  .app { padding: 10px 10px calc(30px + env(safe-area-inset-bottom)); }
+  .topbar { position: sticky; top: 0; z-index: 20; margin: -10px -10px 14px; padding: 11px 10px 10px; background: rgba(9,9,10,.92); backdrop-filter: blur(16px); border-bottom:1px solid #25262b; }
+  .brand-logo-shell { width: 52px; height: 40px; border-radius:10px; }
+  .brand-copy h1 { font-size:18px; max-width: 205px; }
+  .brand-copy .eyebrow { font-size:9px; }
+  .topbar > .btn { padding:9px 10px; font-size:12px; white-space:nowrap; }
+  .panel { border-radius:16px; }
+  .editor-panel { padding:14px 12px; }
+  .section-head { margin-bottom:12px; }
+  .section-head h2 { font-size:17px; }
+  .number-badge { font-size:11px; padding:7px 9px; }
+
+  /* 16px prevents iOS Safari/Telegram automatic zoom and screen jumping on focus. */
+  input, select, textarea { font-size:16px !important; line-height:1.25; min-height:46px; padding:11px 12px; border-radius:12px; }
+  textarea { min-height:72px; }
+  label { font-size:12px; gap:6px; margin-bottom:10px; }
+  .grid.two { grid-template-columns:1fr; gap:0; }
+
+  .quick-service-card { padding:12px; margin-left:-2px; margin-right:-2px; }
+  .quick-service-title { margin-bottom:10px; }
+  .quick-service-grid { grid-template-columns: .65fr .8fr 1fr; }
+  .quick-service-grid .quick-service-select-wrap { grid-column:1/-1; }
+  .quick-service-actions { grid-template-columns:1fr; }
+
+  .items { gap:10px; }
+  .item { padding:12px; }
+  .item-top { display:block; }
+  .item-grid { grid-template-columns:.58fr .82fr 1fr; }
+  .item-name-row { margin-bottom:8px; }
+  .item-total { font-size:17px; }
+
+  .totals-card { padding:12px; }
+  .totals-card > div { grid-template-columns:1fr auto auto; font-size:13px; }
+  .totals-card .grand strong { font-size:22px; }
+  .mini-input { width:68px; min-height:40px; font-size:16px !important; padding:7px 8px; }
+
+  .sticky-actions { position:sticky; bottom:max(8px, env(safe-area-inset-bottom)); grid-template-columns:.85fr 1fr 1.25fr; padding:7px; gap:6px; }
+  .sticky-actions .btn { padding:10px 7px; font-size:12px; }
+
+  .history-panel { margin-top:4px; }
+}
+
+@media (max-width: 390px) {
+  .brand-copy h1 { max-width:165px; font-size:17px; }
+  .topbar > .btn { font-size:11px; padding:8px 9px; }
+  .item-grid { grid-template-columns:.58fr .74fr 1fr; gap:6px; }
+  .sticky-actions .btn { font-size:11px; }
+}
