@@ -1,10 +1,10 @@
-import { api, isDemoMode } from './api.js';
-import { state } from './state.js';
-import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v2.js';
-import { renderOrders } from './views/orders.js';
-import { renderProfile } from './views/profile.js';
-import { renderAdmin } from './views/admin.js?v=16';
+import { api, isDemoMode } from './api.js?v=18';
+import { state } from './state.js?v=18';
+import { escapeHtml } from './utils.js?v=18';
+import { renderBooking } from './views/booking-v2.js?v=18';
+import { renderOrders } from './views/orders.js?v=18';
+import { renderProfile } from './views/profile.js?v=18';
+import { renderAdmin } from './views/admin.js?v=18';
 
 const tg = window.Telegram?.WebApp;
 const root = document.querySelector('#app');
