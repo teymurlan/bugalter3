@@ -4,13 +4,49 @@ import { escapeHtml, formatDate, formatTime, modal, STATUS_LABELS, showToast } f
 
 const ACTIVE = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
 
+function initDataHeaders() {
+  return { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || '' };
+}
+
+async function fetchStoredOrders() {
+  try {
+    const response = await fetch('/api/demo-client-orders', { headers: initDataHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data.orders) ? data.orders : [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchStoredOrder(orderNumber) {
+  try {
+    const response = await fetch(`/api/demo-client-order?order=${encodeURIComponent(orderNumber)}`, { headers: initDataHeaders() });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.order || null;
+  } catch {
+    return null;
+  }
+}
+
+function mergeWithStored(localOrders, storedOrders) {
+  const byNumber = new Map(storedOrders.map((order) => [String(order.order_number || ''), order]));
+  return localOrders.map((local) => {
+    const stored = byNumber.get(String(local.order_number || ''));
+    return stored ? { ...local, ...stored, id: local.id } : local;
+  });
+}
+
 export async function renderOrders(root, navigate, params = {}) {
   root.innerHTML = `<h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Активные и завершённые уборки</p><div class="loading"><div><div class="spinner"></div>Загружаем заявки...</div></div>`;
   try {
     if (params.orderId) return renderOrderDetails(root, navigate, params.orderId);
     const data = await api.orders();
-    const active = data.orders.filter((order) => ACTIVE.has(order.status));
-    const history = data.orders.filter((order) => !ACTIVE.has(order.status));
+    const stored = await fetchStoredOrders();
+    const orders = mergeWithStored(data.orders || [], stored);
+    const active = orders.filter((order) => ACTIVE.has(order.status));
+    const history = orders.filter((order) => !ACTIVE.has(order.status));
     root.innerHTML = `
       <h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Здесь можно проверить статус, детали и условия отмены</p>
       ${section('Активные', active)}
@@ -36,23 +72,29 @@ function orderCard(order) {
     <div class="order-top"><div><div class="order-name">${escapeHtml(order.customer_name)}</div><div class="profile-meta">${escapeHtml(order.order_number || '')}</div></div><span class="status ${order.status}">${escapeHtml(STATUS_LABELS[order.status] || order.status)}</span></div>
     <div class="order-meta"><span>⌖ ${escapeHtml(`${order.city}, ${order.address}`)}</span><span>≡ ${escapeHtml(order.service_name)}</span><span>□ ${formatDate(order.date)} · ${escapeHtml(formatTime(order.time))}</span></div>
     ${cancelHint ? `<div class="profile-meta" style="margin:0 0 12px">${escapeHtml(cancelHint)}</div>` : ''}
-    ${order.photo_count ? cardPhotos(order) : ''}
+    ${Number(order.photo_count || 0) ? cardPhotos(order) : ''}
     <button class="primary-btn" type="button">Открыть заявку</button>
   </article>`;
 }
 
 function cardPhotos(order) {
-  const ids = String(order.photo_ids || '').split(',').filter(Boolean);
-  const visible = ids.slice(0, 3);
-  const extra = Math.max(0, Number(order.photo_count || 0) - visible.length);
-  return `<div class="order-photos">${visible.map((id) => `<div class="order-mini-photo"><img data-card-photo data-order-id="${order.id}" data-photo-id="${id}" alt=""></div>`).join('')}${extra ? `<div class="order-more">+${extra}</div>` : ''}</div>`;
+  const count = Math.max(Number(order.photo_count || 0), Array.isArray(order.photo_file_ids) ? order.photo_file_ids.length : 0);
+  const available = Array.isArray(order.photo_file_ids) ? order.photo_file_ids.length : 0;
+  const visible = Math.min(3, available);
+  const extra = Math.max(0, count - visible);
+  if (!visible) return `<div class="order-photos"><div class="order-more">${count ? `+${count}` : 'Фото'}</div></div>`;
+  return `<div class="order-photos">${Array.from({ length: visible }, (_, index) => `<div class="order-mini-photo"><img data-card-photo data-order-number="${escapeHtml(order.order_number)}" data-photo-index="${index}" alt="Фото ${index + 1}"></div>`).join('')}${extra ? `<div class="order-more">+${extra}</div>` : ''}</div>`;
+}
+
+function clientPhotoUrl(orderNumber, index) {
+  const query = new URLSearchParams({ order: String(orderNumber), index: String(index) });
+  return `/api/demo-client-photo?${query.toString()}`;
 }
 
 async function loadOrderCardPhotos(root) {
-  const initData = window.Telegram?.WebApp?.initData || '';
   await Promise.all([...root.querySelectorAll('[data-card-photo]')].map(async (img) => {
     try {
-      const response = await fetch(api.photoUrl(img.dataset.orderId, img.dataset.photoId), { headers: { 'X-Telegram-Init-Data': initData } });
+      const response = await fetch(clientPhotoUrl(img.dataset.orderNumber, Number(img.dataset.photoIndex)), { headers: initDataHeaders() });
       if (!response.ok) return;
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -86,8 +128,12 @@ function managerCard(order, urgent = false) {
 
 async function renderOrderDetails(root, navigate, id) {
   try {
-    const data = await api.order(id);
-    const order = data.order;
+    const localData = await api.order(id);
+    const stored = localData.order?.order_number ? await fetchStoredOrder(localData.order.order_number) : null;
+    const order = stored ? { ...localData.order, ...stored, id: localData.order.id } : localData.order;
+    const addons = (order.addon_ids || []).map((addonId) => (state.bootstrap?.services || []).find((item) => Number(item.id) === Number(addonId))).filter(Boolean);
+    const photoCount = Math.max(Number(order.photo_count || 0), Array.isArray(order.photo_file_ids) ? order.photo_file_ids.length : 0);
+    const availablePhotoCount = Array.isArray(order.photo_file_ids) ? order.photo_file_ids.length : 0;
     const selfCancel = canSelfCancel(order);
     const hours = hoursUntilOrder(order);
     const urgent = ACTIVE.has(order.status) && Number.isFinite(hours) && hours < 24;
@@ -104,18 +150,18 @@ async function renderOrderDetails(root, navigate, id) {
         ${row('Дата', formatDate(order.date))}
         ${row('Время', formatTime(order.time))}
         ${row('Комнаты / санузлы', `${order.rooms} / ${order.bathrooms}`)}
-        ${row('Доп. услуги', data.addons.length ? data.addons.map((item) => item.name).join(', ') : 'Нет')}
+        ${row('Доп. услуги', addons.length ? addons.map((item) => item.name).join(', ') : (order.addon_names?.join(', ') || 'Нет'))}
         ${row('Контакт', `${order.customer_name}, ${order.phone}`)}
       </div>
       <div class="cancel-policy"><strong>Отмена:</strong> заявку можно отменить самостоятельно не позднее чем за 24 часа до выбранного времени. Позже — только через менеджера.</div>
       <h2 class="section-title">Фото объекта</h2>
-      <div class="photo-grid">${data.photos.map((photo, index) => `<div class="photo-thumb"><img data-protected-photo="${photo.id}" alt="Фото ${index + 1}"></div>`).join('') || '<div class="empty card">Фото сохранены в черновике этого устройства</div>'}</div>
+      <div class="photo-grid client-order-gallery">${availablePhotoCount ? Array.from({ length: availablePhotoCount }, (_, index) => `<button class="photo-thumb client-photo-thumb" type="button" data-client-photo="${index}"><img alt="Фото ${index + 1}"><span>${index + 1}</span></button>`).join('') : `<div class="empty card">${photoCount ? 'Фотографии этой заявки были созданы до включения серверного хранения и недоступны для восстановления.' : 'Фотографии не прикреплены'}</div>`}</div>
       ${selfCancel ? '<button class="danger-btn" style="margin-top:24px" data-cancel>Отменить заявку</button>' : ''}
       ${showManager ? managerCard(order, urgent) : ''}`;
 
     root.querySelector('[data-back]').onclick = () => navigate('orders');
     root.querySelector('[data-manager]')?.addEventListener('click', () => openManager(order));
-    await loadProtectedPhotos(root, id);
+    if (availablePhotoCount) await loadClientDetailPhotos(root, order.order_number, availablePhotoCount);
 
     const cancel = root.querySelector('[data-cancel]');
     if (cancel) cancel.onclick = async () => {
@@ -136,18 +182,43 @@ async function renderOrderDetails(root, navigate, id) {
   }
 }
 
-async function loadProtectedPhotos(root, orderId) {
-  const initData = window.Telegram?.WebApp?.initData || '';
-  await Promise.all([...root.querySelectorAll('[data-protected-photo]')].map(async (img) => {
+async function loadClientDetailPhotos(root, orderNumber, count) {
+  const urls = new Array(count).fill('');
+  await Promise.all(Array.from({ length: count }, async (_, index) => {
+    const button = root.querySelector(`[data-client-photo="${index}"]`);
+    const img = button?.querySelector('img');
+    if (!button || !img) return;
     try {
-      const response = await fetch(api.photoUrl(orderId, img.dataset.protectedPhoto), { headers: { 'X-Telegram-Init-Data': initData } });
-      if (!response.ok) return;
+      const response = await fetch(clientPhotoUrl(orderNumber, index), { headers: initDataHeaders() });
+      if (!response.ok) throw new Error('Photo unavailable');
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
+      urls[index] = url;
       img.src = url;
-      img.onload = () => URL.revokeObjectURL(url);
-    } catch { /* preview is non-critical */ }
+      button.onclick = () => openClientGallery(urls, index);
+    } catch {
+      button.classList.add('error');
+      button.innerHTML = '<span>Фото недоступно</span>';
+    }
   }));
+}
+
+function openClientGallery(urls, startIndex) {
+  const available = urls.map((url, index) => ({ url, index })).filter((item) => item.url);
+  if (!available.length) return;
+  let current = Math.max(0, available.findIndex((item) => item.index === startIndex));
+  const overlay = document.createElement('div');
+  overlay.className = 'admin-lightbox client-lightbox';
+  overlay.innerHTML = `<div class="admin-lightbox-top"><button type="button" data-close>×</button><span data-count></span></div><button type="button" class="admin-lightbox-nav prev" data-prev>‹</button><div class="admin-lightbox-stage"><img data-image alt="Фото объекта"></div><button type="button" class="admin-lightbox-nav next" data-next>›</button>`;
+  document.body.appendChild(overlay);
+  const image = overlay.querySelector('[data-image]');
+  const counter = overlay.querySelector('[data-count]');
+  const draw = () => { image.src = available[current].url; counter.textContent = `${current + 1} / ${available.length}`; };
+  overlay.querySelector('[data-close]').onclick = () => overlay.remove();
+  overlay.querySelector('[data-prev]').onclick = () => { current = (current - 1 + available.length) % available.length; draw(); };
+  overlay.querySelector('[data-next]').onclick = () => { current = (current + 1) % available.length; draw(); };
+  overlay.onclick = (event) => { if (event.target === overlay) overlay.remove(); };
+  draw();
 }
 
 function row(label, value) {
