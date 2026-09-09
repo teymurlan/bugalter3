@@ -13,6 +13,7 @@ function defaultDraft() {
     bathrooms: 1,
     pets: false,
     addonIds: [],
+    serviceArea: 'spb',
     city: 'Санкт-Петербург',
     address: '',
     apartment: '',
