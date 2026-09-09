@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - feature/kp-generator
+      - hotfix/kp-assets-route-final2
   pull_request:
     paths:
       - 'src/kp-math.js'
       - 'src/demo-worker-v10.js'
+      - 'src/demo-worker-v11.js'
       - 'public/kp/**'
       - 'tests/kp-math.test.mjs'
       - 'wrangler.jsonc'
@@ -24,6 +26,7 @@ jobs:
         run: |
           node --check src/kp-math.js
           node --check src/demo-worker-v10.js
+          node --check src/demo-worker-v11.js
           node --check public/kp/kp.js
       - name: Calculation tests
         run: node tests/kp-math.test.mjs
