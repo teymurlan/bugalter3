@@ -1,0 +1,210 @@
+/* HOUSE CLEANING · Premium bottom navigation · Variant 1 */
+.bottom-nav{
+  left:12px!important;
+  right:12px!important;
+  bottom:calc(10px + var(--safe-bottom))!important;
+  width:auto!important;
+  max-width:640px!important;
+  height:78px!important;
+  margin:0 auto!important;
+  padding:7px 10px!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  align-items:center!important;
+  border:1px solid rgba(221,178,86,.46)!important;
+  border-radius:36px!important;
+  background:
+    linear-gradient(180deg,rgba(18,17,15,.98),rgba(5,7,8,.985))!important;
+  box-shadow:
+    0 20px 55px rgba(0,0,0,.62),
+    inset 0 1px 0 rgba(255,232,174,.10),
+    inset 0 -1px 0 rgba(0,0,0,.5)!important;
+  backdrop-filter:blur(24px) saturate(120%)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(120%)!important;
+  overflow:visible!important;
+}
+
+.bottom-nav::before{
+  content:"";
+  position:absolute;
+  left:9%;
+  right:9%;
+  top:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,220,139,.56),transparent);
+  pointer-events:none;
+}
+
+.bottom-nav .nav-item{
+  position:relative!important;
+  min-width:0!important;
+  min-height:60px!important;
+  padding:5px 2px!important;
+  border:0!important;
+  border-radius:22px!important;
+  background:transparent!important;
+  color:rgba(239,239,236,.72)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  font-size:11px!important;
+  font-weight:650!important;
+  letter-spacing:.01em!important;
+  line-height:1.05!important;
+  transition:color .18s ease,transform .16s ease,background .18s ease,filter .18s ease!important;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.bottom-nav .nav-item.active::after{
+  display:none!important;
+}
+
+.bottom-nav .nav-item:not([data-route="booking"]).active{
+  color:#f1d28a!important;
+  background:radial-gradient(circle at 50% 70%,rgba(226,181,87,.10),transparent 62%)!important;
+  text-shadow:0 0 18px rgba(239,197,105,.22);
+}
+
+.bottom-nav .nav-item:not([data-route="booking"]):active{
+  transform:scale(.93)!important;
+}
+
+.bottom-nav .nav-icon{
+  width:26px!important;
+  height:26px!important;
+  display:grid!important;
+  place-items:center!important;
+  font-size:0!important;
+  line-height:1!important;
+}
+
+.bottom-nav .nav-icon svg{
+  width:25px;
+  height:25px;
+  display:block;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.38));
+}
+
+/* Raised gold booking button from chosen Variant 1 */
+.bottom-nav .nav-item[data-route="booking"]{
+  width:76px!important;
+  height:76px!important;
+  min-height:76px!important;
+  justify-self:center!important;
+  align-self:center!important;
+  margin-top:-18px!important;
+  padding:8px 4px 7px!important;
+  border:1px solid rgba(236,200,122,.74)!important;
+  border-radius:50%!important;
+  color:#e5c57e!important;
+  background:
+    radial-gradient(circle at 50% 28%,rgba(255,232,174,.18),transparent 38%),
+    linear-gradient(160deg,#211c13 0%,#0e0e0d 62%,#080908 100%)!important;
+  box-shadow:
+    0 12px 30px rgba(0,0,0,.62),
+    0 0 0 4px rgba(224,178,78,.055),
+    inset 0 1px 0 rgba(255,236,187,.16)!important;
+  z-index:3!important;
+}
+
+.bottom-nav .nav-item[data-route="booking"]::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-8px;
+  width:4px;
+  height:4px;
+  border-radius:50%;
+  transform:translateX(-50%);
+  background:rgba(239,201,111,.44);
+  box-shadow:0 0 8px rgba(239,201,111,.25);
+}
+
+.bottom-nav .nav-item[data-route="booking"].active{
+  color:#171108!important;
+  border-color:#f9d98d!important;
+  background:
+    radial-gradient(circle at 45% 25%,#fff4d5 0%,#f6d48b 23%,#d5a748 66%,#9e7226 100%)!important;
+  box-shadow:
+    0 14px 34px rgba(0,0,0,.65),
+    0 0 0 4px rgba(236,190,92,.12),
+    0 0 28px rgba(240,194,95,.36),
+    inset 0 1px 0 rgba(255,255,255,.72)!important;
+  animation:bookingGlow 3.2s ease-in-out infinite;
+}
+
+.bottom-nav .nav-item[data-route="booking"].active::before{
+  width:5px;
+  height:5px;
+  background:#ffe6a8;
+  box-shadow:0 0 12px rgba(255,221,142,.9);
+}
+
+.bottom-nav .nav-item[data-route="booking"]:active{
+  transform:scale(.95)!important;
+}
+
+@keyframes bookingGlow{
+  0%,100%{filter:brightness(1);}
+  50%{filter:brightness(1.055);}
+}
+
+/* This taller floating bar needs extra breathing room */
+#app{
+  padding-bottom:calc(128px + var(--safe-bottom))!important;
+}
+
+.wizard-actions{
+  bottom:calc(106px + var(--safe-bottom))!important;
+}
+
+.home-fixed-cta{
+  bottom:calc(112px + var(--safe-bottom))!important;
+}
+
+.toast{
+  bottom:calc(114px + var(--safe-bottom))!important;
+}
+
+.keyboard-open .bottom-nav{
+  display:none!important;
+}
+
+@media(max-width:390px){
+  .bottom-nav{
+    left:8px!important;
+    right:8px!important;
+    height:72px!important;
+    padding-left:6px!important;
+    padding-right:6px!important;
+    border-radius:32px!important;
+  }
+  .bottom-nav .nav-item{
+    min-height:55px!important;
+    font-size:10px!important;
+    gap:4px!important;
+  }
+  .bottom-nav .nav-item[data-route="booking"]{
+    width:68px!important;
+    height:68px!important;
+    min-height:68px!important;
+    margin-top:-15px!important;
+    font-size:10px!important;
+  }
+  .bottom-nav .nav-icon,
+  .bottom-nav .nav-icon svg{
+    width:23px!important;
+    height:23px!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .bottom-nav .nav-item[data-route="booking"].active{animation:none!important}
+  .bottom-nav .nav-item{transition:none!important}
+}
