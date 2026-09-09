@@ -17,7 +17,7 @@
   backdrop-filter:blur(24px) saturate(120%)!important;
   -webkit-backdrop-filter:blur(24px) saturate(120%)!important;
   overflow:hidden!important;
-  --indicator-x:16.666%;
+  --indicator-x:50%;
 }
 
 .bottom-nav::before{
@@ -35,15 +35,15 @@
   position:absolute;
   z-index:0;
   top:7px;
-  left:0;
+  left:var(--indicator-x);
   width:56px;
   height:56px;
   border:1px solid rgba(248,215,143,.72);
   border-radius:50%;
-  transform:translateX(calc(var(--indicator-x) - 28px));
+  transform:translateX(-50%);
   background:radial-gradient(circle at 45% 26%,rgba(255,244,213,.28),rgba(224,181,88,.15) 38%,rgba(10,10,9,.06) 72%);
   box-shadow:0 0 0 4px rgba(236,190,92,.05),0 0 24px rgba(240,194,95,.20),inset 0 1px 0 rgba(255,255,255,.28);
-  transition:transform .34s cubic-bezier(.22,.78,.28,1),opacity .18s ease,box-shadow .24s ease;
+  transition:left .34s cubic-bezier(.22,.78,.28,1),opacity .18s ease,box-shadow .24s ease;
   pointer-events:none;
 }
 
@@ -114,7 +114,7 @@
   }
   .bottom-nav .nav-item{min-height:55px!important;font-size:10px!important;gap:4px!important}
   .bottom-nav .nav-icon,.bottom-nav .nav-icon svg{width:23px!important;height:23px!important}
-  .nav-active-indicator{top:7px;width:52px;height:52px;transform:translateX(calc(var(--indicator-x) - 26px))}
+  .nav-active-indicator{top:7px;width:52px;height:52px}
 }
 
 @media(prefers-reduced-motion:reduce){
