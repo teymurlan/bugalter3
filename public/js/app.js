@@ -24,14 +24,7 @@ function configureTelegram() {
 }
 
 function configureAdminNav() {
-  if (!adminMode || nav.querySelector('[data-route="admin"]')) return;
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'nav-item';
-  button.dataset.route = 'admin';
-  button.innerHTML = '<span class="nav-icon">◆</span><span>Админ</span>';
-  nav.appendChild(button);
-  nav.classList.add('four-items');
+  nav.classList.toggle('admin-mode', adminMode);
 }
 
 function configureFocusContext() {
@@ -62,14 +55,37 @@ function setActiveNav(route) {
   nav.querySelectorAll('[data-route]').forEach((button) => button.classList.toggle('active', button.dataset.route === route));
 }
 
+function haptic() {
+  try { tg?.HapticFeedback?.selectionChanged?.(); } catch {}
+}
+
 export function navigate(route, params = {}) {
   state.route = route;
-  setActiveNav(route);
   window.scrollTo({ top: 0, behavior: 'instant' });
+
+  if (route === 'home') {
+    setActiveNav('home');
+    const savedStep = Number(state.draft?.step || 0);
+    state.draft.step = 0;
+    renderBooking(root, navigate);
+    state.draft.step = savedStep;
+    return;
+  }
+
+  if (route === 'booking') {
+    setActiveNav('booking');
+    if (!Number(state.draft?.step || 0)) {
+      state.draft.step = 1;
+      state.saveDraft();
+    }
+    return renderBooking(root, navigate);
+  }
+
+  setActiveNav(route);
   if (route === 'orders') return renderOrders(root, navigate, params);
   if (route === 'profile') return renderProfile(root, navigate);
   if (route === 'admin') return renderAdmin(root, navigate);
-  return renderBooking(root, navigate);
+  return navigate('home');
 }
 
 async function start() {
@@ -87,14 +103,20 @@ async function start() {
     state.bootstrap = await api.bootstrap();
     await state.restorePhotos();
     nav.classList.remove('hidden');
-    nav.querySelectorAll('[data-route]').forEach((button) => button.onclick = () => navigate(button.dataset.route));
+    nav.querySelectorAll('[data-route]').forEach((button) => {
+      button.onclick = () => {
+        haptic();
+        navigate(button.dataset.route);
+      };
+    });
 
     const startParam = tg?.initDataUnsafe?.start_param || '';
     if (!isDemoMode && startParam.startsWith('order_')) {
       const orderId = Number(startParam.slice(6));
       if (Number.isInteger(orderId)) return navigate('orders', { orderId });
     }
-    navigate(adminMode ? 'admin' : 'booking');
+
+    navigate(adminMode ? 'admin' : 'home');
   } catch (error) {
     root.innerHTML = `<div class="card pad" style="margin-top:60px"><h2>Не удалось открыть приложение</h2><p class="page-subtitle">${escapeHtml(error.message || 'Ошибка')}</p><button class="primary-btn" onclick="location.reload()">Попробовать снова</button></div>`;
   }
