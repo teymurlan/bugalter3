@@ -134,9 +134,13 @@ async function sendStatus(env, clientId, order, status, origin) {
       : 'Если хотите выбрать другую дату — откройте приложение или напишите менеджеру.';
 
   const details = orderDetails(order);
+  const priceNote = Number(order.estimated_price) > 0
+    ? '\n\n<i>Стоимость предварительная. Точную стоимость рассчитает менеджер после оценки объекта и фотографий.</i>'
+    : '';
+
   return safeTelegram(env, 'sendMessage', {
     chat_id: clientId,
-    text: `${title}\n\n${details}\n\n${ending}`,
+    text: `${title}\n\n${details}${priceNote}\n\n${ending}`,
     parse_mode: 'HTML',
     reply_markup: {
       inline_keyboard: [[{
@@ -158,9 +162,11 @@ function orderDetails(order) {
   const lines = [`<b>${escapeHtml(order.order_number)}</b>`];
   if (order.service_name) lines.push(`Уборка: ${escapeHtml(order.service_name)}`);
   if (Number(order.area)) lines.push(`Площадь: <b>${Number(order.area)} м²</b>`);
-  if (order.date) lines.push(`Дата: <b>${escapeHtml(order.date)} · ${escapeHtml(order.time || '—')}</b>`);
+  if (order.date) lines.push(`Дата: <b>${formatDateShort(order.date)}</b>`);
+  if (order.time) lines.push(`Время: <b>${formatTimeShort(order.time)}</b>`);
   if (order.city || order.address) lines.push(`Адрес: ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}`);
   if (order.addon_names?.length) lines.push(`Дополнительно: ${escapeHtml(order.addon_names.join(', '))}`);
+  if (Number(order.estimated_price) > 0) lines.push(`Предварительная стоимость: <b>от ${money(order.estimated_price)}</b>`);
   return lines.join('\n');
 }
 
@@ -168,19 +174,23 @@ function parseOrderFromAdminMessage(text, orderNumber) {
   const value = String(text || '');
   const pick = (re) => value.match(re)?.[1]?.trim() || '';
   const area = Number(pick(/Площадь:\s*(\d+(?:[.,]\d+)?)\s*м²/i).replace(',', '.')) || 0;
-  const dateTime = value.match(/Дата:\s*([^·\n]+)\s*·\s*([^\n]+)/i);
+  const combined = value.match(/Дата:\s*([^·\n]+)\s*·\s*([^\n]+)/i);
+  const date = pick(/Дата:\s*([^\n]+)/i).replace(/\s*·[\s\S]*$/, '').trim() || combined?.[1]?.trim() || '';
+  const time = pick(/Время:\s*([^\n]+)/i) || combined?.[2]?.trim() || '';
   const addressLine = pick(/Адрес:\s*([^\n]+)/i);
   const addressParts = addressLine.split(',').map((part) => part.trim()).filter(Boolean);
   const addons = pick(/Дополнительно:\s*([^\n]+)/i);
+  const estimateRaw = pick(/Предварительная стоимость:\s*(?:от\s*)?([\d\s.,]+)\s*₽/i).replace(/[^\d]/g, '');
   return {
     order_number: orderNumber,
     service_name: pick(/Уборка:\s*([^\n]+)/i),
     area,
-    date: dateTime?.[1]?.trim() || '',
-    time: dateTime?.[2]?.trim() || '',
+    date,
+    time,
     city: addressParts.length > 1 ? addressParts.shift() : '',
     address: addressParts.join(', ') || addressLine,
     addon_names: addons && addons.toLowerCase() !== 'нет' ? addons.split(',').map((x) => x.trim()).filter(Boolean) : [],
+    estimated_price: Number(estimateRaw || 0),
   };
 }
 
@@ -196,8 +206,29 @@ function normalizeOrder(raw) {
     city: String(raw.city || ''),
     address: String(raw.address || ''),
     addon_names: Array.isArray(raw.addon_names) ? raw.addon_names.map(String) : [],
+    estimated_price: Math.max(0, Number(raw.estimated_price || 0)),
     client_telegram_id: Number(raw.client_telegram_id || 0),
   };
+}
+
+function formatDateShort(value) {
+  const raw = String(value || '').trim();
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return `${iso[3]}/${iso[2]}/${iso[1].slice(-2)}`;
+  const ru = raw.match(/^(\d{2})[./-](\d{2})[./-](\d{2}|\d{4})$/);
+  if (ru) return `${ru[1]}/${ru[2]}/${ru[3].slice(-2)}`;
+  return escapeHtml(raw || '—');
+}
+
+function formatTimeShort(value) {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return escapeHtml(raw || '—');
+  return `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`;
+}
+
+function money(value) {
+  return `${new Intl.NumberFormat('ru-RU').format(Math.round(Number(value || 0)))} ₽`;
 }
 
 function callbackData(action, userId, orderNumber) {
