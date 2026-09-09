@@ -97,12 +97,26 @@ export function canSelfCancel(order) {
     && hoursUntilOrder(order) >= CANCEL_CUTOFF_HOURS;
 }
 
-async function notifyBackend(order, event = 'created') {
-  const response = await fetch('/api/demo-order', {
-    method: 'POST',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ order, event }),
-  });
+async function notifyBackend(order, event = 'created', photos = []) {
+  let response;
+
+  if (event === 'created' && Array.isArray(photos) && photos.length) {
+    const form = new FormData();
+    form.append('order', JSON.stringify(order));
+    form.append('event', event);
+    photos.slice(0, 10).forEach((photo, index) => form.append('photos', photo, photo.name || `object-${index + 1}.jpg`));
+    response = await fetch('/api/demo-order', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: form,
+    });
+  } else {
+    response = await fetch('/api/demo-order', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ order, event }),
+    });
+  }
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data?.ok) {
@@ -165,7 +179,7 @@ const demoApi = {
   },
 
   async adminOrders() {
-    return { ok: true, demo: true, orders: loadDemoOrders() };
+    return request('/api/demo-admin-orders');
   },
 
   async order(id) {
@@ -206,59 +220,40 @@ const demoApi = {
     if (index < 0) throw new Error('Заявка не найдена');
 
     const current = orders[index];
-    if (!SELF_CANCEL_STATUSES.has(current.status)) {
-      throw new Error('Эту заявку нельзя отменить самостоятельно');
-    }
-    if (hoursUntilOrder(current) < CANCEL_CUTOFF_HOURS) {
-      throw new Error('До уборки осталось меньше 24 часов. Свяжитесь с менеджером');
-    }
+    if (!SELF_CANCEL_STATUSES.has(current.status)) throw new Error('Эту заявку нельзя отменить самостоятельно');
+    if (hoursUntilOrder(current) < CANCEL_CUTOFF_HOURS) throw new Error('До уборки осталось меньше 24 часов. Свяжитесь с менеджером');
 
-    const cancelled = {
-      ...current,
-      status: 'CANCELLED',
-      cancelled_at: new Date().toISOString(),
-    };
-
+    const cancelled = { ...current, status: 'CANCELLED', cancelled_at: new Date().toISOString() };
     const notification = await notifyBackend(cancelled, 'cancelled');
-    if (Number(notification.adminNotified || 0) < 1) {
-      throw new Error('Отмена не сохранена: администратор не получил уведомление');
-    }
+    if (Number(notification.adminNotified || 0) < 1) throw new Error('Отмена не сохранена: администратор не получил уведомление');
 
     orders[index] = cancelled;
     saveDemoOrders(orders);
     return { ok: true, order: cancelled, notification };
   },
 
-  async adminSetStatus(id, status) {
-    const orders = loadDemoOrders();
-    const index = orders.findIndex((item) => Number(item.id) === Number(id));
-    if (index < 0) throw new Error('Заявка не найдена');
-
-    const next = {
-      ...orders[index],
-      status,
-      updated_at: new Date().toISOString(),
-    };
+  async adminSetStatus(order, status) {
+    if (!order?.order_number) throw new Error('Заявка не найдена');
+    const next = { ...order, status, updated_at: new Date().toISOString() };
 
     if (['CONFIRMED', 'COMPLETED', 'CANCELLED'].includes(status)) {
-      await notifyStatus(next, status);
+      const notification = await notifyStatus(next, status);
+      return { ok: true, order: next, notification };
     }
 
-    orders[index] = next;
-    saveDemoOrders(orders);
-    return { ok: true, order: next, notification: { clientNotified: true } };
+    return request('/api/demo-admin-store-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: next, status }),
+    });
   },
 
   async createOrder(payload, photos) {
     const capacity = capacityForDate(payload.date);
-    if (Number(payload.area) > capacity.remainingM2) {
-      throw new Error(`На эту дату осталось только ${capacity.remainingM2} м²`);
-    }
+    if (Number(payload.area) > capacity.remainingM2) throw new Error(`На эту дату осталось только ${capacity.remainingM2} м²`);
 
     const orders = loadDemoOrders();
-    const id = orders.length
-      ? Math.max(...orders.map((item) => Number(item.id) || 0)) + 1
-      : 1;
+    const id = orders.length ? Math.max(...orders.map((item) => Number(item.id) || 0)) + 1 : 1;
     const compactDate = String(payload.date || '').replaceAll('-', '').slice(2) || 'DEMO';
     const primary = serviceById(payload.serviceId);
     const selectedAddons = (payload.addonIds || []).map(serviceById).filter(Boolean);
@@ -300,24 +295,16 @@ const demoApi = {
       created_at: new Date().toISOString(),
     };
 
-    if (!order.client_telegram_id) {
-      throw new Error('Не удалось определить Telegram ID. Закройте Mini App и откройте его заново из бота.');
-    }
+    if (!order.client_telegram_id) throw new Error('Не удалось определить Telegram ID. Закройте Mini App и откройте его заново из бота.');
 
-    const notification = await notifyBackend(order, 'created');
-    if (Number(notification.adminNotified || 0) < 1) {
-      throw new Error('Заявка не отправлена: администратор не получил уведомление');
-    }
+    const notification = await notifyBackend(order, 'created', photos);
+    if (Number(notification.adminNotified || 0) < 1) throw new Error('Заявка не отправлена: администратор не получил уведомление');
 
+    if (notification?.order?.photo_file_ids) order.photo_file_ids = notification.order.photo_file_ids;
     orders.unshift(order);
     saveDemoOrders(orders);
 
-    return {
-      ok: true,
-      demo: true,
-      order,
-      notification,
-    };
+    return { ok: true, demo: true, order, notification };
   },
 
   photoUrl: () => '',
