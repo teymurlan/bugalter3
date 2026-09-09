@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#202020" />
+  <title>House Cleaning · КП</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/kp/kp.css?v=1" />
+</head>
+<body>
+  <div id="gate" class="gate">
+    <div class="gate-card">
+      <div class="spinner"></div>
+      <div id="gateTitle">Проверяем доступ</div>
+      <small id="gateText">Коммерческие предложения доступны только администратору.</small>
+    </div>
+  </div>
+
+  <main id="app" class="app hidden">
+    <header class="brand-header">
+      <img src="/kp/logo.jpg" alt="House Cleaning" />
+      <div class="header-copy">
+        <span class="eyebrow">ADMIN TOOL</span>
+        <h1>Коммерческие предложения</h1>
+        <p>Создание, расчёт и PDF за несколько минут</p>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Разделы">
+      <button class="tab active" data-tab="editor">Новое КП</button>
+      <button class="tab" data-tab="history">История</button>
+    </nav>
+
+    <section id="editorTab" class="tab-panel">
+      <div class="top-meta card">
+        <div>
+          <span class="label">Номер КП</span>
+          <strong id="quoteNumber">Назначится автоматически</strong>
+        </div>
+        <div>
+          <span class="label">Дата</span>
+          <strong id="quoteDateLabel">—</strong>
+        </div>
+        <button id="newQuoteBtn" class="ghost small">Новое КП</button>
+      </div>
+
+      <section class="card section-card">
+        <div class="section-title"><span>01</span><div><h2>Клиент и объект</h2><p>Только данные конкретного заказа</p></div></div>
+        <div class="grid two">
+          <label>Клиент / компания<input id="clientName" autocomplete="organization" placeholder="Иван Иванов / ООО Север" /></label>
+          <label>Тип объекта<select id="objectType"><option>Квартира</option><option>Загородный дом</option><option>Коммерческое помещение</option><option>Офис</option><option>Другое</option></select></label>
+          <label class="span-2">Адрес объекта<input id="objectAddress" autocomplete="street-address" placeholder="Санкт-Петербург, Крестовский пр., 12" /></label>
+          <label>Площадь, м²<input id="objectArea" inputmode="decimal" placeholder="203,5" /></label>
+          <label>Тема КП<input id="quoteSubject" value="Уборка жилого помещения" /></label>
+        </div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-title row-between"><div class="title-pack"><span>02</span><div><h2>Работы и стоимость</h2><p>Суммы считаются автоматически</p></div></div><button id="addItemBtn" class="gold small">+ Добавить</button></div>
+        <div id="items" class="items"></div>
+        <div class="totals">
+          <div><span>Стоимость работ</span><strong id="subtotal">0 ₽</strong></div>
+          <div class="discount-row"><label>Скидка, %<input id="discountPercent" inputmode="decimal" value="0" /></label><strong id="discountAmount">0 ₽</strong></div>
+          <div class="grand"><span>ИТОГО</span><strong id="grandTotal">0 ₽</strong></div>
+          <small id="totalWords">Ноль рублей 00 коп.</small>
+        </div>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-title"><span>03</span><div><h2>Условия</h2><p>Можно изменить для конкретного клиента</p></div></div>
+        <div class="grid two">
+          <label>Срок выполнения<input id="duration" value="1–2 дня" /></label>
+          <label>Предоплата, %<input id="prepaymentPercent" inputmode="decimal" value="50" /></label>
+          <label>Срок действия КП, дней<input id="validDays" inputmode="numeric" value="14" /></label>
+          <label>Комментарий по оплате<input id="paymentTerms" value="Предоплата 50%, остаток после выполнения работ" /></label>
+          <label class="span-2">Дополнительные условия<textarea id="notes" rows="3" placeholder="Например: расходные материалы включены в стоимость"></textarea></label>
+        </div>
+        <div class="payment-summary">
+          <div><span>Предоплата</span><b id="prepaymentAmount">0 ₽</b></div>
+          <div><span>Остаток</span><b id="balanceAmount">0 ₽</b></div>
+          <div><span>Действует до</span><b id="validUntil">—</b></div>
+        </div>
+      </section>
+
+      <div class="actions sticky-actions">
+        <button id="previewBtn" class="ghost">Предпросмотр</button>
+        <button id="saveBtn" class="dark">Сохранить</button>
+        <button id="downloadBtn" class="gold">Скачать PDF</button>
+      </div>
+      <button id="sendTelegramBtn" class="telegram-btn">Отправить PDF себе в Telegram</button>
+      <p id="statusLine" class="status-line">Черновик сохраняется на этом устройстве автоматически.</p>
+    </section>
+
+    <section id="historyTab" class="tab-panel hidden">
+      <div class="card history-head"><div><h2>История КП</h2><p>Открывайте, копируйте и скачивайте прошлые предложения</p></div><button id="refreshHistoryBtn" class="ghost small">Обновить</button></div>
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <div id="previewModal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head"><div><b>Предпросмотр A4</b><small id="previewCaption"></small></div><button id="closePreviewBtn" class="icon-btn">×</button></div>
+      <div id="previewPages" class="preview-pages"></div>
+      <div class="modal-actions"><button id="modalDownloadBtn" class="gold">Скачать PDF</button></div>
+    </div>
+  </div>
+
+  <template id="itemTemplate">
+    <article class="item-card">
+      <div class="item-top"><select class="item-template"></select><button class="remove-item" aria-label="Удалить">×</button></div>
+      <label>Наименование услуги<textarea class="item-title" rows="2"></textarea></label>
+      <div class="grid four compact">
+        <label>Ед. изм.<select class="item-unit"><option>м²</option><option>шт</option><option>усл.ед</option><option>час</option></select></label>
+        <label>Кол-во<input class="item-qty" inputmode="decimal" /></label>
+        <label>Цена<input class="item-price" inputmode="decimal" /></label>
+        <label>Сумма<input class="item-amount" readonly /></label>
+      </div>
+    </article>
+  </template>
+
+  <script type="module" src="/kp/kp.js?v=1"></script>
+</body>
+</html>
