@@ -55,6 +55,15 @@ function setActiveNav(route) {
   nav.querySelectorAll('[data-route]').forEach((button) => button.classList.toggle('active', button.dataset.route === route));
 }
 
+function configureNavSync() {
+  const sync = () => {
+    if (root.querySelector('.home-hero')) setActiveNav('home');
+    else if (root.querySelector('.booking-top')) setActiveNav('booking');
+  };
+  const observer = new MutationObserver(sync);
+  observer.observe(root, { childList: true });
+}
+
 function haptic() {
   try { tg?.HapticFeedback?.selectionChanged?.(); } catch {}
 }
@@ -92,6 +101,7 @@ async function start() {
   configureTelegram();
   configureFocusContext();
   configureAdminNav();
+  configureNavSync();
   root.innerHTML = `<div class="loading"><div><div class="spinner"></div>Загружаем HOUSE CLEANING...</div></div>`;
 
   if (!tg?.initData && !isDemoMode) {
