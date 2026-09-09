@@ -1,14 +1,14 @@
 .hc-confetti-canvas{
   position:fixed;
   inset:0;
-  z-index:160;
+  z-index:360;
   pointer-events:none;
 }
 
 .hc-success-sparkles{
   position:fixed;
   inset:0;
-  z-index:159;
+  z-index:359;
   pointer-events:none;
   overflow:hidden;
 }
@@ -33,9 +33,7 @@
   border-radius:999px;
   background:rgba(255,239,196,.72);
 }
-.hc-success-sparkles i::after{
-  inset:-5px 2px;
-}
+.hc-success-sparkles i::after{inset:-5px 2px}
 
 .hc-success-premium{
   position:relative;
@@ -47,7 +45,7 @@
   border-color:rgba(250,216,139,.9)!important;
   background:radial-gradient(circle at 38% 30%,#fff6d4 0%,#f1cf7d 34%,#c99432 72%,#7d5517 100%)!important;
   box-shadow:0 0 0 7px rgba(236,190,92,.07),0 0 34px rgba(239,191,85,.36),0 18px 42px rgba(0,0,0,.36)!important;
-  animation:hcCheckPop .65s cubic-bezier(.2,1.35,.3,1) both,hcGoldBreath 2.6s ease-in-out .7s infinite;
+  animation:hcCheckPop .65s cubic-bezier(.2,1.35,.3,1) both,hcGoldBreath 2.6s ease-in-out .7s infinite!important;
 }
 .hc-success-premium .success-icon::after{
   content:"";
@@ -57,43 +55,25 @@
   border:1px solid rgba(244,207,124,.26);
   animation:hcSuccessRing 1.3s ease-out .18s 1 both;
 }
-.hc-success-premium .success-order{
-  animation:hcCardRise .5s ease .16s both;
-}
+.hc-success-premium .success-order{animation:hcCardRise .5s ease .16s both!important}
 .hc-success-premium .primary-btn,
-.hc-success-premium .secondary-btn{
-  animation:hcCardRise .48s ease .25s both;
-}
+.hc-success-premium .secondary-btn{animation:hcCardRise .48s ease .25s both!important}
 
 @keyframes hcSpark{
   0%{opacity:0;transform:scale(.15) rotate(25deg)}
   35%{opacity:1}
   75%{opacity:.95}
-  100%{opacity:0;transform:scale(1.35) rotate(115deg) translateY(-14px)}
+  100%{opacity:0;transform:scale(calc(var(--scale) * 1.35)) rotate(115deg) translateY(-14px)}
 }
-@keyframes hcSuccessEnter{
-  from{opacity:0;transform:translateY(14px)}
-  to{opacity:1;transform:none}
-}
-@keyframes hcCheckPop{
-  0%{opacity:0;transform:scale(.58) rotate(-10deg)}
-  65%{opacity:1;transform:scale(1.08) rotate(2deg)}
-  100%{transform:scale(1) rotate(0)}
-}
-@keyframes hcGoldBreath{
-  0%,100%{filter:brightness(1)}
-  50%{filter:brightness(1.08)}
-}
-@keyframes hcSuccessRing{
-  0%{opacity:.9;transform:scale(.7)}
-  100%{opacity:0;transform:scale(1.35)}
-}
-@keyframes hcCardRise{
-  from{opacity:0;transform:translateY(10px)}
-  to{opacity:1;transform:none}
-}
+@keyframes hcSuccessEnter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes hcCheckPop{0%{opacity:0;transform:scale(.58) rotate(-10deg)}65%{opacity:1;transform:scale(1.08) rotate(2deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes hcGoldBreath{0%,100%{filter:brightness(1)}50%{filter:brightness(1.08)}}
+@keyframes hcSuccessRing{0%{opacity:.9;transform:scale(.7)}100%{opacity:0;transform:scale(1.35)}}
+@keyframes hcCardRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 @media(prefers-reduced-motion:reduce){
-  .hc-success-sparkles{display:none!important}
-  .hc-success-premium,.hc-success-premium .success-icon,.hc-success-premium .success-order,.hc-success-premium .primary-btn,.hc-success-premium .secondary-btn{animation:none!important}
+  .hc-success-sparkles{display:block!important}
+  .hc-success-premium{animation:hcSuccessEnter .32s ease both!important}
+  .hc-success-premium .success-icon{animation:hcCheckPop .45s ease both,hcGoldBreath 2.8s ease-in-out .55s infinite!important}
+  .hc-success-premium .success-order,.hc-success-premium .primary-btn,.hc-success-premium .secondary-btn{animation:hcCardRise .34s ease both!important}
 }
