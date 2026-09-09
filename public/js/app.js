@@ -51,17 +51,32 @@ function configureFocusContext() {
   });
 }
 
+function moveIndicator(button) {
+  if (!button) return;
+  requestAnimationFrame(() => {
+    const center = button.offsetLeft + button.offsetWidth / 2;
+    nav.style.setProperty('--indicator-x', `${center}px`);
+  });
+}
+
 function setActiveNav(route) {
-  nav.querySelectorAll('[data-route]').forEach((button) => button.classList.toggle('active', button.dataset.route === route));
+  const visualRoute = route === 'booking' ? 'home' : route;
+  let activeButton = null;
+  nav.querySelectorAll('[data-route]').forEach((button) => {
+    const active = button.dataset.route === visualRoute;
+    button.classList.toggle('active', active);
+    if (active) activeButton = button;
+  });
+  moveIndicator(activeButton);
 }
 
 function configureNavSync() {
   const sync = () => {
-    if (root.querySelector('.home-hero')) setActiveNav('home');
-    else if (root.querySelector('.booking-top')) setActiveNav('booking');
+    if (root.querySelector('.home-hero') || root.querySelector('.booking-top')) setActiveNav('home');
   };
   const observer = new MutationObserver(sync);
   observer.observe(root, { childList: true });
+  window.addEventListener('resize', () => moveIndicator(nav.querySelector('.nav-item.active')));
 }
 
 function haptic() {
@@ -82,7 +97,7 @@ export function navigate(route, params = {}) {
   }
 
   if (route === 'booking') {
-    setActiveNav('booking');
+    setActiveNav('home');
     if (!Number(state.draft?.step || 0)) {
       state.draft.step = 1;
       state.saveDraft();
