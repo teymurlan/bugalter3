@@ -13,10 +13,10 @@ const DAILY_CAPACITY_M2 = 300;
 const CANCEL_CUTOFF_HOURS = 24;
 
 const demoServices = [
-  { id: 1, code: 'general', kind: 'primary', name: 'Генеральная уборка', description: 'Глубокая уборка всего объекта', price_per_m2: null, fixed_price: null, sort_order: 1 },
-  { id: 2, code: 'maintenance', kind: 'primary', name: 'Поддерживающая уборка', description: 'Регулярное поддержание чистоты', price_per_m2: null, fixed_price: null, sort_order: 2 },
-  { id: 3, code: 'post_renovation', kind: 'primary', name: 'После ремонта', description: 'Пыль, следы ремонта и сложные загрязнения', price_per_m2: null, fixed_price: null, sort_order: 3 },
-  { id: 4, code: 'commercial', kind: 'primary', name: 'Коммерческая уборка', description: 'Офисы и коммерческие помещения', price_per_m2: null, fixed_price: null, sort_order: 4 },
+  { id: 1, code: 'general', kind: 'primary', name: 'Генеральная уборка', description: 'Глубокая уборка всего объекта', price_per_m2: 230, fixed_price: null, sort_order: 1 },
+  { id: 2, code: 'maintenance', kind: 'primary', name: 'Поддерживающая уборка', description: 'Регулярное поддержание чистоты', price_per_m2: 95, fixed_price: null, sort_order: 2 },
+  { id: 3, code: 'post_renovation', kind: 'primary', name: 'После ремонта', description: 'Пыль, следы ремонта и сложные загрязнения', price_per_m2: 230, fixed_price: null, sort_order: 3 },
+  { id: 4, code: 'commercial', kind: 'primary', name: 'Коммерческая уборка', description: 'Офисы и коммерческие помещения', price_per_m2: 95, fixed_price: null, sort_order: 4 },
   { id: 101, code: 'windows', kind: 'addon', name: 'Мытьё окон', description: 'Окна, рамы и подоконники', price_per_m2: null, fixed_price: null, sort_order: 1 },
   { id: 102, code: 'fridge', kind: 'addon', name: 'Холодильник внутри', description: 'Внутренняя мойка холодильника', price_per_m2: null, fixed_price: null, sort_order: 2 },
   { id: 103, code: 'oven', kind: 'addon', name: 'Духовка внутри', description: 'Очистка духовки изнутри', price_per_m2: null, fixed_price: null, sort_order: 3 },
@@ -261,6 +261,11 @@ const demoApi = {
       : 1;
     const compactDate = String(payload.date || '').replaceAll('-', '').slice(2) || 'DEMO';
     const primary = serviceById(payload.serviceId);
+    const selectedAddons = (payload.addonIds || []).map(serviceById).filter(Boolean);
+    const addonTotal = selectedAddons.reduce((sum, item) => sum + Number(item.fixed_price || 0), 0);
+    const ratePerM2 = Number(primary?.price_per_m2 || 0);
+    const area = Number(payload.area || 0);
+    const estimatedPrice = ratePerM2 > 0 && area > 0 ? Math.round(ratePerM2 * area + addonTotal) : 0;
     const telegramUser = tg?.initDataUnsafe?.user || {};
 
     const order = {
@@ -270,7 +275,7 @@ const demoApi = {
       service_id: Number(payload.serviceId),
       service_name: primary?.name || 'Уборка',
       property_type: payload.propertyType,
-      area: Number(payload.area),
+      area,
       rooms: Number(payload.rooms),
       bathrooms: Number(payload.bathrooms),
       pets: Boolean(payload.pets),
@@ -286,13 +291,11 @@ const demoApi = {
       phone: payload.phone,
       comment: payload.comment || '',
       addon_ids: Array.isArray(payload.addonIds) ? payload.addonIds : [],
-      addon_names: (payload.addonIds || [])
-        .map(serviceById)
-        .filter(Boolean)
-        .map((item) => item.name),
+      addon_names: selectedAddons.map((item) => item.name),
       photo_count: Array.isArray(photos) ? photos.length : 0,
       photo_ids: '',
-      estimated_price: null,
+      price_per_m2: ratePerM2,
+      estimated_price: estimatedPrice || null,
       client_telegram_id: Number(telegramUser.id || 0),
       created_at: new Date().toISOString(),
     };
