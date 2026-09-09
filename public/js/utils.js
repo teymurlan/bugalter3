@@ -14,8 +14,22 @@ export function escapeHtml(value = '') {
 
 export function formatDate(value) {
   if (!value) return '—';
-  const date = new Date(`${value}T12:00:00`);
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(date);
+  const raw = String(value).trim();
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return `${iso[3]}/${iso[2]}/${iso[1].slice(-2)}`;
+  const ru = raw.match(/^(\d{2})[./-](\d{2})[./-](\d{2}|\d{4})$/);
+  if (ru) return `${ru[1]}/${ru[2]}/${ru[3].slice(-2)}`;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' }).format(date);
+}
+
+export function formatTime(value) {
+  if (!value) return '—';
+  const raw = String(value).trim();
+  const match = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return raw;
+  return `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`;
 }
 
 export function money(value) {
