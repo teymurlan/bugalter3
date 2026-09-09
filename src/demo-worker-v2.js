@@ -8,40 +8,15 @@ export default {
       return handleOrderEvent(request, env, url.origin);
     }
 
-    if (url.pathname === '/api/demo-order-status' && request.method === 'POST') {
-      return handleAdminStatus(request, env, url.origin);
-    }
-
-    if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
-      if (env.TELEGRAM_WEBHOOK_SECRET
-        && request.headers.get('X-Telegram-Bot-Api-Secret-Token') !== env.TELEGRAM_WEBHOOK_SECRET) {
-        return new Response('Unauthorized', { status: 401 });
-      }
-
-      let update;
-      try { update = await request.clone().json(); }
-      catch { return new Response('Bad Request', { status: 400 }); }
-
-      if (update.callback_query) {
-        await handleAdminCallback(update.callback_query, env, url.origin);
-        return new Response('OK');
-      }
-
-      const message = update.message || update.edited_message;
-      const text = String(message?.text || '').trim();
-
-      if (text.startsWith('/start')) {
-        await handleStart(message, env, url.origin);
-        return new Response('OK');
-      }
-    }
-
     return baseWorker.fetch(request, env, ctx);
   },
 };
 
 async function handleOrderEvent(request, env, origin) {
-  const user = await validateRequestUser(request, env);
+  const user = await validateInitData(
+    request.headers.get('X-Telegram-Init-Data') || '',
+    env.TELEGRAM_BOT_TOKEN,
+  );
   if (!user) return json({ ok: false, error: 'Telegram authorization failed' }, 401);
 
   let body;
@@ -107,6 +82,8 @@ async function handleOrderEvent(request, env, origin) {
         '',
         orderDetails(order),
         '',
+        'Стоимость указана предварительно. Точную стоимость рассчитает менеджер после оценки объекта и фотографий.',
+        '',
         '✅ Администратор уже получил вашу заявку.',
         'После подтверждения бот пришлёт отдельное сообщение.',
       ].join('\n')
@@ -140,210 +117,16 @@ async function handleOrderEvent(request, env, origin) {
   });
 }
 
-async function handleAdminStatus(request, env, origin) {
-  const user = await validateRequestUser(request, env);
-  if (!user || !isAdmin(env, user.id)) {
-    return json({ ok: false, error: 'Admin authorization failed' }, 403);
-  }
-
-  let body;
-  try { body = await request.json(); }
-  catch { return json({ ok: false, error: 'Некорректный запрос' }, 400); }
-
-  const order = cleanOrder(body?.order);
-  const clientId = Number(body?.clientTelegramId || order?.client_telegram_id || 0);
-  const status = String(body?.status || '');
-
-  if (!order || !Number.isSafeInteger(clientId) || clientId <= 0) {
-    return json({ ok: false, error: 'Нет Telegram ID клиента' }, 400);
-  }
-
-  const sent = await sendClientStatus(env, clientId, order, status, origin);
-  if (!sent) return json({ ok: false, error: 'Не удалось отправить уведомление клиенту' }, 502);
-
-  return json({ ok: true, clientNotified: true });
-}
-
-async function handleAdminCallback(query, env, origin) {
-  if (!isAdmin(env, query?.from?.id)) {
-    await safeTelegram(env, 'answerCallbackQuery', {
-      callback_query_id: query.id,
-      text: 'Нет доступа',
-      show_alert: true,
-    });
-    return;
-  }
-
-  const match = /^hc:(c|x|d):(\d+):(.+)$/.exec(String(query.data || ''));
-  if (!match) {
-    await safeTelegram(env, 'answerCallbackQuery', {
-      callback_query_id: query.id,
-      text: 'Команда устарела',
-    });
-    return;
-  }
-
-  const action = match[1];
-  const clientId = Number(match[2]);
-  const orderNumber = decodeURIComponent(match[3]);
-  const status = action === 'c' ? 'CONFIRMED' : action === 'x' ? 'CANCELLED' : 'COMPLETED';
-  const details = extractDetails(query.message?.text || '');
-
-  const sent = await sendClientStatus(
-    env,
-    clientId,
-    { order_number: orderNumber, _detailsText: details },
-    status,
-    origin,
-  );
-
-  await safeTelegram(env, 'answerCallbackQuery', {
-    callback_query_id: query.id,
-    text: sent
-      ? status === 'CONFIRMED'
-        ? 'Заявка подтверждена'
-        : status === 'COMPLETED'
-          ? 'Уборка завершена'
-          : 'Заявка отменена'
-      : 'Клиент не получил уведомление',
-    show_alert: !sent,
-  });
-
-  if (!sent || !query.message?.chat?.id || !query.message?.message_id) return;
-
-  const replyMarkup = action === 'c'
-    ? {
-        inline_keyboard: [
-          [{ text: 'Завершить уборку', callback_data: callbackData('d', clientId, orderNumber), style: 'success' }],
-          [{ text: 'Отменить', callback_data: callbackData('x', clientId, orderNumber), style: 'danger' }],
-          [{ text: 'Написать клиенту', url: `tg://user?id=${clientId}` }],
-        ],
-      }
-    : {
-        inline_keyboard: [[{ text: 'Написать клиенту', url: `tg://user?id=${clientId}` }]],
-      };
-
-  await safeTelegram(env, 'editMessageReplyMarkup', {
-    chat_id: query.message.chat.id,
-    message_id: query.message.message_id,
-    reply_markup: replyMarkup,
-  });
-}
-
-async function handleStart(message, env, origin) {
-  const chatId = message?.chat?.id;
-  if (!chatId) return;
-
-  if (env.TELEGRAM_WEBHOOK_SECRET) {
-    await safeTelegram(env, 'setWebhook', {
-      url: `${origin}/telegram/webhook`,
-      secret_token: env.TELEGRAM_WEBHOOK_SECRET,
-      allowed_updates: ['message', 'edited_message', 'callback_query'],
-      drop_pending_updates: false,
-    });
-  }
-
-  const firstName = message?.from?.first_name || 'клиент';
-  const keyboard = [[{
-    text: '🧹 Заказать уборку',
-    web_app: { url: `${origin}/?demo=1` },
-    style: 'success',
-  }]];
-
-  if (isAdmin(env, chatId)) {
-    keyboard.push([{
-      text: '📋 Панель администратора',
-      web_app: { url: `${origin}/?demo=1&admin=1` },
-      style: 'primary',
-    }]);
-  }
-
-  const greeting = [
-    '✨ <b>HOUSE CLEANING</b>',
-    '',
-    `👋 Здравствуйте, ${escapeHtml(firstName)}.`,
-    '',
-    'Профессиональная уборка квартиры, дома или офиса — прямо в Telegram.',
-    '',
-    '🧹 Выберите вид уборки',
-    '📐 Укажите площадь',
-    '📷 Добавьте фото объекта',
-    '📅 Выберите свободную дату и время',
-    '',
-    '🔔 После отправки бот сообщит о получении заявки, подтверждении, завершении или отмене.',
-    '',
-    'Нажмите кнопку ниже — оформление займёт около 2 минут.',
-  ].join('\n');
-
-  await safeTelegram(env, 'sendMessage', {
-    chat_id: chatId,
-    text: greeting,
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard: keyboard },
-  });
-}
-
-async function sendClientStatus(env, clientId, order, status, origin) {
-  let title = '';
-  let ending = '';
-
-  if (status === 'CONFIRMED') {
-    title = '✅ <b>Заявка подтверждена</b>';
-    ending = 'Уборка подтверждена администратором. Если нужно что-то изменить — напишите менеджеру.';
-  } else if (status === 'COMPLETED') {
-    title = '✨ <b>Уборка завершена</b>';
-    ending = 'Спасибо, что выбрали HOUSE CLEANING.';
-  } else if (status === 'CANCELLED') {
-    title = '❌ <b>Заявка отменена</b>';
-    ending = 'Если хотите выбрать другую дату — откройте приложение или напишите менеджеру.';
-  } else {
-    return null;
-  }
-
-  const text = `${title}\n\n${orderDetails(order)}\n\n${ending}`;
-  return safeTelegram(env, 'sendMessage', {
-    chat_id: clientId,
-    text,
-    parse_mode: 'HTML',
-    reply_markup: {
-      inline_keyboard: [[{
-        text: 'Открыть HOUSE CLEANING',
-        web_app: { url: `${origin}/?demo=1` },
-        style: 'primary',
-      }]],
-    },
-  });
-}
-
 function orderDetails(order) {
-  if (order?._detailsText) return escapeHtml(order._detailsText);
-
-  const lines = [`<b>${escapeHtml(order?.order_number || 'Заявка')}</b>`];
-  if (order?.service_name) lines.push(`Уборка: ${escapeHtml(order.service_name)}`);
-  if (Number(order?.area)) lines.push(`Площадь: <b>${Number(order.area)} м²</b>`);
-  if (order?.date) lines.push(`Дата: <b>${escapeHtml(order.date)} · ${escapeHtml(order.time || '—')}</b>`);
-  if (order?.city || order?.address) {
-    lines.push(`Адрес: ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}`);
-  }
-  if (Array.isArray(order?.addon_names) && order.addon_names.length) {
-    lines.push(`Дополнительно: ${escapeHtml(order.addon_names.join(', '))}`);
-  }
+  const lines = [`<b>${escapeHtml(order.order_number)}</b>`];
+  if (order.service_name) lines.push(`Уборка: ${escapeHtml(order.service_name)}`);
+  if (Number(order.area)) lines.push(`Площадь: <b>${Number(order.area)} м²</b>`);
+  if (order.date) lines.push(`Дата: <b>${formatDateShort(order.date)}</b>`);
+  if (order.time) lines.push(`Время: <b>${formatTimeShort(order.time)}</b>`);
+  if (order.city || order.address) lines.push(`Адрес: ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}`);
+  if (order.addon_names.length) lines.push(`Дополнительно: ${escapeHtml(order.addon_names.join(', '))}`);
+  if (Number(order.estimated_price) > 0) lines.push(`Предварительная стоимость: <b>от ${money(order.estimated_price)}</b>`);
   return lines.join('\n');
-}
-
-function extractDetails(text) {
-  const lines = String(text || '').split('\n').map((line) => line.trim()).filter(Boolean);
-  return lines
-    .filter((line) => (
-      /^HC-/.test(line)
-      || /^Уборка:/.test(line)
-      || /^Площадь:/.test(line)
-      || /^Дата:/.test(line)
-      || /^Адрес:/.test(line)
-      || /^Дополнительно:/.test(line)
-      || /^Фото:/.test(line)
-    ))
-    .join('\n') || 'Детали заказа смотрите в приложении.';
 }
 
 function newOrderAdminText(order, user) {
@@ -355,10 +138,13 @@ function newOrderAdminText(order, user) {
     `Телефон: ${escapeHtml(order.phone || '—')}`,
     `Уборка: ${escapeHtml(order.service_name)}`,
     `Площадь: <b>${order.area} м²</b>`,
-    `Дата: <b>${escapeHtml(order.date)} · ${escapeHtml(order.time || '—')}</b>`,
+    `Дата: <b>${formatDateShort(order.date)}</b>`,
+    `Время: <b>${formatTimeShort(order.time)}</b>`,
     `Адрес: ${escapeHtml(`${order.city}, ${order.address}`)}`,
     `Дополнительно: ${escapeHtml(order.addon_names.join(', ') || 'нет')}`,
     `Фото: ${order.photo_count}`,
+    Number(order.estimated_price) > 0 ? `Предварительная стоимость: <b>от ${money(order.estimated_price)}</b>` : 'Предварительная стоимость: рассчитает менеджер',
+    '<i>Точная стоимость — после оценки объекта и фотографий.</i>',
     '',
     `Telegram: ${user.username ? `@${escapeHtml(user.username)}` : `ID ${user.id}`}`,
   ].join('\n');
@@ -371,11 +157,15 @@ function cancelledAdminText(order, user) {
     `<b>${escapeHtml(order.order_number)}</b>`,
     `Клиент: <b>${escapeHtml(order.customer_name)}</b>`,
     `Телефон: ${escapeHtml(order.phone || '—')}`,
-    `Дата: <b>${escapeHtml(order.date)} · ${escapeHtml(order.time || '—')}</b>`,
+    `Уборка: ${escapeHtml(order.service_name)}`,
+    `Площадь: <b>${order.area} м²</b>`,
+    `Дата: <b>${formatDateShort(order.date)}</b>`,
+    `Время: <b>${formatTimeShort(order.time)}</b>`,
     `Адрес: ${escapeHtml(`${order.city}, ${order.address}`)}`,
+    Number(order.estimated_price) > 0 ? `Предварительная стоимость: <b>от ${money(order.estimated_price)}</b>` : '',
     '',
     `Telegram: ${user.username ? `@${escapeHtml(user.username)}` : `ID ${user.id}`}`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 function cleanOrder(raw) {
@@ -398,8 +188,30 @@ function cleanOrder(raw) {
     time: String(raw.time || ''),
     addon_names: Array.isArray(raw.addon_names) ? raw.addon_names.map(String) : [],
     photo_count: Math.max(0, Number(raw.photo_count || 0)),
+    price_per_m2: Math.max(0, Number(raw.price_per_m2 || 0)),
+    estimated_price: Math.max(0, Number(raw.estimated_price || 0)),
     client_telegram_id: Number(raw.client_telegram_id || 0),
   };
+}
+
+function formatDateShort(value) {
+  const raw = String(value || '').trim();
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return `${iso[3]}/${iso[2]}/${iso[1].slice(-2)}`;
+  const ru = raw.match(/^(\d{2})[./-](\d{2})[./-](\d{2}|\d{4})$/);
+  if (ru) return `${ru[1]}/${ru[2]}/${ru[3].slice(-2)}`;
+  return escapeHtml(raw || '—');
+}
+
+function formatTimeShort(value) {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return escapeHtml(raw || '—');
+  return `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`;
+}
+
+function money(value) {
+  return `${new Intl.NumberFormat('ru-RU').format(Math.round(Number(value || 0)))} ₽`;
 }
 
 function callbackData(action, userId, orderNumber) {
@@ -410,101 +222,55 @@ function adminIds(env) {
   const raw = [env.ADMIN_TELEGRAM_IDS, env.ADMIN_TELEGRAM_ID, env.ADMIN_ID]
     .filter(Boolean)
     .join(',');
-
-  return [...new Set(
-    String(raw)
-      .split(/[;,\s]+/)
-      .map((value) => value.trim())
-      .filter((value) => /^-?\d+$/.test(value)),
-  )];
-}
-
-function isAdmin(env, id) {
-  return adminIds(env).includes(String(id));
-}
-
-async function validateRequestUser(request, env) {
-  return validateInitData(
-    request.headers.get('X-Telegram-Init-Data') || '',
-    env.TELEGRAM_BOT_TOKEN,
-  );
+  return [...new Set(String(raw).split(/[;,\s]+/).map((value) => value.trim()).filter((value) => /^-?\d+$/.test(value)))];
 }
 
 async function validateInitData(initData, botToken) {
   if (!initData || !botToken) return null;
-
   try {
     const params = new URLSearchParams(initData);
     const receivedHash = (params.get('hash') || '').toLowerCase();
     const authDate = Number(params.get('auth_date') || 0);
     const userRaw = params.get('user');
-
-    if (!receivedHash || !authDate || !userRaw) return null;
-    if (Math.abs(Date.now() / 1000 - authDate) > 86400) return null;
-
+    if (!receivedHash || !authDate || !userRaw || Math.abs(Date.now() / 1000 - authDate) > 86400) return null;
     params.delete('hash');
     const allEntries = [...params.entries()];
-    const candidates = [
-      allEntries,
-      allEntries.filter(([key]) => key !== 'signature'),
-    ];
-
+    const candidates = [allEntries, allEntries.filter(([key]) => key !== 'signature')];
     const encoder = new TextEncoder();
     const secret = await hmac(encoder.encode('WebAppData'), encoder.encode(botToken));
-
-    let valid = false;
     for (const entries of candidates) {
       const checkString = [...entries]
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([key, value]) => `${key}=${value}`)
         .join('\n');
-
       const digest = await hmac(secret, encoder.encode(checkString));
-      const hex = [...new Uint8Array(digest)]
-        .map((byte) => byte.toString(16).padStart(2, '0'))
-        .join('');
-
+      const hex = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
       if (constantEqual(hex, receivedHash)) {
-        valid = true;
-        break;
+        const user = JSON.parse(userRaw);
+        return user?.id ? user : null;
       }
     }
-
-    if (!valid) return null;
-    const user = JSON.parse(userRaw);
-    return user?.id ? user : null;
+    return null;
   } catch {
     return null;
   }
 }
 
 async function hmac(keyBytes, dataBytes) {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    keyBytes,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return crypto.subtle.sign('HMAC', key, dataBytes);
 }
 
 function constantEqual(a, b) {
   if (a.length !== b.length) return false;
   let diff = 0;
-  for (let index = 0; index < a.length; index += 1) {
-    diff |= a.charCodeAt(index) ^ b.charCodeAt(index);
-  }
+  for (let index = 0; index < a.length; index += 1) diff |= a.charCodeAt(index) ^ b.charCodeAt(index);
   return diff === 0;
 }
 
 async function safeTelegram(env, method, payload) {
-  try {
-    return await telegram(env, method, payload);
-  } catch (error) {
-    console.error(`Telegram ${method} failed`, error);
-    return null;
-  }
+  try { return await telegram(env, method, payload); }
+  catch (error) { console.error(`Telegram ${method} failed`, error); return null; }
 }
 
 async function telegram(env, method, payload) {
@@ -514,28 +280,19 @@ async function telegram(env, method, payload) {
     body: JSON.stringify(payload),
   });
   const data = await response.json();
-  if (!response.ok || !data.ok) {
-    throw new Error(data.description || `Telegram ${method} failed`);
-  }
+  if (!response.ok || !data.ok) throw new Error(data.description || `Telegram ${method} failed`);
   return data.result;
 }
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[char] || char));
 }
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      'content-type': 'application/json; charset=UTF-8',
-      'cache-control': 'no-store',
-    },
+    headers: { 'content-type': 'application/json; charset=UTF-8', 'cache-control': 'no-store' },
   });
 }
