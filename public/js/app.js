@@ -2,7 +2,7 @@ import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
 import { renderBooking } from './views/booking-v2.js?v=18';
-import { renderOrders } from './views/orders.js?v=18';
+import { renderOrders } from './views/orders.js?v=19';
 import { renderProfile } from './views/profile.js?v=18';
 import { renderAdmin } from './views/admin.js?v=18';
 
