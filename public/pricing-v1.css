@@ -1,0 +1,142 @@
+/* HOUSE CLEANING · preliminary pricing */
+.hc-service-rate{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  margin-top:12px;
+  padding:7px 10px;
+  border:1px solid rgba(247,187,56,.34);
+  border-radius:999px;
+  background:rgba(247,187,56,.08);
+  color:#f5d68c;
+  font-size:12px;
+  font-weight:850;
+  letter-spacing:.01em;
+}
+
+.hc-pricing-explainer{
+  margin:14px 0 2px;
+  padding:15px 16px;
+  border:1px solid rgba(247,187,56,.18);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(31,25,15,.72),rgba(11,15,18,.94));
+  box-shadow:inset 0 1px 0 rgba(255,234,183,.05);
+}
+.hc-pricing-explainer strong{
+  display:block;
+  color:#f4d48a;
+  font-size:14px;
+  margin-bottom:6px;
+}
+.hc-pricing-explainer span{
+  display:block;
+  color:#aeb6bf;
+  font-size:12px;
+  line-height:1.48;
+}
+
+.hc-estimate-card{
+  position:relative;
+  overflow:hidden;
+  margin:16px 0 18px;
+  padding:18px;
+  border:1px solid rgba(237,197,108,.42);
+  border-radius:20px;
+  background:
+    radial-gradient(circle at 92% 0%,rgba(247,187,56,.16),transparent 30%),
+    linear-gradient(145deg,#171612,#0b1115 72%);
+  box-shadow:0 16px 34px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,237,194,.08);
+}
+.hc-estimate-card::before{
+  content:"";
+  position:absolute;
+  left:18px;
+  right:18px;
+  top:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,220,139,.7),transparent);
+}
+.hc-estimate-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.hc-estimate-top span{
+  display:block;
+  color:#aeb6bf;
+  font-size:12px;
+  margin-bottom:5px;
+}
+.hc-estimate-top strong{
+  display:block;
+  color:#f7d98f;
+  font-family:Georgia,serif;
+  font-size:28px;
+  line-height:1.05;
+  font-weight:700;
+}
+.hc-rate-pill{
+  flex:0 0 auto;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid rgba(247,187,56,.30);
+  background:rgba(247,187,56,.08);
+  color:#e8c978;
+  font-size:11px;
+  font-weight:850;
+  white-space:nowrap;
+}
+.hc-estimate-formula{
+  margin-top:12px;
+  color:#d5d9dd;
+  font-size:13px;
+  font-weight:750;
+}
+.hc-estimate-note{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid rgba(255,255,255,.07);
+  color:#8f9aa5;
+  font-size:11px;
+  line-height:1.5;
+}
+.hc-estimate-note b{color:#cfd4da;font-weight:800}
+
+.price-card{
+  position:relative;
+  overflow:hidden;
+  border-color:rgba(237,197,108,.36)!important;
+  background:
+    radial-gradient(circle at 90% 0%,rgba(247,187,56,.14),transparent 34%),
+    linear-gradient(145deg,rgba(24,22,16,.98),rgba(11,17,21,.98))!important;
+}
+.price-card .price{
+  margin-top:5px;
+  color:#f6d68b!important;
+  font-family:Georgia,serif;
+  font-size:32px!important;
+}
+.hc-review-price-details{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid rgba(255,255,255,.07);
+}
+.hc-review-price-details>span{
+  color:#d5d9dd;
+  font-size:12px;
+  font-weight:800;
+}
+.hc-review-price-details p{
+  margin:7px 0 0;
+  color:#8f9aa5;
+  font-size:11px;
+  line-height:1.48;
+}
+.hc-review-price-details b{color:#cfd4da}
+
+@media(max-width:390px){
+  .hc-estimate-card{padding:16px}
+  .hc-estimate-top strong{font-size:25px}
+  .hc-rate-pill{font-size:10px;padding:7px 9px}
+}
