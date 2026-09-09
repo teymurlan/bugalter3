@@ -1,6 +1,6 @@
 import { api, canSelfCancel, hoursUntilOrder } from '../api.js';
 import { state } from '../state.js';
-import { escapeHtml, formatDate, modal, STATUS_LABELS, showToast } from '../utils.js';
+import { escapeHtml, formatDate, formatTime, modal, STATUS_LABELS, showToast } from '../utils.js';
 
 const ACTIVE = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
 
@@ -34,7 +34,7 @@ function orderCard(order) {
     : '';
   return `<article class="card order-card" data-order="${order.id}">
     <div class="order-top"><div><div class="order-name">${escapeHtml(order.customer_name)}</div><div class="profile-meta">${escapeHtml(order.order_number || '')}</div></div><span class="status ${order.status}">${escapeHtml(STATUS_LABELS[order.status] || order.status)}</span></div>
-    <div class="order-meta"><span>⌖ ${escapeHtml(`${order.city}, ${order.address}`)}</span><span>≡ ${escapeHtml(order.service_name)}</span><span>□ ${formatDate(order.date)} · ${escapeHtml(order.time)}</span></div>
+    <div class="order-meta"><span>⌖ ${escapeHtml(`${order.city}, ${order.address}`)}</span><span>≡ ${escapeHtml(order.service_name)}</span><span>□ ${formatDate(order.date)} · ${escapeHtml(formatTime(order.time))}</span></div>
     ${cancelHint ? `<div class="profile-meta" style="margin:0 0 12px">${escapeHtml(cancelHint)}</div>` : ''}
     ${order.photo_count ? cardPhotos(order) : ''}
     <button class="primary-btn" type="button">Открыть заявку</button>
@@ -102,7 +102,7 @@ async function renderOrderDetails(root, navigate, id) {
         ${row('Адрес', `${order.city}, ${order.address}`)}
         ${row('Площадь', `${order.area} м²`)}
         ${row('Дата', formatDate(order.date))}
-        ${row('Время', order.time)}
+        ${row('Время', formatTime(order.time))}
         ${row('Комнаты / санузлы', `${order.rooms} / ${order.bathrooms}`)}
         ${row('Доп. услуги', data.addons.length ? data.addons.map((item) => item.name).join(', ') : 'Нет')}
         ${row('Контакт', `${order.customer_name}, ${order.phone}`)}
