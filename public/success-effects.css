@@ -69,7 +69,7 @@
   0%{opacity:0;transform:scale(.15) rotate(25deg)}
   35%{opacity:1}
   75%{opacity:.95}
-  100%{opacity:0;transform:scale(calc(var(--scale) * 1.35)) rotate(115deg) translateY(-14px)}
+  100%{opacity:0;transform:scale(1.35) rotate(115deg) translateY(-14px)}
 }
 @keyframes hcSuccessEnter{
   from{opacity:0;transform:translateY(14px)}
