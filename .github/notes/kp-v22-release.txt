@@ -1,0 +1,2 @@
+release=v22
+signed_admin_launcher=true
