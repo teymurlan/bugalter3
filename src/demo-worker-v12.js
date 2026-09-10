@@ -3,7 +3,7 @@ import baseWorker, { ConsentStore, AppStore } from './demo-worker-v11.js';
 export { ConsentStore, AppStore };
 
 const EMPTY_CUSTOMER = '__HC_NO_CUSTOMER__';
-const KP_VERSION = '9';
+const KP_VERSION = '10';
 
 export default {
   async fetch(request, env, ctx) {
