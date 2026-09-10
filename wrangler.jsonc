@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bugalter3",
-  "main": "src/demo-worker-v16.js",
+  "main": "src/demo-worker-v17.js",
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "preview_urls": true,
@@ -13,24 +13,12 @@
   },
   "durable_objects": {
     "bindings": [
-      {
-        "name": "CONSENT_STORE",
-        "class_name": "ConsentStore"
-      },
-      {
-        "name": "APP_STORE",
-        "class_name": "AppStore"
-      }
+      { "name": "CONSENT_STORE", "class_name": "ConsentStore" },
+      { "name": "APP_STORE", "class_name": "AppStore" }
     ]
   },
   "exports": {
-    "ConsentStore": {
-      "type": "durable-object",
-      "storage": "sqlite"
-    },
-    "AppStore": {
-      "type": "durable-object",
-      "storage": "sqlite"
-    }
+    "ConsentStore": { "type": "durable-object", "storage": "sqlite" },
+    "AppStore": { "type": "durable-object", "storage": "sqlite" }
   }
 }
