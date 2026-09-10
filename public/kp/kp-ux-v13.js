@@ -1,0 +1,65 @@
+(() => {
+  const outgoingInput = document.getElementById('outgoingNumber');
+  if (!outgoingInput) return;
+
+  function parseNumber(value) {
+    const match = String(value ?? '').match(/\d+/);
+    return match ? Math.max(1, Math.floor(Number(match[0]) || 0)) : '';
+  }
+
+  function syncBadge() {
+    const value = parseNumber(outgoingInput.value);
+    const badge = document.getElementById('quoteNumberBadge');
+    if (badge) badge.textContent = value ? `Исх. № ${value}` : 'Исх. № —';
+  }
+
+  const previousBuildPayload = buildPayload;
+  buildPayload = function buildPayloadWithOutgoingNumber() {
+    return {
+      ...previousBuildPayload(),
+      outgoing_number: parseNumber(outgoingInput.value),
+    };
+  };
+
+  const previousResetForm = resetForm;
+  resetForm = async function resetFormWithOutgoingNumber() {
+    const result = await previousResetForm();
+    outgoingInput.value = parseNumber(state.bootstrap?.defaults?.quote_number) || '';
+    syncBadge();
+    return result;
+  };
+
+  const previousFillForm = fillForm;
+  fillForm = function fillFormWithOutgoingNumber(quote, options = {}) {
+    previousFillForm(quote, options);
+    if (options.copy) {
+      outgoingInput.value = parseNumber(state.bootstrap?.defaults?.quote_number) || '';
+    } else {
+      outgoingInput.value = parseNumber(quote?.quote_number) || '';
+    }
+    syncBadge();
+  };
+
+  const previousSaveQuote = saveQuote;
+  saveQuote = async function saveQuoteWithOutgoingNumber(silent = false) {
+    const quote = await previousSaveQuote(silent);
+    outgoingInput.value = parseNumber(quote?.quote_number) || outgoingInput.value;
+    syncBadge();
+    return quote;
+  };
+
+  outgoingInput.addEventListener('input', () => {
+    outgoingInput.value = String(outgoingInput.value || '').replace(/[^0-9]/g, '').slice(0, 6);
+    state.lastSaved = null;
+    syncBadge();
+  });
+
+  outgoingInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      outgoingInput.blur();
+    }
+  });
+
+  syncBadge();
+})();

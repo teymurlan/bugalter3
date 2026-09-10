@@ -20,6 +20,7 @@ on:
       - 'src/demo-worker-v12.js'
       - 'src/demo-worker-v13.js'
       - 'src/demo-worker-v14.js'
+      - 'src/demo-worker-v15.js'
       - 'public/kp/**'
       - 'tests/kp-math.test.mjs'
       - 'wrangler.jsonc'
@@ -40,6 +41,7 @@ jobs:
           node --check src/demo-worker-v12.js
           node --check src/demo-worker-v13.js
           node --check src/demo-worker-v14.js
+          node --check src/demo-worker-v15.js
           node --check public/kp/kp.js
           node --check public/kp/kp-ux-v4.js
           node --check public/kp/kp-ux-v5.js
@@ -48,6 +50,7 @@ jobs:
           node --check public/kp/kp-ux-v8.js
           node --check public/kp/kp-ux-v11.js
           node --check public/kp/kp-ux-v12.js
+          node --check public/kp/kp-ux-v13.js
           node --check public/kp/logo-data-v5.js
       - name: Calculation tests
         run: node tests/kp-math.test.mjs

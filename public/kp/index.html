@@ -25,6 +25,7 @@
   <script defer src="/kp/kp-ux-v8.js?v=11"></script>
   <script defer src="/kp/kp-ux-v11.js?v=11"></script>
   <script defer src="/kp/kp-ux-v12.js?v=13"></script>
+  <script defer src="/kp/kp-ux-v13.js?v=14"></script>
 </head>
 <body>
   <div id="gate" class="gate boot-fallback">
@@ -55,9 +56,10 @@
         </div>
 
         <div class="grid two">
+          <label>Исх. №<input id="outgoingNumber" inputmode="numeric" type="number" min="1" max="999999" enterkeyhint="done" placeholder="14" /></label>
           <label>Дата КП<input id="issueDate" type="date" /></label>
-          <label>Срок действия, дней<input id="validDays" inputmode="numeric" type="number" min="1" max="90" value="14" /></label>
         </div>
+        <label>Срок действия, дней<input id="validDays" inputmode="numeric" type="number" min="1" max="90" value="14" /></label>
 
         <div class="grid two">
           <label>Заказчик — необязательно<input id="clientName" placeholder="Можно оставить пустым" /></label>
