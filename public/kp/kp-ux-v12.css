@@ -1,0 +1,12 @@
+.commercial-equipment-card{margin:14px 0 18px;padding:16px;border:1px solid #2c2d31;border-radius:18px;background:linear-gradient(180deg,#151516,#111113)}
+.commercial-equipment-card label{margin:0}
+.commercial-field-title{display:block;margin-bottom:8px;font-weight:700;color:#f0d27a}
+.commercial-equipment-card textarea{min-height:112px;resize:vertical}
+.commercial-field-hint{margin-top:8px;font-size:13px;line-height:1.35;color:#8f9198}
+#presetRow{display:none!important}
+#v5Service{font-weight:600}
+.service-builder-v5 .service-builder-title small{max-width:520px}
+@media(max-width:640px){
+  .commercial-equipment-card{padding:14px;border-radius:16px}
+  .commercial-equipment-card textarea{min-height:128px}
+}
