@@ -73,6 +73,11 @@
   firstFiveCss.href = '/kp/kp-first5-v1.css?v=1';
   document.head.appendChild(firstFiveCss);
 
+  const stepsCss = document.createElement('link');
+  stepsCss.rel = 'stylesheet';
+  stepsCss.href = '/kp/kp-steps7-9-v1.css?v=1';
+  document.head.appendChild(stepsCss);
+
   const script = document.createElement('script');
   script.src = '/kp/kp-ux-v14.js?v=16';
   script.onload = () => {
@@ -81,6 +86,11 @@
     firstFive.onload = () => {
       const step6 = document.createElement('script');
       step6.src = '/kp/kp-step6-v1.js?v=1';
+      step6.onload = () => {
+        const steps79 = document.createElement('script');
+        steps79.src = '/kp/kp-steps7-9-v1.js?v=1';
+        document.head.appendChild(steps79);
+      };
       document.head.appendChild(step6);
     };
     document.head.appendChild(firstFive);
