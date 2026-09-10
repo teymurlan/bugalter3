@@ -4,7 +4,7 @@ export { ConsentStore };
 
 const OUTGOING_COUNTER_KEY = 'kp:outgoing-counter:v2';
 const RESET_MARKER = 'kp:outgoing-reset-to-15:stable-v1';
-const KP_VERSION = '17-stable';
+const KP_VERSION = '18-stable';
 
 export class AppStore extends BaseAppStore {
   async fetch(request) {
@@ -25,8 +25,6 @@ export class AppStore extends BaseAppStore {
   }
 
   async saveQuote(raw) {
-    // Сброс выполняется только при фактическом сохранении КП и никак не меняет
-    // Telegram-авторизацию из последней рабочей версии v16.
     await this.ensureOutgoingStartsAt15Once();
     return super.saveQuote(raw);
   }
@@ -39,7 +37,10 @@ export default {
       const redirectUrl = new URL(request.url);
       redirectUrl.pathname = '/kp/';
       redirectUrl.searchParams.set('v', KP_VERSION);
-      return Response.redirect(redirectUrl.toString(), 302);
+      const response = Response.redirect(redirectUrl.toString(), 302);
+      const headers = new Headers(response.headers);
+      headers.set('cache-control', 'no-store, no-cache, must-revalidate, max-age=0');
+      return new Response(null, { status: 302, headers });
     }
     return baseWorker.fetch(request, env, ctx);
   },
