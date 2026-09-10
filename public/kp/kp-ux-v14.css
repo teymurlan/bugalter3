@@ -5,4 +5,6 @@
 .quick-payment-button{appearance:none;border:1px solid #3b3b3f;background:#111214;color:#f3f3f3;border-radius:12px;padding:10px 14px;font:700 15px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-width:58px;cursor:pointer}
 .quick-payment-button.active{border-color:#d3ad4f;background:linear-gradient(180deg,#f3d77f,#d8ae45);color:#111;box-shadow:0 0 0 1px rgba(211,173,79,.15) inset}
 .quick-payment-row>strong{min-width:110px;text-align:right}
-@media(max-width:640px){.quick-payment-row{display:grid!important;grid-template-columns:1fr auto}.quick-payment-row>span{grid-column:1/-1;min-width:0}.quick-payment-chooser{grid-column:1/-1;justify-content:stretch}.quick-payment-button{flex:1;padding:11px 8px}.quick-payment-row>strong{grid-column:2;text-align:right}.sticky-actions{grid-template-columns:1fr 1.25fr!important}.sticky-actions .btn{min-width:0}}
+.sticky-actions{grid-template-columns:1fr 1.25fr!important}
+.sticky-actions .btn{min-width:0}
+@media(max-width:640px){.quick-payment-row{display:grid!important;grid-template-columns:1fr auto}.quick-payment-row>span{grid-column:1/-1;min-width:0}.quick-payment-chooser{grid-column:1/-1;justify-content:stretch}.quick-payment-button{flex:1;padding:11px 8px}.quick-payment-row>strong{grid-column:2;text-align:right}}
