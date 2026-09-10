@@ -59,6 +59,7 @@ jobs:
           node --check public/kp/kp-ux-v13.js
           node --check public/kp/kp-ux-v14.js
           node --check public/kp/kp-stable-v17.js
+          node --check public/kp/kp-mobile-v18.js
           node --check public/kp/logo-data-v5.js
       - name: Calculation tests
         run: node tests/kp-math.test.mjs
