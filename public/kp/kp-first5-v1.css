@@ -1,0 +1,15 @@
+.kp-first5-reset-zone{display:flex;justify-content:flex-end;margin-top:10px;padding:0 2px}
+.kp-first5-reset-button{min-height:40px;border:1px solid #3b3c41;border-radius:12px;background:transparent;color:#8f9096;padding:9px 12px;font-size:12px;font-weight:700}
+.kp-first5-reset-button:active{border-color:#655431;color:#d7bd78;background:#15130f}
+.kp-first5-reset-modal{position:fixed;inset:0;z-index:2200;display:grid;place-items:center;padding:20px}
+.kp-first5-reset-modal.hidden{display:none!important}
+.kp-first5-reset-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72)}
+.kp-first5-reset-card{position:relative;width:min(420px,100%);border:1px solid #4e4127;border-radius:20px;background:#151516;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.52)}
+.kp-first5-reset-card h3{margin:0 0 8px;font-size:19px;line-height:1.3}
+.kp-first5-reset-card p{margin:0;color:#9b9ca3;font-size:13px;line-height:1.45}
+.kp-first5-reset-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}
+.kp-first5-reset-actions button{min-height:47px;border-radius:13px;font-weight:800;font-size:13px}
+.kp-first5-reset-no{border:1px solid #3a3b40;background:#202125;color:#f2f2f2}
+.kp-first5-reset-yes{border:1px solid #675426;background:#2a2417;color:#f0cf70}
+.kp-first5-reset-actions button:disabled{opacity:.55}
+@media(max-width:640px){.kp-first5-reset-zone{justify-content:center}.kp-first5-reset-button{width:100%;min-height:42px}.kp-first5-reset-card{padding:18px}.kp-first5-reset-actions{grid-template-columns:1fr}.kp-first5-reset-no{order:1}.kp-first5-reset-yes{order:2}}
