@@ -1,0 +1,5 @@
+KP v22
+- Admin gets a signed KP launcher after /start and /menu.
+- /kp still creates a signed launcher.
+- Old unsigned KP entry no longer appears to hang indefinitely; client shows an explicit stale-button message.
+- Cache-bust assets to v22.
