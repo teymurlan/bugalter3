@@ -9,6 +9,7 @@ on:
       - feature/kp-v5-polish
       - feature/kp-v6-wording-polish
       - feature/kp-v7-optional-customer-logo
+      - hotfix/kp-v8-logo-spacing-footer
   pull_request:
     paths:
       - 'src/kp-math.js'
@@ -38,6 +39,7 @@ jobs:
           node --check public/kp/kp-ux-v5.js
           node --check public/kp/kp-ux-v6.js
           node --check public/kp/kp-ux-v7.js
+          node --check public/kp/kp-ux-v8.js
           node --check public/kp/logo-data-v5.js
       - name: Calculation tests
         run: node tests/kp-math.test.mjs
