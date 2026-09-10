@@ -2,8 +2,9 @@ import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
 import { renderBooking } from './views/booking-v2.js?v=18';
-import { renderOrders } from './views/orders.js?v=19';
-import { renderProfile } from './views/profile.js?v=18';
+import { renderConciergeHome } from './views/concierge-home.js?v=20';
+import { renderConciergeOrders } from './views/concierge-orders.js?v=20';
+import { renderConciergeProfile } from './views/concierge-profile.js?v=20';
 import { renderAdmin } from './views/admin.js?v=18';
 
 const tg = window.Telegram?.WebApp;
@@ -25,6 +26,7 @@ function configureTelegram() {
 
 function configureAdminNav() {
   nav.classList.toggle('admin-mode', adminMode);
+  document.body.classList.toggle('client-concierge', !adminMode);
 }
 
 function configureFocusContext() {
@@ -78,7 +80,7 @@ function setActiveNav(route) {
 
 function configureNavSync() {
   const sync = () => {
-    if (root.querySelector('.home-hero') || root.querySelector('.booking-top')) setActiveNav('home');
+    if (root.querySelector('.cc-home') || root.querySelector('.home-hero') || root.querySelector('.booking-top')) setActiveNav('home');
   };
   const observer = new MutationObserver(sync);
   observer.observe(root, { childList: true, subtree: false });
@@ -101,11 +103,7 @@ export function navigate(route, params = {}) {
 
   if (route === 'home') {
     setActiveNav('home');
-    const savedStep = Number(state.draft?.step || 0);
-    state.draft.step = 0;
-    renderBooking(root, navigate);
-    state.draft.step = savedStep;
-    return;
+    return renderConciergeHome(root, navigate);
   }
 
   if (route === 'booking') {
@@ -118,8 +116,8 @@ export function navigate(route, params = {}) {
   }
 
   setActiveNav(route);
-  if (route === 'orders') return renderOrders(root, navigate, params);
-  if (route === 'profile') return renderProfile(root, navigate);
+  if (route === 'orders') return renderConciergeOrders(root, navigate, params);
+  if (route === 'profile') return renderConciergeProfile(root, navigate);
   if (route === 'admin') return renderAdmin(root, navigate);
   return navigate('home');
 }
