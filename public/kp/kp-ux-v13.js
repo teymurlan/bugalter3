@@ -32,11 +32,8 @@
   const previousFillForm = fillForm;
   fillForm = function fillFormWithOutgoingNumber(quote, options = {}) {
     previousFillForm(quote, options);
-    if (options.copy) {
-      outgoingInput.value = parseNumber(state.bootstrap?.defaults?.quote_number) || '';
-    } else {
-      outgoingInput.value = parseNumber(quote?.quote_number) || '';
-    }
+    if (options.copy) outgoingInput.value = parseNumber(state.bootstrap?.defaults?.quote_number) || '';
+    else outgoingInput.value = parseNumber(quote?.quote_number) || '';
     syncBadge();
   };
 
@@ -65,16 +62,19 @@
 
   const css = document.createElement('link');
   css.rel = 'stylesheet';
-  css.href = '/kp/kp-ux-v14.css?v=17';
+  css.href = '/kp/kp-ux-v14.css?v=18';
   document.head.appendChild(css);
 
   const script = document.createElement('script');
-  script.src = '/kp/kp-ux-v14.js?v=17';
-  script.defer = true;
+  script.src = '/kp/kp-ux-v14.js?v=18';
   script.onload = () => {
     const stable = document.createElement('script');
-    stable.src = '/kp/kp-stable-v17.js?v=1';
-    stable.defer = true;
+    stable.src = '/kp/kp-stable-v17.js?v=18';
+    stable.onload = () => {
+      const mobile = document.createElement('script');
+      mobile.src = '/kp/kp-mobile-v18.js?v=18';
+      document.head.appendChild(mobile);
+    };
     document.head.appendChild(stable);
   };
   document.head.appendChild(script);
