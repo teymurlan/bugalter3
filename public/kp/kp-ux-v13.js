@@ -65,11 +65,17 @@
 
   const css = document.createElement('link');
   css.rel = 'stylesheet';
-  css.href = '/kp/kp-ux-v14.css?v=15';
+  css.href = '/kp/kp-ux-v14.css?v=17';
   document.head.appendChild(css);
 
   const script = document.createElement('script');
-  script.src = '/kp/kp-ux-v14.js?v=15';
+  script.src = '/kp/kp-ux-v14.js?v=17';
   script.defer = true;
+  script.onload = () => {
+    const stable = document.createElement('script');
+    stable.src = '/kp/kp-stable-v17.js?v=1';
+    stable.defer = true;
+    document.head.appendChild(stable);
+  };
   document.head.appendChild(script);
 })();
