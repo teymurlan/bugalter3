@@ -59,35 +59,55 @@
     return logoBoundsCache;
   }
 
-  async function redrawTopLogo(page) {
-    if (!page || !window.HOUSE_CLEANING_LOGO) return;
+  async function redrawTopHeader(page, quote) {
+    if (!page) return;
 
-    try {
-      const image = await loadImage(window.HOUSE_CLEANING_LOGO);
-      const ctx = page.getContext('2d');
-      const M = 72;
+    const ctx = page.getContext('2d');
+    const W = page.width;
+    const M = 72;
 
-      // Убираем старую отрисовку логотипа, которая могла заходить на заголовок.
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(M - 10, 42, 520, 215);
+    // Полностью очищаем левую часть шапки до блока данных.
+    // Это удаляет старую полноразмерную отрисовку PNG и любые её остатки.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(M - 12, 42, 820, 320);
 
-      const crop = getVisibleLogoBounds(image);
-      const maxW = 300;
-      const maxH = 128;
-      const ratio = Math.min(maxW / crop.sw, maxH / crop.sh);
-      const drawW = crop.sw * ratio;
-      const drawH = crop.sh * ratio;
-      const drawX = M;
-      const drawY = 66 + (maxH - drawH) / 2;
+    if (window.HOUSE_CLEANING_LOGO) {
+      try {
+        const image = await loadImage(window.HOUSE_CLEANING_LOGO);
+        const crop = getVisibleLogoBounds(image);
+        const maxW = 285;
+        const maxH = 118;
+        const ratio = Math.min(maxW / crop.sw, maxH / crop.sh);
+        const drawW = crop.sw * ratio;
+        const drawH = crop.sh * ratio;
+        const drawX = M;
+        const drawY = 62 + (maxH - drawH) / 2;
 
-      ctx.drawImage(
-        image,
-        crop.sx, crop.sy, crop.sw, crop.sh,
-        drawX, drawY, drawW, drawH,
-      );
-    } catch (error) {
-      console.error('Top logo redraw failed', error);
+        ctx.drawImage(
+          image,
+          crop.sx, crop.sy, crop.sw, crop.sh,
+          drawX, drawY, drawW, drawH,
+        );
+      } catch (error) {
+        console.error('Top logo redraw failed', error);
+      }
     }
+
+    // Заголовок и реквизиты КП рисуем заново после очистки,
+    // чтобы между логотипом и текстом всегда был фиксированный отступ.
+    const titleY = 300;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#111';
+    ctx.font = '700 38px Georgia';
+    ctx.fillText('КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ', M, titleY);
+
+    ctx.fillStyle = '#b08a31';
+    ctx.font = '700 21px Arial';
+    ctx.fillText(quote.quote_number || '', M, titleY + 38);
+
+    ctx.fillStyle = '#555';
+    ctx.font = '18px Arial';
+    ctx.fillText(`от ${dateRu(quote.issue_date)}`, M + 190, titleY + 38);
   }
 
   function removeBottomBranding(page) {
@@ -97,7 +117,7 @@
     const H = page.height;
     const M = 72;
 
-    // Внизу КП не дублируем ни логотип, ни название бренда, ни контакты.
+    // Внизу КП не дублируем логотип, бренд и контакты.
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(M - 4, H - 148, W - M * 2 + 8, 125);
 
@@ -113,7 +133,7 @@
     const pages = await previousRenderQuotePagesV8(quote);
     if (!pages.length) return pages;
 
-    await redrawTopLogo(pages[0]);
+    await redrawTopHeader(pages[0], quote);
     pages.forEach(removeBottomBranding);
     return pages;
   };
