@@ -25,7 +25,7 @@
   <script defer src="/kp/kp-ux-v8.js?v=11"></script>
   <script defer src="/kp/kp-ux-v11.js?v=11"></script>
   <script defer src="/kp/kp-ux-v12.js?v=13"></script>
-  <script defer src="/kp/kp-ux-v13.js?v=14"></script>
+  <script defer src="/kp/kp-ux-v13.js?v=16"></script>
 </head>
 <body>
   <div id="gate" class="gate boot-fallback">
@@ -56,7 +56,7 @@
         </div>
 
         <div class="grid two">
-          <label>Исх. №<input id="outgoingNumber" inputmode="numeric" type="number" min="1" max="999999" enterkeyhint="done" placeholder="14" /></label>
+          <label>Исх. №<input id="outgoingNumber" inputmode="numeric" type="number" min="1" max="999999" enterkeyhint="done" placeholder="15" /></label>
           <label>Дата КП<input id="issueDate" type="date" /></label>
         </div>
         <label>Срок действия, дней<input id="validDays" inputmode="numeric" type="number" min="1" max="90" value="14" /></label>
@@ -66,7 +66,7 @@
           <label>Организация заказчика — необязательно<input id="clientCompany" placeholder="Можно оставить пустым" /></label>
         </div>
 
-        <label>Адрес объекта<textarea id="address" rows="2" placeholder="Санкт-Петербург, адрес объекта"></textarea></label>
+        <textarea id="address" hidden aria-hidden="true"></textarea>
 
         <div class="grid two">
           <label>Тип объекта
@@ -99,7 +99,7 @@
           <div><span>Подытог</span><strong id="subtotal">0 ₽</strong></div>
           <div class="discount-row"><span>Скидка, %</span><input id="discountPercent" class="mini-input" inputmode="decimal" value="0" /><strong id="discountValue">0 ₽</strong></div>
           <div class="grand"><span>ИТОГО</span><strong id="grandTotal">0 ₽</strong></div>
-          <div><span>Предоплата, %</span><input id="prepaymentPercent" class="mini-input" inputmode="decimal" value="50" /><strong id="prepaymentValue">0 ₽</strong></div>
+          <div><span>Предоплата, %</span><input id="prepaymentPercent" class="mini-input" inputmode="decimal" value="0" /><strong id="prepaymentValue">0 ₽</strong></div>
           <div><span>Остаток</span><strong id="balanceValue">0 ₽</strong></div>
         </div>
 
@@ -114,7 +114,7 @@
           <label>Срок выполнения<input id="duration" placeholder="1–2 дня" /></label>
           <label>НДС<input id="vatLabel" value="Без НДС" /></label>
         </div>
-        <label>Условия оплаты<input id="paymentTerms" value="Предоплата 50%. Остаток — после выполнения работ." /></label>
+        <label>Условия оплаты<input id="paymentTerms" value="" /></label>
         <label>Примечание<textarea id="notes" rows="3" placeholder="Необязательно"></textarea></label>
 
         <div class="sticky-actions">
