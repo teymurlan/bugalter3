@@ -66,17 +66,19 @@
     const W = page.width;
     const M = 72;
 
-    // Полностью очищаем левую часть шапки до блока данных.
-    // Это удаляет старую полноразмерную отрисовку PNG и любые её остатки.
+    // Убираем старую отрисовку логотипа слева.
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(M - 12, 42, 820, 320);
+    ctx.fillRect(M - 12, 42, 520, 210);
+
+    // Полностью очищаем старый заголовок и остаток текста от логотипа.
+    ctx.fillRect(M - 12, 245, W - M * 2 + 24, 125);
 
     if (window.HOUSE_CLEANING_LOGO) {
       try {
         const image = await loadImage(window.HOUSE_CLEANING_LOGO);
         const crop = getVisibleLogoBounds(image);
-        const maxW = 285;
-        const maxH = 118;
+        const maxW = 275;
+        const maxH = 112;
         const ratio = Math.min(maxW / crop.sw, maxH / crop.sh);
         const drawW = crop.sw * ratio;
         const drawH = crop.sh * ratio;
@@ -93,21 +95,22 @@
       }
     }
 
-    // Заголовок и реквизиты КП рисуем заново после очистки,
-    // чтобы между логотипом и текстом всегда был фиксированный отступ.
-    const titleY = 300;
+    const titleY = 298;
     ctx.textAlign = 'left';
     ctx.fillStyle = '#111';
-    ctx.font = '700 38px Georgia';
-    ctx.fillText('КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ', M, titleY);
+    ctx.font = '700 32px Georgia';
+    ctx.fillText('Коммерческое предложение', M, titleY);
 
     ctx.fillStyle = '#b08a31';
-    ctx.font = '700 21px Arial';
+    ctx.font = '700 20px Arial';
     ctx.fillText(quote.quote_number || '', M, titleY + 38);
 
     ctx.fillStyle = '#555';
     ctx.font = '18px Arial';
     ctx.fillText(`от ${dateRu(quote.issue_date)}`, M + 190, titleY + 38);
+    ctx.textAlign = 'right';
+    ctx.fillText(`Действует до ${dateRu(quote.valid_until)}`, W - M, titleY + 38);
+    ctx.textAlign = 'left';
   }
 
   function removeBottomBranding(page) {
@@ -117,7 +120,6 @@
     const H = page.height;
     const M = 72;
 
-    // Внизу КП не дублируем логотип, бренд и контакты.
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(M - 4, H - 148, W - M * 2 + 8, 125);
 
