@@ -1,0 +1,1 @@
+KP v18: optional prepayment, equipment checkboxes + custom equipment, visible validation guidance, bottom reset action, active navigation states, service terminology.
