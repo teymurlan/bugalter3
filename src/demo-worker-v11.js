@@ -2,7 +2,7 @@ import baseWorker, { ConsentStore, AppStore } from './demo-worker-v10.js';
 
 export { ConsentStore, AppStore };
 
-const KP_VERSION = '5';
+const KP_VERSION = '6';
 
 export default {
   async fetch(request, env, ctx) {
