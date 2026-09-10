@@ -2,9 +2,9 @@ import baseWorker, { ConsentStore, AppStore as BaseAppStore } from './demo-worke
 
 export { ConsentStore };
 
-const OUTGOING_COUNTER_KEY = 'kp:outgoing-counter:v1';
+const OUTGOING_COUNTER_KEY = 'kp:outgoing-counter:v2';
 const OUTGOING_START = 14;
-const KP_VERSION = '11';
+const KP_VERSION = '12';
 
 export class AppStore extends BaseAppStore {
   async fetch(request) {
@@ -24,13 +24,13 @@ export class AppStore extends BaseAppStore {
     const quote = await super.saveQuote(raw);
 
     // Существующие КП сохраняют свой прежний номер.
-    // Новый формат применяется только к новым документам после этого обновления.
+    // Для новой нумерации используем отдельный счётчик v2,
+    // чтобы ближайшее новое КП после этого обновления было строго № 14.
     if (existing) return quote;
 
-    const current = await this.getOutgoingCounter();
     const sequence = await this.state.storage.transaction(async (txn) => {
-      const stored = Number(await txn.get(OUTGOING_COUNTER_KEY) || 0);
-      const base = Math.max(OUTGOING_START - 1, current, stored);
+      const stored = Number(await txn.get(OUTGOING_COUNTER_KEY) || (OUTGOING_START - 1));
+      const base = Math.max(OUTGOING_START - 1, stored);
       const next = base + 1;
       await txn.put(OUTGOING_COUNTER_KEY, next);
       return next;
@@ -46,16 +46,8 @@ export class AppStore extends BaseAppStore {
   }
 
   async getOutgoingCounter() {
-    const stored = Number(await this.state.storage.get(OUTGOING_COUNTER_KEY) || 0);
-    if (stored >= OUTGOING_START) return stored;
-
-    let max = OUTGOING_START - 1;
-    const values = await this.state.storage.list({ prefix: 'kp:item:' });
-    for (const quote of values.values()) {
-      const match = String(quote?.quote_number || '').match(/^Исх\.\s*№\s*(\d+)$/i);
-      if (match) max = Math.max(max, Number(match[1]) || 0);
-    }
-    return Math.max(max, stored);
+    const stored = Number(await this.state.storage.get(OUTGOING_COUNTER_KEY) || (OUTGOING_START - 1));
+    return Math.max(OUTGOING_START - 1, stored);
   }
 }
 
@@ -63,7 +55,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // Новый URL версии заставляет Telegram загрузить свежие JS/CSS без старого кэша.
+    // Новый URL версии заставляет Telegram загрузить свежую версию без старого кэша.
     if (request.method === 'GET' && url.pathname === '/kp') {
       const redirectUrl = new URL(request.url);
       redirectUrl.pathname = '/kp/';
