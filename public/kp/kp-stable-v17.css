@@ -1,0 +1,32 @@
+body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+
+.hc-bottom-nav{
+  position:fixed;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:1200;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:7px;
+  background:rgba(17,17,19,.96);border:1px solid rgba(255,255,255,.12);border-radius:20px;
+  box-shadow:0 18px 44px rgba(0,0,0,.38);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  transition:transform .2s ease,opacity .2s ease;
+}
+.hc-bottom-nav.keyboard-hidden{transform:translateY(140%);opacity:0;pointer-events:none}
+.hc-bottom-nav button{
+  min-width:0;min-height:58px;border:0;border-radius:15px;background:transparent;color:#b9b9bd;
+  font:700 12px/1.15 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:7px 4px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+}
+.hc-bottom-nav button .icon{font-size:21px;line-height:1;color:#d6b552}
+.hc-bottom-nav button.active{background:#2b2517;color:#f3d377;box-shadow:inset 0 0 0 1px rgba(214,181,82,.55)}
+.hc-bottom-nav button.active::after{content:"";width:28px;height:3px;border-radius:2px;background:#e4bf54}
+.hc-bottom-nav button.reset{color:#9d9da1}
+.hc-bottom-nav button.reset .icon{color:#c5a74e}
+
+.hc-reset-modal{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:20px}
+.hc-reset-modal.hidden{display:none}
+.hc-reset-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}
+.hc-reset-card{position:relative;width:min(420px,100%);background:#151516;border:1px solid rgba(214,181,82,.34);border-radius:22px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.hc-reset-card h3{margin:0 0 10px;font-size:20px}.hc-reset-card p{margin:0;color:#aaa;line-height:1.45;font-size:14px}
+.hc-reset-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.hc-reset-actions button{min-height:48px;border-radius:14px;font-weight:800;font-size:14px}
+.hc-reset-no{border:1px solid rgba(255,255,255,.14);background:#202023;color:#f3f3f3}
+.hc-reset-yes{border:1px solid rgba(214,181,82,.55);background:#2a2417;color:#f0cf70}
+
+@media (min-width:900px){.hc-bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100vw - 32px))}.hc-bottom-nav.keyboard-hidden{transform:translate(-50%,140%)}}
