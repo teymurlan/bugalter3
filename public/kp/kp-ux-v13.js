@@ -78,6 +78,11 @@
   script.onload = () => {
     const firstFive = document.createElement('script');
     firstFive.src = '/kp/kp-first5-v1.js?v=1';
+    firstFive.onload = () => {
+      const step6 = document.createElement('script');
+      step6.src = '/kp/kp-step6-v1.js?v=1';
+      document.head.appendChild(step6);
+    };
     document.head.appendChild(firstFive);
   };
   document.head.appendChild(script);
