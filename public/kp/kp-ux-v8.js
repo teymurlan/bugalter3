@@ -66,6 +66,7 @@
     const W = page.width;
     const M = 72;
 
+    // Полностью очищаем область старого логотипа и старой строки заголовка.
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(M - 12, 42, 520, 210);
     ctx.fillRect(M - 12, 245, W - M * 2 + 24, 125);
@@ -98,15 +99,20 @@
     ctx.font = '700 32px Georgia';
     ctx.fillText('Коммерческое предложение', M, titleY);
 
-    ctx.fillStyle = '#b08a31';
-    ctx.font = '700 20px Arial';
-    ctx.fillText(quote.quote_number || '', M, titleY + 38);
+    // Номер и дата идут одной строкой, как в исходящей деловой корреспонденции.
+    const outgoing = String(quote.quote_number || '').trim();
+    ctx.fillStyle = '#252525';
+    ctx.font = '700 19px Georgia';
+    ctx.fillText(outgoing, M, titleY + 39);
+    const numberWidth = ctx.measureText(outgoing).width;
 
     ctx.fillStyle = '#555';
-    ctx.font = '18px Arial';
-    ctx.fillText(`от ${dateRu(quote.issue_date)}`, M + 190, titleY + 38);
+    ctx.font = '18px Georgia';
+    ctx.fillText(` от ${dateRu(quote.issue_date)}`, M + numberWidth + 4, titleY + 39);
+
     ctx.textAlign = 'right';
-    ctx.fillText(`Действует до ${dateRu(quote.valid_until)}`, W - M, titleY + 38);
+    ctx.font = '18px Arial';
+    ctx.fillText(`Действует до ${dateRu(quote.valid_until)}`, W - M, titleY + 39);
     ctx.textAlign = 'left';
   }
 
