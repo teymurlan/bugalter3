@@ -32,8 +32,11 @@
   const previousFillForm = fillForm;
   fillForm = function fillFormWithOutgoingNumber(quote, options = {}) {
     previousFillForm(quote, options);
-    if (options.copy) outgoingInput.value = parseNumber(state.bootstrap?.defaults?.quote_number) || '';
-    else outgoingInput.value = parseNumber(quote?.quote_number) || '';
+    if (options.copy) {
+      outgoingInput.value = parseNumber(state.bootstrap?.defaults?.quote_number) || '';
+    } else {
+      outgoingInput.value = parseNumber(quote?.quote_number) || '';
+    }
     syncBadge();
   };
 
@@ -62,15 +65,11 @@
 
   const css = document.createElement('link');
   css.rel = 'stylesheet';
-  css.href = '/kp/kp-ux-v14.css?v=19';
+  css.href = '/kp/kp-ux-v14.css?v=15';
   document.head.appendChild(css);
 
   const script = document.createElement('script');
-  script.src = '/kp/kp-ux-v14.js?v=19';
-  script.onload = () => {
-    const stable = document.createElement('script');
-    stable.src = '/kp/kp-stable-v17.js?v=19';
-    document.head.appendChild(stable);
-  };
+  script.src = '/kp/kp-ux-v14.js?v=15';
+  script.defer = true;
   document.head.appendChild(script);
 })();
