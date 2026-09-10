@@ -7,6 +7,7 @@ on:
       - hotfix/kp-assets-route-final2
       - feature/kp-mobile-ux
       - feature/kp-v5-polish
+      - feature/kp-v6-wording-polish
   pull_request:
     paths:
       - 'src/kp-math.js'
@@ -32,6 +33,7 @@ jobs:
           node --check public/kp/kp.js
           node --check public/kp/kp-ux-v4.js
           node --check public/kp/kp-ux-v5.js
+          node --check public/kp/kp-ux-v6.js
           node --check public/kp/logo-data-v5.js
       - name: Calculation tests
         run: node tests/kp-math.test.mjs
