@@ -62,4 +62,14 @@
   });
 
   syncBadge();
+
+  const css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = '/kp/kp-ux-v14.css?v=15';
+  document.head.appendChild(css);
+
+  const script = document.createElement('script');
+  script.src = '/kp/kp-ux-v14.js?v=15';
+  script.defer = true;
+  document.head.appendChild(script);
 })();
