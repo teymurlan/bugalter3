@@ -14,6 +14,7 @@ on:
       - feature/kp-commercial-v13
       - feature/kp-final-workflow-v16
       - fix/kp-session-v21
+      - fix/kp-integrated-menu-v23
   pull_request:
     paths:
       - 'src/kp-math.js'
@@ -28,6 +29,7 @@ on:
       - 'src/demo-worker-v18.js'
       - 'src/demo-worker-v20.js'
       - 'src/demo-worker-v21.js'
+      - 'src/demo-worker-v23.js'
       - 'public/kp/**'
       - 'tests/kp-math.test.mjs'
       - 'wrangler.jsonc'
@@ -54,6 +56,7 @@ jobs:
           node --check src/demo-worker-v18.js
           node --check src/demo-worker-v20.js
           node --check src/demo-worker-v21.js
+          node --check src/demo-worker-v23.js
           node --check public/kp/kp.js
           node --check public/kp/kp-ux-v4.js
           node --check public/kp/kp-ux-v5.js
@@ -66,8 +69,7 @@ jobs:
           node --check public/kp/kp-ux-v14.js
           node --check public/kp/kp-ux-v15.js
           node --check public/kp/kp-ux-v18.js
-          node --check public/kp/kp-recovery-v20.js
-          node --check public/kp/kp-session-v21.js
+          node --check public/kp/kp-session-v23.js
           node --check public/kp/logo-data-v5.js
       - name: Calculation tests
         run: node tests/kp-math.test.mjs
