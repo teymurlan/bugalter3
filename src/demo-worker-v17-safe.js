@@ -30,12 +30,14 @@ export class AppStore extends V16AppStore {
   }
 
   async saveQuote(raw) {
-    await this.ensureOutgoingStartsAt15Once();
-
     const existingId = cleanId(raw?.id);
     const existing = existingId ? await this.state.storage.get(`kp:item:${existingId}`) : null;
-    const paymentPercent = normalizePaymentPercent(raw?.prepayment_percent);
 
+    // Сбрасываем счётчик только перед первым НОВЫМ КП. Редактирование старого КП
+    // не должно расходовать одноразовый сброс номера 15.
+    if (!existing) await this.ensureOutgoingStartsAt15Once();
+
+    const paymentPercent = normalizePaymentPercent(raw?.prepayment_percent);
     const normalized = {
       ...raw,
       address: String(raw?.address || '').trim() || EMPTY_ADDRESS,
