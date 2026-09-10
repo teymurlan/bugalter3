@@ -1,0 +1,5 @@
+KP v23
+- Fixes the actual admin-menu bug: the normal «Коммерческие предложения» button now receives a signed launch URL.
+- Removes the extra separate KP launcher message after /start and /menu.
+- /kp refreshes the existing integrated admin menu instead of creating a KP-only message.
+- KP launch no longer depends on Telegram iOS initData timing.
