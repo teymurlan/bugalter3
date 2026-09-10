@@ -8,16 +8,16 @@ const KP_VERSION = '17';
 
 export class AppStore extends BaseAppStore {
   async ensureV17Sequence() {
-    await this.state.storage.transaction(async (txn) => {
-      if (await txn.get(RESET_MARKER)) return;
-      await txn.put(COUNTER_KEY, 14);
-      await txn.put(RESET_MARKER, new Date().toISOString());
-    });
+    const marker = await this.state.storage.get(RESET_MARKER);
+    if (marker) return;
+    await this.state.storage.put(COUNTER_KEY, 14);
+    await this.state.storage.put(RESET_MARKER, new Date().toISOString());
   }
 
   async fetch(request) {
-    const url = new URL(request.url);
-    if (url.pathname.startsWith('/kp/')) await this.ensureV17Sequence();
+    // Важно: bootstrap вызывает /kp/peek-number. Не запускаем здесь
+    // storage transaction/инициализацию — на iOS Telegram это могло оставлять
+    // экран на «Проверяем доступ администратора…» при ожидании DO.
     return super.fetch(request);
   }
 
