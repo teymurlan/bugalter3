@@ -65,11 +65,20 @@
 
   const css = document.createElement('link');
   css.rel = 'stylesheet';
-  css.href = '/kp/kp-ux-v14.css?v=15';
+  css.href = '/kp/kp-ux-v14.css?v=16';
   document.head.appendChild(css);
 
+  const firstFiveCss = document.createElement('link');
+  firstFiveCss.rel = 'stylesheet';
+  firstFiveCss.href = '/kp/kp-first5-v1.css?v=1';
+  document.head.appendChild(firstFiveCss);
+
   const script = document.createElement('script');
-  script.src = '/kp/kp-ux-v14.js?v=15';
-  script.defer = true;
+  script.src = '/kp/kp-ux-v14.js?v=16';
+  script.onload = () => {
+    const firstFive = document.createElement('script');
+    firstFive.src = '/kp/kp-first5-v1.js?v=1';
+    document.head.appendChild(firstFive);
+  };
   document.head.appendChild(script);
 })();
