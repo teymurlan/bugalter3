@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/kp/kp-ux-v4.css?v=4" />
   <link rel="stylesheet" href="/kp/kp-ux-v5.css?v=5" />
   <link rel="stylesheet" href="/kp/kp-ux-v12.css?v=13" />
+  <link rel="stylesheet" href="/kp/kp-stable-v17.css?v=1" />
   <script src="/kp/tg-shim.js?v=2"></script>
   <script async src="https://telegram.org/js/telegram-web-app.js?63" onload="try{Telegram.WebApp.ready();Telegram.WebApp.expand()}catch(e){}"></script>
   <script defer src="/kp/logo-data.js?v=2"></script>
@@ -25,7 +26,7 @@
   <script defer src="/kp/kp-ux-v8.js?v=11"></script>
   <script defer src="/kp/kp-ux-v11.js?v=11"></script>
   <script defer src="/kp/kp-ux-v12.js?v=13"></script>
-  <script defer src="/kp/kp-ux-v13.js?v=14"></script>
+  <script defer src="/kp/kp-ux-v13.js?v=17"></script>
 </head>
 <body>
   <div id="gate" class="gate boot-fallback">
@@ -56,7 +57,7 @@
         </div>
 
         <div class="grid two">
-          <label>Исх. №<input id="outgoingNumber" inputmode="numeric" type="number" min="1" max="999999" enterkeyhint="done" placeholder="14" /></label>
+          <label>Исх. №<input id="outgoingNumber" inputmode="numeric" type="number" min="1" max="999999" enterkeyhint="done" placeholder="15" /></label>
           <label>Дата КП<input id="issueDate" type="date" /></label>
         </div>
         <label>Срок действия, дней<input id="validDays" inputmode="numeric" type="number" min="1" max="90" value="14" /></label>
@@ -66,7 +67,7 @@
           <label>Организация заказчика — необязательно<input id="clientCompany" placeholder="Можно оставить пустым" /></label>
         </div>
 
-        <label>Адрес объекта<textarea id="address" rows="2" placeholder="Санкт-Петербург, адрес объекта"></textarea></label>
+        <textarea id="address" hidden aria-hidden="true"></textarea>
 
         <div class="grid two">
           <label>Тип объекта
@@ -87,7 +88,7 @@
         <div class="section-head services-head">
           <div>
             <span class="step">02</span>
-            <h2>Работы и расчёт</h2>
+            <h2>Услуги и расчёт</h2>
           </div>
           <button id="addItemBtn" class="btn ghost" type="button">+ Добавить услугу</button>
         </div>
@@ -99,7 +100,7 @@
           <div><span>Подытог</span><strong id="subtotal">0 ₽</strong></div>
           <div class="discount-row"><span>Скидка, %</span><input id="discountPercent" class="mini-input" inputmode="decimal" value="0" /><strong id="discountValue">0 ₽</strong></div>
           <div class="grand"><span>ИТОГО</span><strong id="grandTotal">0 ₽</strong></div>
-          <div><span>Предоплата, %</span><input id="prepaymentPercent" class="mini-input" inputmode="decimal" value="50" /><strong id="prepaymentValue">0 ₽</strong></div>
+          <div><span>Предоплата, %</span><input id="prepaymentPercent" class="mini-input" inputmode="decimal" value="0" /><strong id="prepaymentValue">0 ₽</strong></div>
           <div><span>Остаток</span><strong id="balanceValue">0 ₽</strong></div>
         </div>
 
@@ -114,7 +115,7 @@
           <label>Срок выполнения<input id="duration" placeholder="1–2 дня" /></label>
           <label>НДС<input id="vatLabel" value="Без НДС" /></label>
         </div>
-        <label>Условия оплаты<input id="paymentTerms" value="Предоплата 50%. Остаток — после выполнения работ." /></label>
+        <label>Условия оплаты<input id="paymentTerms" value="" /></label>
         <label>Примечание<textarea id="notes" rows="3" placeholder="Необязательно"></textarea></label>
 
         <div class="sticky-actions">
