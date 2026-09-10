@@ -4,14 +4,26 @@
   let pickerButton = null;
 
   function restorePageInteraction() {
-    document.documentElement.style.removeProperty('height');
+    const root = document.documentElement;
+    root.style.removeProperty('height');
+    root.style.removeProperty('overflow');
+    root.style.overflowY = 'auto';
     document.body.style.removeProperty('height');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('position');
     document.body.style.overflowY = 'auto';
+    document.body.style.pointerEvents = 'auto';
+
     const active = document.activeElement;
-    const typing = active?.matches?.('input, textarea, select, [contenteditable="true"]');
+    if (active?.id === 'v5Service') {
+      try { active.blur(); } catch {}
+    }
+
+    const typing = document.activeElement?.matches?.('input, textarea, [contenteditable="true"]');
     if (!typing) {
       document.body.classList.remove('keyboard-open');
       document.getElementById('keyboardDoneBar')?.classList.add('hidden');
+      document.getElementById('hcBottomNav')?.classList.remove('keyboard-hidden');
     }
   }
 
@@ -22,10 +34,13 @@
   function closeSheet() {
     if (!sheet) return;
     sheet.classList.add('hidden');
+    document.documentElement.style.overflowY = 'auto';
     document.body.style.overflowY = 'auto';
+    setTimeout(restorePageInteraction, 0);
   }
 
   function openSheet(select) {
+    restorePageInteraction();
     if (!sheet) buildSheet(select);
     const list = sheet.querySelector('.hc-service-sheet-list');
     list.innerHTML = '';
@@ -76,11 +91,14 @@
 
   function installCustomServicePicker() {
     const select = document.getElementById('v5Service');
-    if (!select || select.dataset.hcCustomPicker === '1') return false;
+    if (!select || select.dataset.hcCustomPicker === '1') return Boolean(select?.dataset.hcCustomPicker === '1');
     if (select.options.length < 2) return false;
 
     select.dataset.hcCustomPicker = '1';
     select.classList.add('hc-native-select-hidden');
+    select.setAttribute('tabindex', '-1');
+    select.setAttribute('aria-hidden', 'true');
+
     pickerButton = document.createElement('button');
     pickerButton.type = 'button';
     pickerButton.className = 'hc-service-picker-button';
@@ -89,6 +107,9 @@
     select.insertAdjacentElement('afterend', pickerButton);
     pickerButton.addEventListener('click', () => openSheet(select));
 
+    select.addEventListener('focus', () => {
+      try { select.blur(); } catch {}
+    });
     select.addEventListener('change', () => {
       const selected = select.selectedOptions?.[0];
       pickerButton.innerHTML = select.value
@@ -104,18 +125,23 @@
 
   async function install() {
     restorePageInteraction();
-    for (let i = 0; i < 160; i += 1) {
+    for (let i = 0; i < 220; i += 1) {
       if (installCustomServicePicker()) break;
-      await sleep(30);
+      await sleep(25);
     }
     restorePageInteraction();
   }
 
-  window.addEventListener('pageshow', restorePageInteraction);
-  window.addEventListener('focus', restorePageInteraction);
+  window.addEventListener('pageshow', () => setTimeout(restorePageInteraction, 0));
+  window.addEventListener('focus', () => setTimeout(restorePageInteraction, 0));
+  window.addEventListener('resize', () => setTimeout(restorePageInteraction, 80));
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') setTimeout(restorePageInteraction, 50);
   });
+
+  document.addEventListener('touchend', () => {
+    if (!document.querySelector('.hc-service-sheet:not(.hidden)')) setTimeout(restorePageInteraction, 60);
+  }, { passive: true });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => install().catch(console.error), { once:true });
   else install().catch(console.error);

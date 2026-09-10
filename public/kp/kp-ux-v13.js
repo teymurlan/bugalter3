@@ -62,19 +62,14 @@
 
   const css = document.createElement('link');
   css.rel = 'stylesheet';
-  css.href = '/kp/kp-ux-v14.css?v=18';
+  css.href = '/kp/kp-ux-v14.css?v=19';
   document.head.appendChild(css);
 
   const script = document.createElement('script');
-  script.src = '/kp/kp-ux-v14.js?v=18';
+  script.src = '/kp/kp-ux-v14.js?v=19';
   script.onload = () => {
     const stable = document.createElement('script');
-    stable.src = '/kp/kp-stable-v17.js?v=18';
-    stable.onload = () => {
-      const mobile = document.createElement('script');
-      mobile.src = '/kp/kp-mobile-v18.js?v=18';
-      document.head.appendChild(mobile);
-    };
+    stable.src = '/kp/kp-stable-v17.js?v=19';
     document.head.appendChild(stable);
   };
   document.head.appendChild(script);

@@ -4,7 +4,7 @@ export { ConsentStore };
 
 const OUTGOING_COUNTER_KEY = 'kp:outgoing-counter:v2';
 const RESET_MARKER = 'kp:outgoing-reset-to-15:stable-v1';
-const KP_VERSION = '18-stable';
+const KP_VERSION = '19-stable';
 
 export class AppStore extends BaseAppStore {
   async fetch(request) {
