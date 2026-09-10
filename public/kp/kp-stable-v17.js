@@ -31,7 +31,6 @@
     });
   }
 
-  // PDF: сохраняем блок заказчика и объекта, но полностью убираем адрес.
   drawClientBlock = function drawClientBlockStable(ctx, quote, M, W, y) {
     const height = 132;
     ctx.fillStyle = '#f5f3ed';
@@ -89,9 +88,7 @@
       const yes = modal.querySelector('[data-reset-yes]');
       yes.disabled = true;
       try {
-        if (typeof clearDraft === 'function') clearDraft();
         await resetForm();
-        if (typeof clearDraft === 'function') clearDraft();
         closeResetModal();
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setActive('new');
@@ -199,12 +196,9 @@
     installBottomNav();
     installWordingObserver();
 
-    // На чистом новом КП процент не выбран. При восстановлении черновика
-    // выбранное ранее значение сохраняется; после сброса/скачивания resetForm вернёт 0.
     for (let i = 0; i < 120 && !state.bootstrap; i += 1) {
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
-    if (!state.currentId && !document.querySelector('#items .item')) clearPaymentSelection();
     fixServiceWording();
   }
 
