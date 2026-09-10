@@ -2,7 +2,7 @@ import baseWorker, { ConsentStore, AppStore } from './demo-worker-v20.js';
 
 export { ConsentStore, AppStore };
 
-const KP_VERSION = '21';
+const KP_VERSION = '22';
 const SESSION_TTL_SECONDS = 60 * 60 * 24;
 
 export default {
@@ -15,12 +15,12 @@ export default {
 
     if (request.method === 'GET' && url.pathname === '/kp') {
       const target = new URL(request.url);
-      target.pathname = '/kp-v21';
+      target.pathname = '/kp-v22';
       target.searchParams.set('build', KP_VERSION);
       return Response.redirect(target.toString(), 302);
     }
 
-    if (request.method === 'GET' && (url.pathname === '/kp-v21' || url.pathname === '/kp-v21/')) {
+    if (request.method === 'GET' && (url.pathname === '/kp-v22' || url.pathname === '/kp-v22/')) {
       const assetUrl = new URL(request.url);
       assetUrl.pathname = '/kp/index.html';
       assetUrl.search = '';
@@ -42,22 +42,18 @@ export default {
       const chatId = Number(message?.chat?.id || 0);
 
       if (text === '/kp' && userId && chatId && canUseKp(env, userId)) {
-        const session = await createSession(env, userId);
-        const launchUrl = `${url.origin}/kp-v21?s=${encodeURIComponent(session)}&build=${KP_VERSION}`;
         await safeTelegram(env, 'deleteMessage', { chat_id: chatId, message_id: Number(message?.message_id || 0) });
-        await safeTelegram(env, 'sendMessage', {
-          chat_id: chatId,
-          text: '<b>HOUSE CLEANING · Коммерческие предложения</b>\n\nОткройте генератор КП кнопкой ниже.',
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [[{
-              text: 'Открыть КП',
-              web_app: { url: launchUrl },
-              style: 'success',
-            }]],
-          },
-        });
+        await sendKpLauncher(env, userId, chatId, url.origin);
         return new Response('OK');
+      }
+
+      // На iPhone старое меню могло открывать /kp без Telegram initData и зависать.
+      // После /start или /menu администратору автоматически отправляем отдельную
+      // подписанную кнопку КП. Она не зависит от момента инициализации WebApp.
+      if ((text.startsWith('/start') || text === '/menu') && userId && chatId && canUseKp(env, userId)) {
+        const response = await baseWorker.fetch(request, env, ctx);
+        await sendKpLauncher(env, userId, chatId, url.origin);
+        return response;
       }
     }
 
@@ -76,6 +72,23 @@ export default {
     return baseWorker.fetch(request, env, ctx);
   },
 };
+
+async function sendKpLauncher(env, userId, chatId, origin) {
+  const session = await createSession(env, userId);
+  const launchUrl = `${origin}/kp-v22?s=${encodeURIComponent(session)}&build=${KP_VERSION}`;
+  await safeTelegram(env, 'sendMessage', {
+    chat_id: chatId,
+    text: '<b>HOUSE CLEANING · Коммерческие предложения</b>\n\nДля входа в КП используйте эту кнопку. Доступ уже подтверждён.',
+    parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: [[{
+        text: 'Открыть КП',
+        web_app: { url: launchUrl },
+        style: 'success',
+      }]],
+    },
+  });
+}
 
 function canUseKp(env, id) {
   const values = [
