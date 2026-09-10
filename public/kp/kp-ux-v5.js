@@ -184,25 +184,22 @@
       else if (unit === 'м²' && num(fields.area.value) > 0) qty.value = fields.area.value;
       else qty.value = '';
       updatePreview();
-      setTimeout(() => {
-        if (!qty.value) qty.focus();
-        else if (!price.value) price.focus();
-      }, 40);
     });
 
     [qty, price].forEach((el) => el.addEventListener('input', updatePreview));
     fields.area.addEventListener('input', updatePreview);
+
     areaBtn.addEventListener('click', () => {
       if (num(fields.area.value) <= 0) return;
       qty.value = fields.area.value;
       updatePreview();
-      price.focus();
+      try { tg?.HapticFeedback?.selectionChanged(); } catch {}
     });
 
     card.querySelector('#v5Add').addEventListener('click', () => {
-      if (!selectedPreset) { showToast('Выберите услугу', true); select.focus(); return; }
-      if (num(qty.value) <= 0) { showToast('Укажите количество или площадь', true); qty.focus(); return; }
-      if (num(price.value) <= 0) { showToast('Укажите цену', true); price.focus(); return; }
+      if (!selectedPreset) { showToast('Выберите услугу', true); return; }
+      if (num(qty.value) <= 0) { showToast('Укажите количество или площадь', true); return; }
+      if (num(price.value) <= 0) { showToast('Укажите цену', true); return; }
       state.items.push({
         name: selectedPreset.name,
         unit: selectedPreset.unit || 'усл.',
@@ -211,13 +208,13 @@
       });
       state.lastSaved = null;
       renderItems();
+      try { tg?.HapticFeedback?.impactOccurred('light'); } catch {}
       showToast('Работа добавлена в КП');
       select.value = '';
       selectedPreset = null;
       qty.value = '';
       price.value = '';
       updatePreview();
-      select.focus();
     });
 
     card.querySelector('#v5Custom').addEventListener('click', () => {
@@ -226,17 +223,18 @@
       renderItems();
       const input = itemsEl.lastElementChild?.querySelector('input[data-k="name"]');
       input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setTimeout(() => input?.focus(), 180);
+      setTimeout(() => input?.focus({ preventScroll: true }), 180);
     });
 
-    const addButton = document.getElementById('addItemBtn');
-    if (addButton) {
+    const oldAddButton = document.getElementById('addItemBtn');
+    if (oldAddButton) {
+      const addButton = oldAddButton.cloneNode(true);
+      oldAddButton.replaceWith(addButton);
       addButton.textContent = '+ Добавить работу';
-      addButton.onclick = (event) => {
+      addButton.addEventListener('click', (event) => {
         event.preventDefault();
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => select.focus(), 180);
-      };
+      });
     }
 
     updatePreview();
