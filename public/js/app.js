@@ -4,7 +4,7 @@ import { escapeHtml } from './utils.js';
 import { renderBooking } from './views/booking-v2.js?v=24';
 import { renderConciergeHome } from './views/concierge-home.js?v=24';
 import { renderConciergeOrders } from './views/concierge-orders.js?v=24';
-import { renderConciergeProfile } from './views/concierge-profile.js?v=24';
+import { renderConciergeProfile } from './views/concierge-profile.js?v=25';
 import { renderAdmin } from './views/admin-v2.js?v=24';
 
 const tg = window.Telegram?.WebApp;
@@ -54,6 +54,15 @@ function configureFocusContext() {
       setTimeout(() => focusContext.classList.add('hidden'), 180);
     }, 80);
   });
+}
+
+function releaseFocus() {
+  const active = document.activeElement;
+  if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) {
+    try { active.blur(); } catch {}
+  }
+  focusContext.classList.remove('show');
+  focusContext.classList.add('hidden');
 }
 
 function moveIndicator(button, retry = 0) {
@@ -142,6 +151,7 @@ async function syncOwnDemoOrders() {
 
 export function navigate(route, params = {}) {
   if (adminMode && route !== 'admin') route = 'admin';
+  if (route !== 'booking') releaseFocus();
   state.route = route;
   window.scrollTo({ top: 0, behavior: 'instant' });
 
@@ -189,6 +199,7 @@ async function start() {
     if (!adminMode) {
       nav.classList.remove('hidden');
       nav.querySelectorAll('[data-route]').forEach((button) => {
+        button.onpointerdown = () => releaseFocus();
         button.onclick = () => {
           haptic();
           navigate(button.dataset.route);
