@@ -45,13 +45,27 @@ function menuRow(name, title, subtitle, iconName) {
   return `<button class="cc-menu-row" type="button" data-menu="${name}"><span class="cc-menu-icon">${icon(iconName)}</span><span class="cc-menu-copy"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(subtitle)}</small></span><span class="cc-menu-arrow">›</span></button>`;
 }
 
+function withTimeout(promise, timeoutMs, fallback) {
+  let timer = null;
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(fallback), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function loadCompletedCount() {
   try {
-    const data = await api.orders();
+    const data = await withTimeout(api.orders(), 2200, { orders: [] });
     let orders = Array.isArray(data?.orders) ? data.orders : [];
     try {
       const initData = window.Telegram?.WebApp?.initData || '';
-      const response = await fetch('/api/demo-client-orders', { headers: { 'X-Telegram-Init-Data': initData } });
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const abortTimer = controller ? setTimeout(() => controller.abort(), 2200) : null;
+      const response = await fetch('/api/demo-client-orders', {
+        headers: { 'X-Telegram-Init-Data': initData },
+        ...(controller ? { signal: controller.signal } : {}),
+      });
+      if (abortTimer) clearTimeout(abortTimer);
       if (response.ok) {
         const stored = (await response.json())?.orders || [];
         const byNumber = new Map(stored.map((item) => [String(item.order_number || ''), item]));
@@ -73,6 +87,10 @@ function loyaltyInfo(completed) {
 function loyaltyCard(completed) {
   const info = loyaltyInfo(completed);
   return `<section class="card cc-loyalty-card"><div class="cc-loyalty-top"><span class="cc-menu-icon">${icon('shield')}</span><div><small>Ваш уровень</small><strong>${escapeHtml(info.title)}</strong></div><b>${completed}</b></div><div class="cc-loyalty-progress"><i style="width:${Math.round(info.progress)}%"></i></div><div class="cc-loyalty-bottom"><span>${escapeHtml(info.note)}</span><small>После 3 уборок — 5%, после 10 — 10%</small></div></section>`;
+}
+
+function loyaltyLoadingCard() {
+  return `<section class="card cc-loyalty-card"><div class="cc-loyalty-top"><span class="cc-menu-icon">${icon('shield')}</span><div><small>Ваш уровень</small><strong>Программа лояльности</strong></div><b>…</b></div><div class="cc-loyalty-progress"><i style="width:0%"></i></div><div class="cc-loyalty-bottom"><span>Проверяем историю уборок…</span><small>Экран уже доступен — данные загрузятся отдельно</small></div></section>`;
 }
 
 function referralCode(user) {
@@ -108,7 +126,7 @@ function shareReferral(user) {
   else window.open(share, '_blank');
 }
 
-export async function renderConciergeProfile(root, navigate, params = {}) {
+export function renderConciergeProfile(root, navigate, params = {}) {
   if (params.section === 'faq') return showFaq(root, navigate);
   if (params.section === 'referral') return showReferral(root, navigate);
   if (params.section === 'subscriptions') return showSubscriptions(root, navigate);
@@ -118,13 +136,12 @@ export async function renderConciergeProfile(root, navigate, params = {}) {
   const initial = displayName.trim().charAt(0).toUpperCase() || 'H';
   const username = user.username ? `@${user.username}` : 'Telegram';
   const addressesAvailable = Array.isArray(user.addresses) && user.addresses.length > 0;
-  const completed = await loadCompletedCount();
 
   root.innerHTML = `
     <div class="cc-profile-page">
       <header class="cc-profile-head"><div><span class="cc-kicker">HOUSE CLEANING · CONCIERGE</span><h1 class="page-title">Профиль</h1><p class="page-subtitle">Ваши данные, привилегии и полезная информация.</p></div></header>
-      <div class="card cc-profile-card"><div class="cc-avatar">${user.photo_url ? `<img src="${escapeHtml(user.photo_url)}" alt="">` : escapeHtml(initial)}</div><div class="cc-profile-copy"><strong>${escapeHtml(displayName)}</strong><span>${escapeHtml(username)}${user.telegram_id ? ` · ID ${escapeHtml(user.telegram_id)}` : ''}</span></div><b>›</b></div>
-      ${loyaltyCard(completed)}
+      <div class="card cc-profile-card"><div class="cc-avatar">${user.photo_url ? `<img src="${escapeHtml(user.photo_url)}" alt="">` : escapeHtml(initial)}</div><div class="cc-profile-copy"><strong>${escapeHtml(displayName)}</strong><span>${escapeHtml(username)}</span></div><b>›</b></div>
+      <div data-loyalty-slot>${loyaltyLoadingCard()}</div>
       <div class="cc-profile-note"><i></i><span>Обслуживаем Санкт-Петербург и Ленинградскую область</span></div>
       <div class="card cc-menu">
         ${menuRow('referral', 'Пригласить друзей', '15% вам и 15% другу', 'gift')}
@@ -148,6 +165,12 @@ export async function renderConciergeProfile(root, navigate, params = {}) {
   root.querySelector('[data-menu="help"]').onclick = openManager;
   root.querySelector('[data-menu="rules"]').onclick = () => showRules(root, navigate);
   root.querySelector('[data-menu="addresses"]')?.addEventListener('click', () => showAddresses(root, navigate, user.addresses));
+
+  loadCompletedCount().then((completed) => {
+    const slot = root.querySelector('[data-loyalty-slot]');
+    if (!slot || !root.querySelector('.cc-profile-page')) return;
+    slot.innerHTML = loyaltyCard(completed);
+  }).catch(() => {});
 }
 
 function subpageHeader(title, subtitle = '') {
