@@ -65,13 +65,34 @@
     line.innerHTML = `<div><span>До скидки</span><b>${rub(before)}</b></div><div><span>${escapeHtml(typeLabel())} ${percent}%</span><b>−${rub(amount)}</b></div>`;
   }
 
+  function decorateReviewPrice() {
+    const percent = selectedPercent();
+    const card = root.querySelector('.price-card');
+    const price = card?.querySelector('.price');
+    if (!card || !price || !percent) return;
+    const before = parseMoney(price.textContent);
+    if (!before) return;
+    const signature = `${before}:${percent}:${benefits?.selected_type || ''}`;
+    let line = card.querySelector('[data-benefit-review]');
+    if (line?.dataset.signature === signature) return;
+    const amount = Math.round(before * percent / 100);
+    const after = Math.max(0, before - amount);
+    if (!line) {
+      line = document.createElement('div');
+      line.dataset.benefitReview = '1';
+      line.className = 'hc-benefit-review';
+      card.appendChild(line);
+    }
+    line.dataset.signature = signature;
+    line.innerHTML = `<div><span>${escapeHtml(typeLabel())} ${percent}%</span><b>−${rub(amount)}</b></div><div class="final"><span>Предварительно со скидкой</span><strong>от ${rub(after)}</strong></div>`;
+  }
+
   function decoratePrices() {
     if (!benefits || !selectedPercent()) return;
     const estimateStrong = root.querySelector('.hc-estimate-top strong');
     if (estimateStrong) applyAmount(estimateStrong, estimateStrong.closest('.hc-estimate-card'));
 
-    const reviewPrice = root.querySelector('.price-card .price');
-    if (reviewPrice) applyAmount(reviewPrice, reviewPrice.closest('.price-card'));
+    decorateReviewPrice();
 
     const calcPrice = root.querySelector('.cc-calc-total strong');
     if (calcPrice) applyAmount(calcPrice, calcPrice.closest('.cc-calc-total'));
