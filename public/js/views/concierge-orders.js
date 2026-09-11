@@ -9,7 +9,6 @@ function icon(name) {
   const icons = {
     calendar: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>',
     pin: '<svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>',
-    clean: '<svg viewBox="0 0 24 24"><path d="M7 20h10M9 20l1-8h4l1 8M10 12V8h4v4M8 8h8M9 5h6"/></svg>',
     area: '<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
   };
   return icons[name] || icons.calendar;
@@ -64,6 +63,16 @@ function openManager(order) {
   else window.open(url, '_blank');
 }
 
+function clientStatus(status) {
+  if (status === 'CLEANER_ASSIGNED') return 'Подтверждена';
+  if (status === 'IN_PROGRESS') return 'Уборка началась';
+  return STATUS_LABELS[status] || status || 'Заявка';
+}
+
+function contactMethodLabel(value) {
+  return ({ telegram: 'Telegram', whatsapp: 'WhatsApp', max: 'MAX', call: 'Звонок' })[String(value || '').toLowerCase()] || '';
+}
+
 function counts(orders) {
   return {
     all: orders.length,
@@ -93,10 +102,9 @@ function cardPhotos(order) {
 }
 
 function orderCard(order) {
-  const status = STATUS_LABELS[order.status] || order.status || 'Заявка';
+  const status = clientStatus(order.status);
   const address = [order.city, order.address].filter(Boolean).join(', ');
   const price = Number(order.estimated_price || 0);
-  const rateSupported = order.status === 'COMPLETED' && typeof window.HCRateOrder === 'function';
   return `
     <article class="card cc-order-card" data-order-id="${escapeHtml(order.id)}">
       <div class="cc-order-topline"><span class="cc-order-number">${escapeHtml(order.order_number || `#${order.id}`)}</span><span class="cc-status-pill">${escapeHtml(status)}</span></div>
@@ -107,7 +115,7 @@ function orderCard(order) {
         <div class="cc-order-meta-row"><span class="cc-meta-icon">${icon('area')}</span><span>${escapeHtml(String(order.area || 0))} м²</span></div>
       </div>
       ${cardPhotos(order)}
-      <div class="cc-order-open"><span>${rateSupported ? 'Подробнее · можно оценить уборку' : 'Подробнее о заявке'}</span><span>›</span></div>
+      <div class="cc-order-open"><span>Подробнее о заявке</span><span>›</span></div>
     </article>`;
 }
 
@@ -120,7 +128,7 @@ async function loadCardPhotos(root) {
       const url = URL.createObjectURL(blob);
       img.src = url;
       img.onload = () => URL.revokeObjectURL(url);
-    } catch { /* optional thumbnail */ }
+    } catch { /* thumbnail is optional */ }
   }));
 }
 
@@ -128,7 +136,7 @@ function renderList(root, navigate, orders) {
   const c = counts(orders);
   const visible = filteredOrders(orders);
   root.innerHTML = `
-    <section class="cc-orders-head"><span class="cc-kicker">HOUSE CLEANING · CONCIERGE</span><h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Статусы, детали и фотографии ваших уборок.</p></section>
+    <section class="cc-orders-head"><span class="cc-kicker">HOUSE CLEANING · CONCIERGE</span><h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Статусы, детали и фотографии для оценки.</p></section>
     <div class="cc-filter-row" role="tablist">
       <button class="cc-filter ${currentFilter === 'all' ? 'active' : ''}" type="button" data-filter="all">Все <b>${c.all}</b></button>
       <button class="cc-filter ${currentFilter === 'active' ? 'active' : ''}" type="button" data-filter="active">Активные <b>${c.active}</b></button>
@@ -158,6 +166,13 @@ export async function renderConciergeOrders(root, navigate, params = {}) {
   }
 }
 
+function timeline(status) {
+  const steps = ['Заявка создана', 'Подтверждена', 'Уборка началась', 'Завершена'];
+  if (status === 'CANCELLED') return `<div class="cc-status-timeline cancelled"><div class="cc-cancelled-mark">×</div><div><strong>Заявка отменена</strong><span>Если нужна новая уборка, оформите новую заявку.</span></div></div>`;
+  const index = status === 'COMPLETED' ? 3 : status === 'IN_PROGRESS' ? 2 : ['CONFIRMED', 'CLEANER_ASSIGNED'].includes(status) ? 1 : 0;
+  return `<div class="cc-status-timeline"><div class="cc-timeline-line"><i style="width:${index === 0 ? 0 : Math.round(index / 3 * 100)}%"></i></div>${steps.map((label, step) => `<div class="cc-timeline-step ${step <= index ? 'done' : ''} ${step === index ? 'current' : ''}"><span>${step < index ? '✓' : step + 1}</span><small>${escapeHtml(label)}</small></div>`).join('')}</div>`;
+}
+
 async function renderOrderDetails(root, navigate, id) {
   try {
     const localData = await api.order(id);
@@ -169,13 +184,14 @@ async function renderOrderDetails(root, navigate, id) {
     const selfCancel = canSelfCancel(order);
     const hours = hoursUntilOrder(order);
     const urgent = ACTIVE.has(order.status) && Number.isFinite(hours) && hours < 24;
-    const status = STATUS_LABELS[order.status] || order.status;
+    const status = clientStatus(order.status);
     const price = Number(order.estimated_price || 0);
-    const rateSupported = order.status === 'COMPLETED' && typeof window.HCRateOrder === 'function';
+    const contactMethod = contactMethodLabel(order.contact_method || order.contactMethod);
 
     root.innerHTML = `
       <button class="cc-back" type="button" data-back>← Все заявки</button>
       <section class="cc-detail-head"><span class="cc-kicker">${escapeHtml(status)}</span><h1>${escapeHtml(order.order_number || `Заявка #${order.id}`)}</h1><p class="page-subtitle">${escapeHtml(order.service_name || 'Уборка')}</p></section>
+      ${timeline(order.status)}
       <div class="card cc-detail-card">
         ${row('Адрес', [order.city, order.address].filter(Boolean).join(', '))}
         ${row('Площадь', `${order.area} м²`)}
@@ -185,34 +201,26 @@ async function renderOrderDetails(root, navigate, id) {
         ${row('Доп. услуги', addons.length ? addons.map((item) => item.name).join(', ') : (order.addon_names?.join(', ') || 'Нет'))}
         ${price > 0 ? row('Предварительная стоимость', `от ${money(price)}`) : ''}
         ${row('Контакт', `${order.customer_name}, ${order.phone}`)}
+        ${contactMethod ? row('Связаться через', contactMethod) : ''}
       </div>
-      <div class="cc-policy-note"><strong>Отмена:</strong> самостоятельно — не позднее чем за 24 часа до выбранного времени. Позже изменения согласовываются с менеджером.</div>
+      <div class="cc-policy-note">${selfCancel ? '<strong>Отмена:</strong> вы можете отменить заявку самостоятельно, пока до начала больше 24 часов.' : urgent ? '<strong>До уборки меньше 24 часов.</strong> Отмена и любые изменения теперь только через менеджера.' : '<strong>Изменения заявки</strong> выполняются через менеджера.'}</div>
       <div class="cc-gallery-title"><h2>Фото объекта</h2><span>${totalPhotoCount ? `${totalPhotoCount} фото` : 'Нет фото'}</span></div>
       <div class="cc-client-gallery">${availablePhotoCount ? Array.from({ length: availablePhotoCount }, (_, index) => `<button class="cc-client-photo" type="button" data-client-photo="${index}"><img alt="Фото ${index + 1}"><span>${index + 1}</span></button>`).join('') : `<div class="card cc-order-empty" style="grid-column:1/-1">${totalPhotoCount ? 'Фотографии этой старой заявки недоступны для восстановления.' : 'Фотографии не прикреплены.'}</div>`}</div>
-      ${rateSupported ? '<button class="primary-btn" style="margin-top:16px" type="button" data-rate>Оценить уборку</button>' : ''}
-      ${selfCancel ? '<button class="danger-btn" style="margin-top:10px" type="button" data-cancel>Отменить заявку</button>' : ''}
-      ${ACTIVE.has(order.status) ? `<button class="secondary-btn" style="margin-top:10px" type="button" data-manager>${urgent ? 'Связаться с менеджером' : 'Задать вопрос по заявке'}</button>` : ''}`;
+      ${selfCancel ? '<button class="danger-btn" style="margin-top:16px" type="button" data-cancel>Отменить заявку</button>' : ''}
+      ${ACTIVE.has(order.status) ? '<button class="secondary-btn" style="margin-top:10px" type="button" data-manager>Связаться с менеджером</button>' : ''}`;
 
     root.querySelector('[data-back]').onclick = () => navigate('orders');
     root.querySelector('[data-manager]')?.addEventListener('click', () => openManager(order));
-    root.querySelector('[data-rate]')?.addEventListener('click', () => {
-      try { window.HCRateOrder(order); } catch { showToast('Не удалось открыть оценку', true); }
-    });
     if (availablePhotoCount) await loadDetailPhotos(root, order.order_number, availablePhotoCount);
 
     const cancel = root.querySelector('[data-cancel]');
     if (cancel) cancel.onclick = async () => {
-      const approved = await modal({
-        title: 'Отменить уборку?',
-        text: 'Заявка будет отменена, а администратор сразу получит уведомление.',
-        confirmText: 'Отменить заявку',
-        danger: true,
-      });
+      const approved = await modal({ title: 'Отменить уборку?', text: 'После отмены восстановить эту заявку нельзя.', confirmText: 'Отменить заявку', danger: true });
       if (!approved) return;
       try {
         cancel.disabled = true;
         await api.cancelOrder(id);
-        showToast('Заявка отменена. Администратор уведомлён');
+        showToast('Заявка отменена');
         renderConciergeOrders(root, navigate, { orderId: id });
       } catch (error) {
         cancel.disabled = false;
