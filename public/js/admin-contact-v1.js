@@ -43,6 +43,11 @@
       && (!clientId || String(order.client_telegram_id || '') === String(clientId)));
   }
 
+  function loyaltyDiscount(clientId) {
+    const completed = orders.filter((order) => String(order.client_telegram_id || '') === String(clientId || '') && order.status === 'COMPLETED').length;
+    return completed >= 10 ? 10 : completed >= 3 ? 5 : 0;
+  }
+
   async function referralFor(clientId) {
     const key = String(clientId || '');
     if (!key) return null;
@@ -58,7 +63,7 @@
     if (!container || container.querySelector(detail ? '[data-referral-detail]' : '[data-referral-badge]')) return;
     const discount = Number(data?.available_discount_percent || 0);
     if (discount <= 0) return;
-    const badge = document.createElement(detail ? 'div' : 'div');
+    const badge = document.createElement('div');
     if (detail) {
       badge.dataset.referralDetail = '1';
       badge.className = 'summary-row admin-referral-detail';
@@ -68,6 +73,24 @@
       badge.dataset.referralBadge = '1';
       badge.className = 'admin-referral-badge';
       badge.textContent = `Реферальная скидка ${discount}%`;
+      container.appendChild(badge);
+    }
+  }
+
+  function addLoyaltyBadge(container, clientId, detail = false) {
+    if (!container || container.querySelector(detail ? '[data-loyalty-detail]' : '[data-loyalty-badge]')) return;
+    const discount = loyaltyDiscount(clientId);
+    if (discount <= 0) return;
+    const badge = document.createElement('div');
+    if (detail) {
+      badge.dataset.loyaltyDetail = '1';
+      badge.className = 'summary-row admin-loyalty-detail';
+      badge.innerHTML = `<span>Скидка по лояльности</span><strong>${discount}%</strong>`;
+      container.appendChild(badge);
+    } else {
+      badge.dataset.loyaltyBadge = '1';
+      badge.className = 'admin-loyalty-badge';
+      badge.textContent = `Лояльность ${discount}%`;
       container.appendChild(badge);
     }
   }
@@ -92,6 +115,7 @@
         }
       }
 
+      addLoyaltyBadge(card, order.client_telegram_id, false);
       if (!card.querySelector('[data-referral-badge]')) {
         const referral = await referralFor(order.client_telegram_id);
         addReferralBadge(card, referral, false);
@@ -117,6 +141,7 @@
       }
     }
 
+    addLoyaltyBadge(card, order.client_telegram_id, true);
     if (!root.querySelector('[data-referral-detail]')) {
       const referral = await referralFor(order.client_telegram_id);
       addReferralBadge(card, referral, true);
