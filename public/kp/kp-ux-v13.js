@@ -93,6 +93,11 @@
   combinedCss.href = '/kp/kp-service-combined-v1.css?v=1';
   document.head.appendChild(combinedCss);
 
+  const mobileFixCss = document.createElement('link');
+  mobileFixCss.rel = 'stylesheet';
+  mobileFixCss.href = '/kp/kp-mobile-fixes-v4.css?v=1';
+  document.head.appendChild(mobileFixCss);
+
   const script = document.createElement('script');
   script.src = '/kp/kp-ux-v14.js?v=16';
   script.onload = () => {
@@ -116,6 +121,11 @@
               polish.onload = () => {
                 const combined = document.createElement('script');
                 combined.src = '/kp/kp-service-combined-v1.js?v=1';
+                combined.onload = () => {
+                  const mobileFix = document.createElement('script');
+                  mobileFix.src = '/kp/kp-mobile-fixes-v4.js?v=1';
+                  document.head.appendChild(mobileFix);
+                };
                 document.head.appendChild(combined);
               };
               document.head.appendChild(polish);
