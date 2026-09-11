@@ -3,6 +3,7 @@
   if (params.get('admin') !== '1') return;
   const root = document.querySelector('#app');
   if (!root) return;
+  let ordersCache = null;
 
   function headers() {
     return { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || '' };
@@ -14,10 +15,52 @@
     return response.json().catch(() => null);
   }
 
-  async function decorate() {
+  async function adminOrders() {
+    if (ordersCache) return ordersCache;
+    const data = await getJson('/api/demo-admin-orders');
+    ordersCache = Array.isArray(data?.orders) ? data.orders : [];
+    return ordersCache;
+  }
+
+  function money(value) {
+    return `${new Intl.NumberFormat('ru-RU').format(Math.round(Number(value || 0)))} ₽`;
+  }
+
+  function discountName(type) {
+    if (type === 'loyalty') return 'Программа лояльности';
+    if (type === 'referral_friend') return 'Скидка по приглашению друга';
+    if (type === 'referral_reward') return 'Реферальная награда';
+    return 'Скидка';
+  }
+
+  async function decorateOrderDiscount() {
     const shell = root.querySelector('.ops-detail-shell');
+    if (!shell || shell.querySelector('[data-admin-detail-discount]')) return;
+    const number = String(shell.querySelector('.ops-detail-head span')?.textContent || '').trim();
+    if (!/^HC-[A-Za-z0-9._-]+$/i.test(number)) return;
+    const orders = await adminOrders();
+    if (!root.contains(shell)) return;
+    const order = orders.find((item) => String(item.order_number || '') === number);
+    const percent = Number(order?.discount_percent || 0);
+    const before = Number(order?.price_before_discount || 0);
+    const after = Number(order?.estimated_price || 0);
+    if (!percent || !before || !after) return;
+    const amount = Number(order.discount_amount || Math.max(0, before - after));
+    const card = document.createElement('section');
+    card.dataset.adminDetailDiscount = '1';
+    card.className = 'ops-detail-discount card';
+    card.innerHTML = `
+      <div><span>Стоимость до скидки</span><strong>${money(before)}</strong></div>
+      <div><span>${escapeHtml(discountName(order.discount_type))} · ${percent}%</span><strong class="minus">−${money(amount)}</strong></div>
+      <div class="total"><span>Предварительная стоимость</span><strong>от ${money(after)}</strong></div>`;
+    shell.querySelector('.ops-detail-card')?.insertAdjacentElement('afterend', card);
+  }
+
+  async function decorateClientInsights() {
+    const shell = root.querySelector('.ops-detail-shell');
+    const progress = shell?.querySelector('.ops-client-progress');
     const chatButton = shell?.querySelector('[data-chat-client]');
-    if (!shell || !chatButton || shell.querySelector('[data-client-insights]')) return;
+    if (!shell || !progress || !chatButton || shell.querySelector('[data-client-insights]')) return;
     const clientId = String(chatButton.dataset.chatClient || '').trim();
     if (!/^\d+$/.test(clientId)) return;
 
@@ -25,8 +68,7 @@
     placeholder.dataset.clientInsights = '1';
     placeholder.className = 'ops-client-insights loading-state';
     placeholder.innerHTML = '<span>Загружаем сервисную историю…</span>';
-    const progress = shell.querySelector('.ops-client-progress');
-    progress?.insertAdjacentElement('afterend', placeholder);
+    progress.insertAdjacentElement('afterend', placeholder);
 
     const [refData, reviewsData, allRefData] = await Promise.all([
       getJson(`/api/demo-admin-referral?user=${encodeURIComponent(clientId)}`),
@@ -54,6 +96,14 @@
         <div><strong>${average}${average !== '—' ? ' ★' : ''}</strong><span>Средняя оценка</span></div>
       </div>
       <div class="ops-client-insight-foot"><span>Отзывов клиента</span><strong>${reviews.length}</strong></div>`;
+  }
+
+  async function decorate() {
+    await Promise.all([decorateOrderDiscount(), decorateClientInsights()]);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[char] || char));
   }
 
   let queued = false;
