@@ -30,7 +30,6 @@ on:
       - 'src/demo-worker-v17-safe.js'
       - 'src/demo-worker-v18-client.js'
       - 'src/demo-worker-v19-kp-flow.js'
-      - 'src/demo-worker-v20-kp-number-guard.js'
       - 'public/kp/**'
       - 'tests/kp-math.test.mjs'
       - 'tests/kp-flow-contract.test.mjs'
@@ -57,7 +56,6 @@ jobs:
           node --check src/demo-worker-v17-safe.js
           node --check src/demo-worker-v18-client.js
           node --check src/demo-worker-v19-kp-flow.js
-          node --check src/demo-worker-v20-kp-number-guard.js
           node --check public/kp/kp.js
           node --check public/kp/kp-ux-v4.js
           node --check public/kp/kp-ux-v5.js
