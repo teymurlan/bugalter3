@@ -26,7 +26,17 @@ function keyboardDoneButton() {
   button.type = 'button';
   button.innerHTML = '<span>✓</span> Готово';
   button.className = 'keyboard-done hidden';
-  button.onclick = () => document.activeElement?.blur?.();
+  button.onclick = () => {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement)) return;
+    try {
+      active.dispatchEvent(new Event('change', { bubbles: true }));
+      active.blur();
+      window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
+    } catch {
+      active.blur?.();
+    }
+  };
   document.body.appendChild(button);
   return button;
 }
@@ -98,6 +108,7 @@ function calendarDay(date, data, selectedValue) {
 }
 
 async function enhanceCalendar() {
+  if (document.querySelector('.hc-calendar-v2')) return;
   const strip = document.querySelector('[data-calendar]');
   const input = document.querySelector('[data-date]');
   const selectedValue = state.draft.date || input?.value || '';
