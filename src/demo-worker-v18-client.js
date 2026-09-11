@@ -44,32 +44,50 @@ export class AppStore extends V17AppStore {
       let body = {};
       try { body = await request.json(); } catch {}
       const friendId = positiveInt(body.friend_id);
-      if (!friendId) return json({ ok: false, error: 'Invalid friend' }, 400);
+      const orderNumber = cleanOrderNumber(body.order_number);
+      if (!friendId || !orderNumber) return json({ ok: false, error: 'Invalid completion' }, 400);
+
+      const completionKey = `ref:completion:${friendId}:${orderNumber}`;
+      if (await this.state.storage.get(completionKey)) {
+        return json({ ok: true, rewarded: false, reason: 'already_processed' });
+      }
 
       let usedOwnReward = false;
       const ownRewardKey = `ref:reward-count:${friendId}`;
       const ownUsedKey = `ref:reward-used:${friendId}`;
       const ownRewards = Math.max(0, Number(await this.state.storage.get(ownRewardKey) || 0));
       const ownUsed = Math.max(0, Number(await this.state.storage.get(ownUsedKey) || 0));
-      if (ownRewards > ownUsed) {
-        await this.state.storage.put(ownUsedKey, ownUsed + 1);
-        usedOwnReward = true;
-      }
+      if (ownRewards > ownUsed) usedOwnReward = true;
 
       const friendKey = `ref:friend:${friendId}`;
       const referral = await this.state.storage.get(friendKey);
-      if (!referral) return json({ ok: true, rewarded: false, used_own_reward: usedOwnReward, reason: 'not_referred' });
-      if (referral.status === 'completed') return json({ ok: true, rewarded: false, used_own_reward: usedOwnReward, reason: 'already_completed', referral });
+      let awardedInvite = false;
+      let nextReferral = referral || null;
 
-      const next = { ...referral, status: 'completed', completed_at: new Date().toISOString() };
-      const rewardKey = `ref:reward-count:${referral.inviter_id}`;
       await this.state.storage.transaction(async (txn) => {
-        const current = Math.max(0, Number(await txn.get(rewardKey) || 0));
-        await txn.put(friendKey, next);
-        await txn.put(`ref:invite:${referral.inviter_id}:${friendId}`, next);
-        await txn.put(rewardKey, current + 1);
+        if (await txn.get(completionKey)) return;
+        await txn.put(completionKey, { processed_at: new Date().toISOString() });
+
+        if (usedOwnReward) await txn.put(ownUsedKey, ownUsed + 1);
+
+        if (referral && referral.status !== 'completed') {
+          nextReferral = { ...referral, status: 'completed', completed_at: new Date().toISOString() };
+          const rewardKey = `ref:reward-count:${referral.inviter_id}`;
+          const current = Math.max(0, Number(await txn.get(rewardKey) || 0));
+          await txn.put(friendKey, nextReferral);
+          await txn.put(`ref:invite:${referral.inviter_id}:${friendId}`, nextReferral);
+          await txn.put(rewardKey, current + 1);
+          awardedInvite = true;
+        }
       });
-      return json({ ok: true, rewarded: true, used_own_reward: usedOwnReward, referral: next });
+
+      return json({
+        ok: true,
+        rewarded: awardedInvite,
+        used_own_reward: usedOwnReward,
+        referral: nextReferral,
+        reason: awardedInvite ? 'invite_completed' : referral ? 'already_completed' : 'not_referred',
+      });
     }
 
     if (url.pathname === '/ref/stats' && request.method === 'GET') {
@@ -136,10 +154,12 @@ export default {
         }
       }
 
-      const completedMatch = /^hc:d:(\d+):/.exec(String(update?.callback_query?.data || ''));
+      const completedMatch = /^hc:d:(\d+):(.+)$/.exec(String(update?.callback_query?.data || ''));
       const response = await baseWorker.fetch(request, env, ctx);
       if (response.ok && completedMatch) {
-        await completeReferral(env, positiveInt(completedMatch[1]));
+        let number = '';
+        try { number = decodeURIComponent(completedMatch[2]); } catch { number = completedMatch[2]; }
+        await completeReferral(env, positiveInt(completedMatch[1]), number);
       }
       return response;
     }
@@ -156,6 +176,11 @@ function positiveInt(value) {
 function cleanReferralCode(value) {
   const code = String(value || '').trim().toUpperCase();
   return /^HC[A-Z0-9]{3,24}$/.test(code) ? code : '';
+}
+
+function cleanOrderNumber(value) {
+  const number = String(value || '').trim();
+  return /^[A-Za-z0-9._-]{3,80}$/.test(number) ? number : '';
 }
 
 function decodeReferralCode(code) {
@@ -193,14 +218,14 @@ async function registerReferral(env, inviterId, friendId, code) {
   }
 }
 
-async function completeReferral(env, friendId) {
+async function completeReferral(env, friendId, orderNumber) {
   try {
     const stub = appStub(env);
-    if (!stub || !friendId) return false;
+    if (!stub || !friendId || !orderNumber) return false;
     const response = await stub.fetch('https://app.internal/ref/complete', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ friend_id: friendId }),
+      body: JSON.stringify({ friend_id: friendId, order_number: orderNumber }),
     });
     return response.ok;
   } catch {
