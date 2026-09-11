@@ -399,13 +399,13 @@ async function handleOrderEvent(request, env, origin) {
 
   const clientText = event === 'created'
     ? [
-        '<b>Заявка получена</b>',
+        '<b>Заявка оформлена</b>',
         '',
         orderDetails(stored || order),
         '',
         '<i>Стоимость предварительная. Точную стоимость рассчитает менеджер после оценки объекта и фотографий.</i>',
         '',
-        'Администратор уже получил заявку. После подтверждения бот пришлёт отдельное сообщение.',
+        'Скоро менеджер свяжется с вами выбранным способом для подтверждения заявки.',
       ].join('\n')
     : [
         '<b>Заявка отменена</b>',
@@ -623,6 +623,15 @@ function orderKey(clientId, number) {
   return `order:${user}:${order}`;
 }
 
+function normalizeContactMethod(value) {
+  const key = String(value || '').trim().toLowerCase();
+  return ['telegram', 'whatsapp', 'max', 'call'].includes(key) ? key : 'telegram';
+}
+
+function contactMethodLabel(value) {
+  return ({ telegram: 'Telegram', whatsapp: 'WhatsApp', max: 'MAX', call: 'Звонок' })[normalizeContactMethod(value)] || 'Telegram';
+}
+
 function cleanOrder(raw) {
   const area = Number(raw?.area || 0);
   const clientId = Number(raw?.client_telegram_id || 0);
@@ -634,6 +643,7 @@ function cleanOrder(raw) {
     order_number: String(raw.order_number),
     customer_name: String(raw.customer_name),
     phone: String(raw.phone || ''),
+    contact_method: normalizeContactMethod(raw.contact_method || raw.contactMethod),
     service_name: String(raw.service_name || 'Уборка'),
     city: String(raw.city || ''),
     address: String(raw.address || ''),
@@ -654,6 +664,7 @@ function newOrderAdminText(order, user) {
     `<b>${escapeHtml(order.order_number)}</b>`,
     `Клиент: <b>${escapeHtml(order.customer_name)}</b>`,
     `Телефон: ${escapeHtml(order.phone || '—')}`,
+    `Связаться: <b>${escapeHtml(contactMethodLabel(order.contact_method))}</b>`,
     `Уборка: ${escapeHtml(order.service_name)}`,
     `Площадь: <b>${order.area} м²</b>`,
     `Дата: <b>${formatDate(order.date)}</b>`,
@@ -690,6 +701,7 @@ function orderDetails(order) {
   if (order.time) lines.push(`Время: <b>${formatTime(order.time)}</b>`);
   if (order.city || order.address) lines.push(`Адрес: ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}`);
   if (order.addon_names?.length) lines.push(`Дополнительно: ${escapeHtml(order.addon_names.join(', '))}`);
+  if (order.contact_method) lines.push(`Связаться для подтверждения: <b>${escapeHtml(contactMethodLabel(order.contact_method))}</b>`);
   if (Number(order.estimated_price) > 0) lines.push(`Предварительная стоимость: <b>от ${money(order.estimated_price)}</b>`);
   return lines.join('\n');
 }
