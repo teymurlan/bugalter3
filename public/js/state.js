@@ -24,6 +24,7 @@ function defaultDraft() {
     time: '',
     customerName: '',
     phone: '',
+    contactMethod: 'telegram',
     comment: '',
     idempotencyKey: crypto.randomUUID(),
   };
