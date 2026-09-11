@@ -5,6 +5,7 @@ export { ConsentStore };
 const OUTGOING_COUNTER_KEY = 'kp:outgoing-counter:v2';
 const USED_PREFIX = 'kp:outgoing-used:v3:';
 const HARD_RESET_MARKER = 'kp:outgoing-hard-reset-to-15:mobile-v4';
+const OUTGOING_START = 15;
 const KP_VERSION = 'mobile-fixes-v4';
 
 export class AppStore extends BaseAppStore {
@@ -16,7 +17,7 @@ export class AppStore extends BaseAppStore {
       if (await txn.get(HARD_RESET_MARKER)) return;
 
       // Явный новый старт рабочей нумерации: следующее новое КП = 15.
-      await txn.put(OUTGOING_COUNTER_KEY, 14);
+      await txn.put(OUTGOING_COUNTER_KEY, OUTGOING_START - 1);
 
       // Предыдущие номера 15+ были выданы во время настройки конструктора.
       // Для нового рабочего старта очищаем только технический реестр занятых
@@ -34,6 +35,28 @@ export class AppStore extends BaseAppStore {
       await this.hardResetOutgoingTo15Once();
     }
     return super.fetch(request);
+  }
+
+  async saveQuote(raw) {
+    const existingId = cleanId(raw?.id);
+
+    // Поле «Исх. №» всегда видно в форме, поэтому автоматический следующий
+    // номер приходит как обычное outgoing_number. Если он ровно следующий по
+    // счётчику, считаем его автоматическим и даём базовой логике назначить его
+    // самой. Это позволяет чисто перезапустить рабочую последовательность с №15
+    // и дальше сохранить обычное 15 → 16 → 17… поведение.
+    if (!existingId) {
+      const counter = Math.max(
+        OUTGOING_START - 1,
+        Number(await this.state.storage.get(OUTGOING_COUNTER_KEY) || (OUTGOING_START - 1)),
+      );
+      const requested = parseOutgoingNumber(raw?.outgoing_number);
+      if (requested && requested === counter + 1) {
+        return super.saveQuote({ ...raw, outgoing_number: null });
+      }
+    }
+
+    return super.saveQuote(raw);
   }
 }
 
@@ -55,3 +78,15 @@ export default {
     return baseWorker.fetch(request, env, ctx);
   },
 };
+
+function parseOutgoingNumber(value) {
+  const match = String(value ?? '').match(/\d+/);
+  if (!match) return 0;
+  const number = Math.floor(Number(match[0]));
+  return Number.isFinite(number) && number > 0 && number <= 999999 ? number : 0;
+}
+
+function cleanId(value) {
+  const id = String(value || '').trim();
+  return /^[a-zA-Z0-9-]{8,80}$/.test(id) ? id : '';
+}
