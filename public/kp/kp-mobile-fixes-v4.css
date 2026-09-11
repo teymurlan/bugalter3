@@ -1,0 +1,50 @@
+/* Small mobile readability + service-field visibility improvements. */
+body{font-weight:500}
+.topbar h1{font-weight:800!important;letter-spacing:-.025em!important}
+.kp-flow-progress button span{font-size:12px!important;font-weight:650!important}
+.kp-flow-progress button b{font-size:12px!important;font-weight:800!important}
+.kp-flow-step-head span{font-size:11px!important;font-weight:850!important}
+.kp-flow-step-head h2{font-size:22px!important;font-weight:800!important}
+.kp-flow-step-head p{font-size:13px!important;font-weight:520!important;line-height:1.4!important}
+.kp-flow-mini-summary{font-size:13.5px!important;font-weight:750!important}
+.kp-flow-segment button{font-size:13.5px!important;font-weight:750!important}
+.kp-flow-step label,.kp-flow-field>span,.kp-item-edit-field>span,.kp-service-search-wrap span{font-size:12.5px!important;font-weight:700!important}
+.kp-flow-step input,.kp-flow-step select,.kp-flow-step textarea,#kpServiceSearch{font-size:16px!important;font-weight:580!important}
+.kp-flow-primary,.kp-flow-secondary,.kp-polish-preview,.kp-history-back{font-size:14px!important;font-weight:760!important}
+.kp-unit-chip,.kp-flow-done-edit{font-size:12.5px!important;font-weight:750!important}
+.kp-flow-position-preview strong{font-size:13.5px!important;font-weight:700!important}
+.kp-flow-position-preview span{font-size:11.5px!important;font-weight:520!important}
+.kp-flow-position-preview>b{font-size:15px!important}
+.kp-flow-empty-state strong{font-size:13px!important;font-weight:700!important}
+.kp-flow-empty-state span,.kp-flow-empty-small{font-size:11.5px!important;font-weight:520!important}
+.kp-flow-item-copy strong{font-size:13.5px!important;font-weight:700!important}
+.kp-flow-item-copy span{font-size:11.5px!important;font-weight:520!important}
+.kp-flow-item .item-total{font-size:14px!important}
+.kp-flow-item-actions button{font-size:10.5px!important;font-weight:750!important}
+.kp-review-row span,.kp-review-equipment>span{font-size:11px!important;font-weight:550!important}
+.kp-review-row strong,.kp-review-service strong,.kp-review-service b{font-size:12px!important;font-weight:700!important}
+.kp-review-service span,.kp-review-equipment p{font-size:10.5px!important;font-weight:520!important}
+.kp-bottom-nav button{font-weight:700!important}
+
+/* Results are intentionally a little larger than the rest of the form. */
+#kpFlowPresetOptions .kp-flow-preset-group-title{font-size:11px!important;font-weight:850!important}
+#kpFlowPresetOptions .kp-flow-preset-option{min-height:64px!important;padding:12px!important}
+#kpFlowPresetOptions .kp-flow-preset-option>span{font-size:15.5px!important;line-height:1.3!important;font-weight:720!important}
+#kpFlowPresetOptions .kp-flow-preset-option>small{font-size:12.5px!important;line-height:1.3!important;font-weight:650!important}
+#kpFlowPresetOptions .kp-service-result-meta{font-size:11px!important;font-weight:550!important}
+
+/* scrollIntoView() uses these margins so Telegram/iOS input accessory does not cover the field. */
+#kpServiceSearch{scroll-margin-top:120px;scroll-margin-bottom:330px}
+.kp-service-search-wrap{scroll-margin-top:110px;scroll-margin-bottom:330px}
+
+@media(max-width:640px){
+  .topbar h1{font-size:20px!important}
+  .kp-flow-progress button span{font-size:10.5px!important}
+  .kp-flow-progress button b{font-size:11.5px!important}
+  .kp-flow-step-head h2{font-size:21px!important}
+  .kp-flow-step-head p{font-size:12.5px!important}
+  .kp-flow-primary,.kp-flow-secondary,.kp-polish-preview{font-size:13.5px!important}
+  #kpFlowPresetOptions .kp-flow-preset-option{min-height:66px!important;padding:12px 11px!important}
+  #kpFlowPresetOptions .kp-flow-preset-option>span{font-size:15.5px!important}
+  #kpFlowPresetOptions .kp-flow-preset-option>small{font-size:12px!important;max-width:42%!important}
+}
