@@ -75,11 +75,11 @@ function polishStartCard() {
 
 function addNotificationHint() {
   const success = document.querySelector('.success');
-  if (!success || success.querySelector('.notification-note')) return;
+  if (!success || success.classList.contains('success-v2') || success.querySelector('.notification-note')) return;
 
   const note = document.createElement('div');
   note.className = 'notification-note';
-  note.textContent = 'Заявка отправлена только после успешного уведомления администратора. Бот также пришлёт вам сообщение о получении, подтверждении, завершении или отмене.';
+  note.textContent = 'Заявка оформлена. Скоро менеджер свяжется с вами для подтверждения.';
   const card = success.querySelector('.success-order');
   card?.after(note);
 }
