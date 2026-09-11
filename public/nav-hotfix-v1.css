@@ -1,0 +1,16 @@
+/* HOUSE CLEANING · reliable client bottom navigation */
+body.client-concierge #bottom-nav.bottom-nav:not(.hidden){
+  z-index:200!important;
+  pointer-events:auto!important;
+  isolation:isolate;
+}
+body.client-concierge #bottom-nav .nav-item{
+  pointer-events:auto!important;
+  touch-action:manipulation;
+  -webkit-user-select:none;
+  user-select:none;
+}
+body.client-concierge #bottom-nav .nav-icon,
+body.client-concierge #bottom-nav .nav-icon *{
+  pointer-events:none!important;
+}
