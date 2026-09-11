@@ -632,6 +632,14 @@ function contactMethodLabel(value) {
   return ({ telegram: 'Telegram', whatsapp: 'WhatsApp', max: 'MAX', call: 'Звонок' })[normalizeContactMethod(value)] || 'Telegram';
 }
 
+function discountLabel(value) {
+  return ({
+    loyalty: 'Скидка по программе лояльности',
+    referral_friend: 'Скидка по приглашению друга',
+    referral_reward: 'Реферальная скидка',
+  })[String(value || '')] || 'Скидка';
+}
+
 function cleanOrder(raw) {
   const area = Number(raw?.area || 0);
   const clientId = Number(raw?.client_telegram_id || 0);
@@ -652,6 +660,10 @@ function cleanOrder(raw) {
     addon_names: Array.isArray(raw.addon_names) ? raw.addon_names.map(String) : [],
     photo_count: Math.max(0, Number(raw.photo_count || 0)),
     price_per_m2: Math.max(0, Number(raw.price_per_m2 || 0)),
+    price_before_discount: Math.max(0, Number(raw.price_before_discount || raw.estimated_price || 0)),
+    discount_percent: Math.max(0, Math.min(100, Number(raw.discount_percent || 0))),
+    discount_amount: Math.max(0, Number(raw.discount_amount || 0)),
+    discount_type: String(raw.discount_type || ''),
     estimated_price: Math.max(0, Number(raw.estimated_price || 0)),
     created_at: String(raw.created_at || new Date().toISOString()),
   };
@@ -672,11 +684,13 @@ function newOrderAdminText(order, user) {
     `Адрес: ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}`,
     `Дополнительно: ${escapeHtml(order.addon_names.join(', ') || 'нет')}`,
     `Фото: ${order.photo_count}`,
+    Number(order.discount_percent) > 0 && Number(order.price_before_discount) > 0 ? `Стоимость до скидки: <b>${money(order.price_before_discount)}</b>` : '',
+    Number(order.discount_percent) > 0 ? `${escapeHtml(discountLabel(order.discount_type))} ${Number(order.discount_percent)}%: <b>−${money(order.discount_amount)}</b>` : '',
     Number(order.estimated_price) > 0 ? `Предварительная стоимость: <b>от ${money(order.estimated_price)}</b>` : 'Предварительная стоимость: рассчитает менеджер',
     '<i>Точная стоимость — после оценки объекта и фотографий.</i>',
     '',
     `Telegram: ${user.username ? `@${escapeHtml(user.username)}` : `ID ${user.id}`}`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 function cancelledAdminText(order, user) {
@@ -702,6 +716,10 @@ function orderDetails(order) {
   if (order.city || order.address) lines.push(`Адрес: ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}`);
   if (order.addon_names?.length) lines.push(`Дополнительно: ${escapeHtml(order.addon_names.join(', '))}`);
   if (order.contact_method) lines.push(`Связаться для подтверждения: <b>${escapeHtml(contactMethodLabel(order.contact_method))}</b>`);
+  if (Number(order.discount_percent) > 0 && Number(order.price_before_discount) > 0) {
+    lines.push(`Стоимость до скидки: <b>${money(order.price_before_discount)}</b>`);
+    lines.push(`${escapeHtml(discountLabel(order.discount_type))} ${Number(order.discount_percent)}%: <b>−${money(order.discount_amount)}</b>`);
+  }
   if (Number(order.estimated_price) > 0) lines.push(`Предварительная стоимость: <b>от ${money(order.estimated_price)}</b>`);
   return lines.join('\n');
 }
@@ -709,9 +727,12 @@ function orderDetails(order) {
 function formatDate(value) {
   const raw = String(value || '').trim();
   const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) return `${iso[3]}/${iso[2]}/${iso[1].slice(-2)}`;
+  if (iso) return `${iso[3]}.${iso[2]}.${iso[1]}`;
   const ru = raw.match(/^(\d{2})[./-](\d{2})[./-](\d{2}|\d{4})$/);
-  if (ru) return `${ru[1]}/${ru[2]}/${ru[3].slice(-2)}`;
+  if (ru) {
+    const year = ru[3].length === 2 ? `20${ru[3]}` : ru[3];
+    return `${ru[1]}.${ru[2]}.${year}`;
+  }
   return escapeHtml(raw || '—');
 }
 
