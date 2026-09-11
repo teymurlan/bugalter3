@@ -1,10 +1,10 @@
 import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v2.js?v=18';
-import { renderConciergeHome } from './views/concierge-home.js?v=20';
-import { renderConciergeOrders } from './views/concierge-orders.js?v=20';
-import { renderConciergeProfile } from './views/concierge-profile.js?v=20';
+import { renderBooking } from './views/booking-v2.js?v=21';
+import { renderConciergeHome } from './views/concierge-home.js?v=21';
+import { renderConciergeOrders } from './views/concierge-orders.js?v=21';
+import { renderConciergeProfile } from './views/concierge-profile.js?v=21';
 import { renderAdmin } from './views/admin.js?v=18';
 
 const tg = window.Telegram?.WebApp;
@@ -33,7 +33,7 @@ function configureFocusContext() {
   document.addEventListener('focusin', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) return;
-    if (target.type === 'file' || target.type === 'range') return;
+    if (target.type === 'file' || target.type === 'range' || target.type === 'date') return;
     const label = target.dataset.label
       || target.closest('.field')?.querySelector('label')?.textContent?.trim()
       || target.getAttribute('aria-label')
@@ -80,7 +80,9 @@ function setActiveNav(route) {
 
 function configureNavSync() {
   const sync = () => {
-    if (root.querySelector('.cc-home') || root.querySelector('.home-hero') || root.querySelector('.booking-top')) setActiveNav('home');
+    const booking = Boolean(root.querySelector('.booking-top'));
+    document.body.classList.toggle('booking-flow', booking && !adminMode);
+    if (root.querySelector('.cc-home') || root.querySelector('.home-hero') || booking) setActiveNav('home');
   };
   const observer = new MutationObserver(sync);
   observer.observe(root, { childList: true, subtree: false });
@@ -103,6 +105,7 @@ export function navigate(route, params = {}) {
 
   if (route === 'home') {
     setActiveNav('home');
+    document.body.classList.remove('booking-flow');
     return renderConciergeHome(root, navigate);
   }
 
@@ -115,9 +118,10 @@ export function navigate(route, params = {}) {
     return renderBooking(root, navigate);
   }
 
+  document.body.classList.remove('booking-flow');
   setActiveNav(route);
   if (route === 'orders') return renderConciergeOrders(root, navigate, params);
-  if (route === 'profile') return renderConciergeProfile(root, navigate);
+  if (route === 'profile') return renderConciergeProfile(root, navigate, params);
   if (route === 'admin') return renderAdmin(root, navigate);
   return navigate('home');
 }
