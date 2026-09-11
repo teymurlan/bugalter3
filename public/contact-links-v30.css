@@ -1,0 +1,4 @@
+/* HOUSE CLEANING · contact controls v30 */
+a.hc-btn,a.primary-btn,a.secondary-btn{text-decoration:none;-webkit-touch-callout:none;touch-action:manipulation}
+a.hc-btn:visited,a.primary-btn:visited,a.secondary-btn:visited{color:inherit}
+[data-contact-v30="pending"]{opacity:.72;pointer-events:none}
