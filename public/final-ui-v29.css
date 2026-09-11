@@ -1,0 +1,62 @@
+/* HOUSE CLEANING · final polish v29 */
+:root{--hc-gold:#f4c65c;--hc-blue:#3f8fff;--hc-green:#36bf77;--hc-red:#e8646c;--hc-purple:#9d78ff;--hc-panel:#0d171d;--hc-line:#293640;--hc-muted:#89959e}
+
+/* Fixed back: always reachable while scrolling */
+.hc-fixed-back,.ops-sticky-back.hc-fixed-back{position:fixed!important;top:calc(env(safe-area-inset-top,0px) + 12px)!important;left:max(14px,calc((100vw - 680px)/2 + 14px))!important;z-index:999!important;min-width:96px!important;min-height:46px!important;padding:10px 15px!important;border:1px solid rgba(255,255,255,.14)!important;border-radius:15px!important;background:rgba(6,11,15,.94)!important;color:#f2f4f5!important;font-size:14px!important;font-weight:850!important;box-shadow:0 12px 32px rgba(0,0,0,.38)!important;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.hc-subpage-offset{padding-top:70px!important}
+body.admin-ops-mode .hc-admin-detail{padding-top:4px}
+
+/* Semantic buttons */
+.hc-btn-gold{background:linear-gradient(180deg,#f9d875,#e9b94a);border-color:rgba(255,225,145,.58);color:#18130a;box-shadow:0 8px 24px rgba(233,185,74,.14)}
+.hc-admin-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;margin-top:14px!important}
+.hc-admin-actions .hc-btn{width:100%!important;min-height:50px!important;font-size:14px!important;padding:11px 12px!important}
+.hc-admin-contact-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.hc-admin-contact-row .hc-btn{width:100%;min-height:54px!important}
+.hc-template-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+.hc-template-grid .hc-btn{width:100%!important;min-height:50px!important}
+
+/* Admin search and filters */
+.hc-admin-search-panel,.hc-review-controls{padding:14px!important;margin-bottom:14px!important}
+.hc-admin-search{position:relative!important;display:grid!important;grid-template-columns:42px minmax(0,1fr)!important;grid-template-areas:"icon input" "count count"!important;gap:7px 8px!important;margin:0 0 12px!important}
+.hc-admin-search .hc-search-icon{grid-area:icon!important;width:42px;height:54px;display:grid;place-items:center;padding:0!important;border:1px solid var(--hc-line);border-radius:15px;background:#091116;color:var(--hc-gold);font-size:25px!important}
+.hc-admin-search input{grid-area:input!important;min-width:0!important;min-height:54px!important;margin:0!important;padding:0 16px!important;font-size:16px!important;font-weight:650!important}
+.hc-admin-search .hc-search-count{grid-area:count!important;padding:0 2px!important;color:#8d99a2!important;font-size:13px!important}
+.hc-admin-filter-chips{display:flex!important;gap:8px!important;padding:2px 0 7px!important}
+.hc-admin-filter-chips button,.hc-review-sort button,.ops-review-filters button{flex:0 0 auto;min-height:46px!important;padding:10px 15px!important;border:1px solid #33424d!important;border-radius:14px!important;background:#0a1319!important;color:#aeb7bd!important;font-size:13px!important;font-weight:800!important;white-space:nowrap}
+.hc-admin-filter-chips button.active,.hc-review-sort button.active,.ops-review-filters button.active{color:#fff!important;border-color:rgba(63,143,255,.55)!important;background:rgba(63,143,255,.16)!important}
+.hc-admin-filter-chips .filter-new.active{color:#1b1405!important;background:var(--hc-gold)!important;border-color:var(--hc-gold)!important}
+.hc-admin-filter-chips .filter-progress.active{background:rgba(157,120,255,.22)!important;border-color:rgba(157,120,255,.6)!important;color:#d7c7ff!important}
+.hc-admin-filter-chips .filter-confirmed.active{background:rgba(63,143,255,.2)!important;color:#a9cbff!important}
+.hc-admin-filter-chips .filter-completed.active{background:rgba(54,191,119,.18)!important;border-color:rgba(54,191,119,.55)!important;color:#91e7b8!important}
+.hc-admin-filter-chips .filter-cancelled.active{background:rgba(232,100,108,.15)!important;border-color:rgba(232,100,108,.5)!important;color:#ffa4aa!important}
+.hc-admin-date-filter{margin:8px 0 0!important}.hc-admin-date-filter input{min-height:50px!important;font-size:15px!important}
+
+/* Admin order cards: client-like clarity */
+.hc-admin-order-list{display:grid;gap:12px}
+.hc-admin-order-card{position:relative!important;padding:16px!important;border-left:4px solid #45525c!important;border-radius:20px!important}
+.hc-admin-order-card.status-pending{border-left-color:var(--hc-gold)!important}
+.hc-admin-order-card.status-confirmed{border-left-color:var(--hc-blue)!important}
+.hc-admin-order-card.status-progress{border-left-color:var(--hc-purple)!important}
+.hc-admin-order-card.status-completed{border-left-color:var(--hc-green)!important}
+.hc-admin-order-card.status-cancelled{border-left-color:var(--hc-red)!important}
+.hc-admin-order-main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:13px 0}
+.hc-admin-order-main>div{min-width:0;padding:10px 11px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.055)}
+.hc-admin-order-main span{display:block;color:#78858e;font-size:11px}
+.hc-admin-order-main strong{display:block;margin-top:4px;font-size:14px!important;line-height:1.3;word-break:break-word}
+.hc-admin-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.hc-admin-badges span{padding:6px 9px;border:1px solid rgba(244,198,92,.2);border-radius:999px;background:rgba(244,198,92,.055);color:#c9b47d;font-size:11px}
+.status-pending{color:#ffd77f!important}.status-confirmed{color:#87b9ff!important}.status-progress{color:#c6adff!important}.status-completed{color:#78dda6!important}.status-cancelled{color:#ff9ca2!important}
+
+/* Service report */
+.hc-service-report{margin:18px 0;padding:15px!important}.hc-report-head{display:flex;justify-content:space-between;align-items:center}.hc-report-head span{display:block;color:#8b97a0;font-size:12px}.hc-report-head strong{display:block;margin-top:3px;font-size:20px}.hc-report-periods{display:flex;gap:7px;overflow-x:auto;padding:12px 0 7px;scrollbar-width:none}.hc-report-periods::-webkit-scrollbar{display:none}.hc-report-periods button{flex:0 0 auto;min-height:42px;padding:9px 13px;border:1px solid #33414b;border-radius:13px;background:#091217;color:#aab3ba;font-weight:800;font-size:12px}.hc-report-periods button.active{background:rgba(244,198,92,.12);border-color:rgba(244,198,92,.45);color:#f6d67e}.hc-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:7px}.hc-report-grid>div{padding:12px;border-radius:14px;background:#091217;border:1px solid rgba(255,255,255,.06)}.hc-report-grid span{display:block;color:#7d8992;font-size:11px}.hc-report-grid strong{display:block;margin-top:5px;font-size:22px;color:#f2f4f5}
+
+/* Review filters like map/review apps */
+.hc-review-sort{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}.hc-review-sort::-webkit-scrollbar{display:none}.hc-review-sort button.active{background:rgba(244,198,92,.13)!important;border-color:rgba(244,198,92,.48)!important;color:#f7d77e!important}.ops-review-filters{display:flex!important;gap:7px!important;overflow-x:auto!important;flex-wrap:nowrap!important}.ops-review-card{border-radius:19px!important}.ops-review-photo-label{font-size:13px!important}
+
+/* Referral reward and stage tracking */
+.hc-ref-list{display:grid;gap:10px;margin-top:14px}.hc-ref-client-card{padding:15px}.hc-ref-client-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.hc-ref-client-head small{display:block;color:#7f8b94;font-size:11px}.hc-ref-client-head strong{display:block;margin-top:3px;font-size:16px}.hc-ref-stage{flex:0 0 auto;padding:6px 9px;border-radius:999px;border:1px solid rgba(63,143,255,.3);background:rgba(63,143,255,.08);color:#8dbdff;font-size:10px;font-weight:850}.hc-ref-stage.stage-completed{border-color:rgba(54,191,119,.4);background:rgba(54,191,119,.09);color:#83e0ad}.hc-ref-steps{display:grid;gap:7px;margin-top:13px}.hc-ref-steps>div{display:grid;grid-template-columns:23px 1fr;align-items:center;gap:8px;color:#6f7d87;font-size:12px}.hc-ref-steps i{width:23px;height:23px;display:grid;place-items:center;border-radius:50%;border:1px solid #34424c;font-style:normal}.hc-ref-steps .done{color:#b7c0c6}.hc-ref-steps .done i{background:rgba(54,191,119,.12);border-color:rgba(54,191,119,.4);color:#78dca5}.hc-ref-reward-card{margin:12px 0;padding:16px!important;border-color:rgba(54,191,119,.3)!important}.hc-ref-reward-card>span{display:block;color:#8d999f;font-size:12px}.hc-ref-reward-card>strong{display:block;margin-top:4px;color:#83e1ad;font-size:26px}.hc-ref-reward-card p{margin:7px 0 13px;color:#9ca6ad;font-size:13px;line-height:1.5}.hc-ref-reward-card .hc-btn{width:100%}.hc-ref-reward-card.armed{box-shadow:inset 0 0 0 1px rgba(54,191,119,.12),0 8px 28px rgba(54,191,119,.06)}.hc-profile-active-benefit{margin-top:12px;padding:11px 12px;border-radius:13px;background:rgba(54,191,119,.08);border:1px solid rgba(54,191,119,.24)}.hc-profile-active-benefit span{display:block;color:#83a18f;font-size:10px;text-transform:uppercase;letter-spacing:.7px}.hc-profile-active-benefit strong{display:block;margin-top:3px;color:#83e0ad;font-size:14px}
+
+/* Admin nav clarity */
+body.admin-ops-mode #app{padding-bottom:calc(106px + env(safe-area-inset-bottom,0px))!important}.hc-admin-nav{gap:4px!important;padding:8px!important}.hc-admin-nav button{min-width:0!important;min-height:60px!important;padding:7px 3px!important;border:1px solid transparent!important;border-radius:14px!important}.hc-admin-nav button.active{border-color:rgba(244,198,92,.42)!important;background:rgba(244,198,92,.075)!important;color:#f6d57c!important}.hc-admin-nav-icon,.hc-admin-nav-icon svg{width:24px!important;height:24px!important}.hc-admin-nav small{font-size:10px!important}
+
+@media(max-width:560px){.hc-admin-days{grid-template-columns:1fr!important}.hc-admin-order-main{grid-template-columns:1fr 1fr}.hc-admin-actions{grid-template-columns:1fr 1fr!important}.hc-admin-contact-row{grid-template-columns:1fr 1fr}.hc-template-grid{grid-template-columns:1fr 1fr!important}.hc-report-grid{grid-template-columns:1fr 1fr}.hc-fixed-back,.ops-sticky-back.hc-fixed-back{left:14px!important}}
+@media(max-width:380px){.hc-admin-order-main,.hc-admin-actions,.hc-admin-contact-row,.hc-template-grid,.hc-report-grid{grid-template-columns:1fr!important}.hc-admin-nav small{font-size:9px!important}}
