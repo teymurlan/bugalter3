@@ -113,7 +113,6 @@
     const width = W - M * 2;
     let cursor = y + 18;
 
-    // Итог сразу после таблицы.
     const totalH = 66;
     ctx.fillStyle = '#faf6e9';
     ctx.strokeStyle = '#c9a23f';
@@ -130,7 +129,6 @@
     ctx.textAlign = 'left';
     cursor += totalH + 20;
 
-    // Сумма прописью.
     ctx.fillStyle = '#222';
     ctx.font = '17px Arial';
     const vatText = String(quote.vat_label || '').toLowerCase().includes('без')
@@ -141,7 +139,6 @@
     wordLines.forEach((line, index) => ctx.fillText(line, M + 12, cursor + index * 23));
     cursor += wordLines.length * 23 + 22;
 
-    // Оборудование.
     const equipment = equipmentLines(quote);
     if (equipment.length) {
       ctx.fillStyle = '#222';
@@ -158,10 +155,12 @@
       cursor += 12;
     }
 
-    // Условия — единый аккуратный блок как в коммерческом КП.
+    // При предоплате 0% не выводим строку об оплате вообще.
     const conditions = [
       ['Срок выполнения работ:', quote.duration || DEFAULT_DURATION],
-      ['Условия оплаты:', quote.payment_terms || 'По согласованным условиям.'],
+      ...(Number(quote.prepayment_percent || 0) > 0 && String(quote.payment_terms || '').trim()
+        ? [['Условия оплаты:', String(quote.payment_terms).trim()]]
+        : []),
       ['Срок действия коммерческого предложения:', `до ${dateRu(quote.valid_until)} включительно.`],
     ];
     const conditionLines = conditions.map(([label, value]) => {
