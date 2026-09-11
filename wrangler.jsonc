@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bugalter3",
-  "main": "src/demo-worker-v28-notifications.js",
+  "main": "src/demo-worker-v29-automation.js",
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "preview_urls": true,
@@ -10,6 +10,9 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     "run_worker_first": true
+  },
+  "triggers": {
+    "crons": ["*/10 * * * *"]
   },
   "durable_objects": {
     "bindings": [
