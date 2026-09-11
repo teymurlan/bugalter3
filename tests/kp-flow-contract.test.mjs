@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const flow = readFileSync('public/kp/kp-flow-v2.js', 'utf8');
+const flowGuard = readFileSync('public/kp/kp-flow-guard-v2.js', 'utf8');
 const css = readFileSync('public/kp/kp-flow-v2.css', 'utf8');
 const renderer = readFileSync('public/kp/kp-ux-v12.js', 'utf8');
 const worker = readFileSync('src/demo-worker-v19-kp-flow.js', 'utf8');
@@ -25,6 +26,8 @@ assert.ok(flow.includes('Редактировать существующую') &
 assert.ok(flow.includes("fields.prepayment_percent.value = '0'"), 'repeat payment click must be able to reset to zero');
 assert.ok(renderer.includes('Number(quote.prepayment_percent || 0) > 0'), 'PDF payment row must be conditional');
 assert.ok(renderer.includes("? [['Условия оплаты:'"), 'payment row must render only when payment exists');
+assert.ok(flowGuard.includes('KP_PDF_CANCELLED'), 'cancelled native PDF share must be detected');
+assert.ok(flowGuard.includes('state.currentId && state.lastSaved?.id === state.currentId'), 'cancelled PDF share must preserve the current quote state');
 assert.ok(worker.includes("const USED_PREFIX = 'kp:outgoing-used:v3:'"), 'permanent used-number ledger must exist');
 assert.ok(worker.includes("url.pathname === '/kp/delete'"), 'delete flow must reserve the old outgoing number');
 assert.ok(worker.includes('raiseCounterTo'), 'counter must only move forward');
