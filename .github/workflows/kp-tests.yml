@@ -72,6 +72,7 @@ jobs:
           node --check public/kp/kp-step6-v1.js
           node --check public/kp/kp-steps7-9-v1.js
           node --check public/kp/kp-flow-v2.js
+          node --check public/kp/kp-flow-guard-v2.js
           node --check public/kp/logo-data-v5.js
           node --check tests/kp-flow-contract.test.mjs
       - name: Calculation tests
