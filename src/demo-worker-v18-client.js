@@ -46,10 +46,20 @@ export class AppStore extends V17AppStore {
       const friendId = positiveInt(body.friend_id);
       if (!friendId) return json({ ok: false, error: 'Invalid friend' }, 400);
 
+      let usedOwnReward = false;
+      const ownRewardKey = `ref:reward-count:${friendId}`;
+      const ownUsedKey = `ref:reward-used:${friendId}`;
+      const ownRewards = Math.max(0, Number(await this.state.storage.get(ownRewardKey) || 0));
+      const ownUsed = Math.max(0, Number(await this.state.storage.get(ownUsedKey) || 0));
+      if (ownRewards > ownUsed) {
+        await this.state.storage.put(ownUsedKey, ownUsed + 1);
+        usedOwnReward = true;
+      }
+
       const friendKey = `ref:friend:${friendId}`;
       const referral = await this.state.storage.get(friendKey);
-      if (!referral) return json({ ok: true, rewarded: false, reason: 'not_referred' });
-      if (referral.status === 'completed') return json({ ok: true, rewarded: false, reason: 'already_completed', referral });
+      if (!referral) return json({ ok: true, rewarded: false, used_own_reward: usedOwnReward, reason: 'not_referred' });
+      if (referral.status === 'completed') return json({ ok: true, rewarded: false, used_own_reward: usedOwnReward, reason: 'already_completed', referral });
 
       const next = { ...referral, status: 'completed', completed_at: new Date().toISOString() };
       const rewardKey = `ref:reward-count:${referral.inviter_id}`;
@@ -59,7 +69,7 @@ export class AppStore extends V17AppStore {
         await txn.put(`ref:invite:${referral.inviter_id}:${friendId}`, next);
         await txn.put(rewardKey, current + 1);
       });
-      return json({ ok: true, rewarded: true, referral: next });
+      return json({ ok: true, rewarded: true, used_own_reward: usedOwnReward, referral: next });
     }
 
     if (url.pathname === '/ref/stats' && request.method === 'GET') {
@@ -69,14 +79,22 @@ export class AppStore extends V17AppStore {
       const values = [...invites.values()].filter(Boolean);
       const friendReferral = await this.state.storage.get(`ref:friend:${userId}`);
       const rewardCount = Math.max(0, Number(await this.state.storage.get(`ref:reward-count:${userId}`) || 0));
+      const rewardUsed = Math.max(0, Number(await this.state.storage.get(`ref:reward-used:${userId}`) || 0));
+      const ownOrders = await this.state.storage.list({ prefix: `order:${userId}:` });
+      const hasCompletedOwnOrder = [...ownOrders.values()].some((order) => order?.status === 'COMPLETED');
+      const friendDiscount = friendReferral && !hasCompletedOwnOrder ? REF_PERCENT : 0;
+      const availableRewards = Math.max(0, rewardCount - rewardUsed);
       return json({
         ok: true,
         invited_count: values.length,
         completed_friends: values.filter((item) => item.status === 'completed').length,
         reward_count: rewardCount,
+        reward_used: rewardUsed,
+        available_rewards: availableRewards,
         reward_percent: REF_PERCENT,
         referred_by: friendReferral?.inviter_id || null,
-        friend_discount_percent: friendReferral ? REF_PERCENT : 0,
+        friend_discount_percent: friendDiscount,
+        available_discount_percent: friendDiscount || (availableRewards > 0 ? REF_PERCENT : 0),
       });
     }
 
@@ -91,10 +109,15 @@ export default {
     if (url.pathname === '/api/referral' && request.method === 'GET') {
       const user = await validateRequestUser(request, env);
       if (!user) return json({ ok: false, error: 'Telegram authorization failed' }, 401);
-      const stub = appStub(env);
-      if (!stub) return json({ ok: false, error: 'Referral storage unavailable' }, 503);
-      const response = await stub.fetch(`https://app.internal/ref/stats?user=${encodeURIComponent(user.id)}`);
-      return proxy(response);
+      return referralStats(env, user.id);
+    }
+
+    if (url.pathname === '/api/demo-admin-referral' && request.method === 'GET') {
+      const admin = await validateRequestUser(request, env);
+      if (!admin || !isAdmin(env, admin.id)) return json({ ok: false, error: 'Admin authorization failed' }, 403);
+      const clientId = positiveInt(url.searchParams.get('user'));
+      if (!clientId) return json({ ok: false, error: 'Invalid client' }, 400);
+      return referralStats(env, clientId);
     }
 
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
@@ -148,6 +171,13 @@ function appStub(env) {
   return env.APP_STORE.get(id);
 }
 
+async function referralStats(env, userId) {
+  const stub = appStub(env);
+  if (!stub) return json({ ok: false, error: 'Referral storage unavailable' }, 503);
+  const response = await stub.fetch(`https://app.internal/ref/stats?user=${encodeURIComponent(userId)}`);
+  return proxy(response);
+}
+
 async function registerReferral(env, inviterId, friendId, code) {
   try {
     const stub = appStub(env);
@@ -176,6 +206,15 @@ async function completeReferral(env, friendId) {
   } catch {
     return false;
   }
+}
+
+function adminIds(env) {
+  const raw = [env.ADMIN_TELEGRAM_IDS, env.ADMIN_TELEGRAM_ID, env.ADMIN_ID].filter(Boolean).join(',');
+  return [...new Set(String(raw).split(/[;,\s]+/).map((value) => value.trim()).filter((value) => /^-?\d+$/.test(value)))];
+}
+
+function isAdmin(env, id) {
+  return adminIds(env).includes(String(id));
 }
 
 async function validateRequestUser(request, env) {
