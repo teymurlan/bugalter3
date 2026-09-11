@@ -1,4 +1,6 @@
 import { renderConciergeHome as renderBaseHome } from './concierge-home-v2.js?v=29';
+import { state } from '../state.js';
+import { showToast } from '../utils.js';
 
 function headers() {
   return { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || '' };
@@ -16,6 +18,13 @@ async function openDirectManager() {
       }
     }
   } catch {}
+
+  const username = String(state.bootstrap?.config?.managerUsername || '').replace(/^@/, '');
+  if (!username) return showToast('Контакт менеджера пока не настроен', true);
+  const url = `https://t.me/${username}`;
+  const tg = window.Telegram?.WebApp;
+  if (tg?.openTelegramLink) tg.openTelegramLink(url);
+  else window.open(url, '_blank');
 }
 
 export async function renderConciergeHome(root, navigate) {
