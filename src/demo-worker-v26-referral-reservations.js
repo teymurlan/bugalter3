@@ -9,6 +9,26 @@ const RELEASED_STATUSES = new Set(['CANCELLED']);
 export class AppStore extends BaseAppStore {
   async fetch(request) {
     const url = new URL(request.url);
+
+    if (url.pathname === '/ref/register' && request.method === 'POST') {
+      let body = {};
+      try { body = await request.clone().json(); } catch {}
+      const friendId = positiveInt(body.friend_id);
+      if (friendId) {
+        const existing = await this.state.storage.get(`ref:friend:${friendId}`);
+        if (!existing) {
+          const ordersRaw = await this.state.storage.list({ prefix: `order:${friendId}:` });
+          const hasExistingActiveOrCompleted = [...ordersRaw.values()].some((order) =>
+            order && String(order.status || '') !== 'CANCELLED',
+          );
+          if (hasExistingActiveOrCompleted) {
+            return json({ ok: true, referral: null, ineligible: true, reason: 'existing_client' });
+          }
+        }
+      }
+      return super.fetch(request);
+    }
+
     if (url.pathname === '/benefits' && request.method === 'GET') {
       const userId = positiveInt(url.searchParams.get('user'));
       if (!userId) return json({ ok: false, error: 'Invalid user' }, 400);
