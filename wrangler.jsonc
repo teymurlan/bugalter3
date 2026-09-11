@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bugalter3",
-  "main": "src/demo-worker-v26-referral-reservations.js",
+  "main": "src/demo-worker-v27-client-profile.js",
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "preview_urls": true,
