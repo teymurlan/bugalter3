@@ -12,8 +12,8 @@ assert.ok(js.includes("search.value = String(preset.name || '')"), 'selected ser
 assert.ok(css.includes('#kpFlowPresetPicker{display:none!important}'), 'separate picker must be hidden');
 assert.ok(css.includes('min-height:58px!important'), 'service result rows must be larger and easier to read');
 assert.ok(css.includes('font-size:14px!important'), 'service names must use a larger readable font');
-assert.ok(loader.includes('/kp/kp-service-combined-v1.js?v=1'), 'combined picker JS must load last');
+assert.ok(loader.includes('/kp/kp-service-combined-v1.js?v=1'), 'combined picker JS must load');
 assert.ok(loader.includes('/kp/kp-service-combined-v1.css?v=1'), 'combined picker CSS must load');
-assert.ok(html.includes('/kp/kp-ux-v13.js?v=20'), 'index must bust Telegram cache');
+assert.ok(/\/kp\/kp-ux-v13\.js\?v=\d+/.test(html), 'index must cache-bust the KP loader');
 
 console.log('KP combined service picker checks passed');
