@@ -158,6 +158,14 @@ function syncUrl(origin, orderNumber, status, admin) {
   return `${origin}/?${params.toString()}`;
 }
 
+function discountLabel(value) {
+  return ({
+    loyalty: 'Скидка по программе лояльности',
+    referral_friend: 'Скидка по приглашению друга',
+    referral_reward: 'Реферальная скидка',
+  })[String(value || '')] || 'Скидка';
+}
+
 function orderDetails(order) {
   const lines = [`<b>${escapeHtml(order.order_number)}</b>`];
   if (order.service_name) lines.push(`Уборка: ${escapeHtml(order.service_name)}`);
@@ -166,6 +174,10 @@ function orderDetails(order) {
   if (order.time) lines.push(`Время: <b>${formatTimeShort(order.time)}</b>`);
   if (order.city || order.address) lines.push(`Адрес: ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}`);
   if (order.addon_names?.length) lines.push(`Дополнительно: ${escapeHtml(order.addon_names.join(', '))}`);
+  if (Number(order.discount_percent) > 0 && Number(order.price_before_discount) > 0) {
+    lines.push(`Стоимость до скидки: <b>${money(order.price_before_discount)}</b>`);
+    lines.push(`${escapeHtml(discountLabel(order.discount_type))} ${Number(order.discount_percent)}%: <b>−${money(order.discount_amount)}</b>`);
+  }
   if (Number(order.estimated_price) > 0) lines.push(`Предварительная стоимость: <b>от ${money(order.estimated_price)}</b>`);
   return lines.join('\n');
 }
@@ -181,6 +193,18 @@ function parseOrderFromAdminMessage(text, orderNumber) {
   const addressParts = addressLine.split(',').map((part) => part.trim()).filter(Boolean);
   const addons = pick(/Дополнительно:\s*([^\n]+)/i);
   const estimateRaw = pick(/Предварительная стоимость:\s*(?:от\s*)?([\d\s.,]+)\s*₽/i).replace(/[^\d]/g, '');
+  const beforeRaw = pick(/Стоимость до скидки:\s*([\d\s.,]+)\s*₽/i).replace(/[^\d]/g, '');
+  const discountMatch = value.match(/(?:Скидка по программе лояльности|Скидка по приглашению друга|Реферальная скидка|Скидка)\s*(\d+)%:\s*[−-]?\s*([\d\s.,]+)\s*₽/i);
+  const discountPercent = Number(discountMatch?.[1] || 0);
+  const discountAmount = Number(String(discountMatch?.[2] || '').replace(/[^\d]/g, '') || 0);
+  const lower = value.toLowerCase();
+  const discountType = lower.includes('скидка по программе лояльности')
+    ? 'loyalty'
+    : lower.includes('скидка по приглашению друга')
+      ? 'referral_friend'
+      : lower.includes('реферальная скидка')
+        ? 'referral_reward'
+        : '';
   return {
     order_number: orderNumber,
     service_name: pick(/Уборка:\s*([^\n]+)/i),
@@ -190,6 +214,10 @@ function parseOrderFromAdminMessage(text, orderNumber) {
     city: addressParts.length > 1 ? addressParts.shift() : '',
     address: addressParts.join(', ') || addressLine,
     addon_names: addons && addons.toLowerCase() !== 'нет' ? addons.split(',').map((x) => x.trim()).filter(Boolean) : [],
+    price_before_discount: Number(beforeRaw || 0),
+    discount_percent: discountPercent,
+    discount_amount: discountAmount,
+    discount_type: discountType,
     estimated_price: Number(estimateRaw || 0),
   };
 }
@@ -206,6 +234,10 @@ function normalizeOrder(raw) {
     city: String(raw.city || ''),
     address: String(raw.address || ''),
     addon_names: Array.isArray(raw.addon_names) ? raw.addon_names.map(String) : [],
+    price_before_discount: Math.max(0, Number(raw.price_before_discount || 0)),
+    discount_percent: Math.max(0, Math.min(100, Number(raw.discount_percent || 0))),
+    discount_amount: Math.max(0, Number(raw.discount_amount || 0)),
+    discount_type: String(raw.discount_type || ''),
     estimated_price: Math.max(0, Number(raw.estimated_price || 0)),
     client_telegram_id: Number(raw.client_telegram_id || 0),
   };
@@ -214,9 +246,12 @@ function normalizeOrder(raw) {
 function formatDateShort(value) {
   const raw = String(value || '').trim();
   const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) return `${iso[3]}/${iso[2]}/${iso[1].slice(-2)}`;
+  if (iso) return `${iso[3]}.${iso[2]}.${iso[1]}`;
   const ru = raw.match(/^(\d{2})[./-](\d{2})[./-](\d{2}|\d{4})$/);
-  if (ru) return `${ru[1]}/${ru[2]}/${ru[3].slice(-2)}`;
+  if (ru) {
+    const year = ru[3].length === 2 ? `20${ru[3]}` : ru[3];
+    return `${ru[1]}.${ru[2]}.${year}`;
+  }
   return escapeHtml(raw || '—');
 }
 
