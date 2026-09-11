@@ -1,11 +1,11 @@
 import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v2.js?v=24';
-import { renderConciergeHome } from './views/concierge-home.js?v=24';
-import { renderConciergeOrders } from './views/concierge-orders.js?v=24';
-import { renderConciergeProfile } from './views/concierge-profile.js?v=25';
-import { renderAdmin } from './views/admin-v2.js?v=24';
+import { renderBooking } from './views/booking-v2.js?v=28';
+import { renderConciergeHome } from './views/concierge-home-v2.js?v=28';
+import { renderConciergeOrders } from './views/concierge-orders-v2.js?v=28';
+import { renderConciergeProfile } from './views/concierge-profile.js?v=28';
+import { renderAdmin } from './views/admin-v3.js?v=28';
 
 const tg = window.Telegram?.WebApp;
 const root = document.querySelector('#app');
@@ -15,6 +15,9 @@ const query = new URLSearchParams(window.location.search);
 const adminMode = query.get('admin') === '1';
 const reviewOrderParam = String(query.get('review') || '').trim();
 const DEMO_ORDERS_KEY = 'hc-demo-orders-v2';
+const PROFILE_CACHE_KEY = 'hc-client-profile-v1';
+let lastNavRoute = '';
+let lastNavAt = 0;
 
 function configureTelegram() {
   if (!tg) return;
@@ -26,10 +29,10 @@ function configureTelegram() {
   tg.disableVerticalSwipes?.();
 }
 
-function configureAdminNav() {
+function configureAdminMode() {
   document.body.classList.toggle('client-concierge', !adminMode);
   document.body.classList.toggle('admin-ops-mode', adminMode);
-  if (adminMode) nav.classList.add('hidden');
+  if (adminMode) nav?.classList.add('hidden');
 }
 
 function configureFocusContext() {
@@ -51,8 +54,8 @@ function configureFocusContext() {
       const active = document.activeElement;
       if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) return;
       focusContext.classList.remove('show');
-      setTimeout(() => focusContext.classList.add('hidden'), 180);
-    }, 80);
+      focusContext.classList.add('hidden');
+    }, 100);
   });
 }
 
@@ -61,12 +64,13 @@ function releaseFocus() {
   if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) {
     try { active.blur(); } catch {}
   }
-  focusContext.classList.remove('show');
-  focusContext.classList.add('hidden');
+  document.body.classList.remove('keyboard-open');
+  focusContext?.classList.remove('show');
+  focusContext?.classList.add('hidden');
 }
 
 function moveIndicator(button, retry = 0) {
-  if (adminMode || !button) return;
+  if (adminMode || !button || !nav) return;
   requestAnimationFrame(() => {
     const navRect = nav.getBoundingClientRect();
     const buttonRect = button.getBoundingClientRect();
@@ -80,7 +84,7 @@ function moveIndicator(button, retry = 0) {
 }
 
 function setActiveNav(route) {
-  if (adminMode) return;
+  if (adminMode || !nav) return;
   const visualRoute = route === 'booking' ? 'home' : route;
   let activeButton = null;
   nav.querySelectorAll('[data-route]').forEach((button) => {
@@ -92,18 +96,15 @@ function setActiveNav(route) {
 }
 
 function configureNavSync() {
-  if (adminMode) return;
+  if (adminMode || !nav) return;
   const sync = () => {
     const booking = Boolean(root.querySelector('.booking-top'));
     document.body.classList.toggle('booking-flow', booking);
-    if (root.querySelector('.cc-home') || root.querySelector('.home-hero') || booking) setActiveNav('home');
+    if (booking) setActiveNav('home');
   };
-  const observer = new MutationObserver(sync);
-  observer.observe(root, { childList: true, subtree: false });
-
+  new MutationObserver(sync).observe(root, { childList: true, subtree: false });
   if ('ResizeObserver' in window) {
-    const resizeObserver = new ResizeObserver(() => moveIndicator(nav.querySelector('.nav-item.active')));
-    resizeObserver.observe(nav);
+    new ResizeObserver(() => moveIndicator(nav.querySelector('.nav-item.active'))).observe(nav);
   } else {
     window.addEventListener('resize', () => moveIndicator(nav.querySelector('.nav-item.active')));
   }
@@ -113,22 +114,72 @@ function haptic() {
   try { tg?.HapticFeedback?.selectionChanged?.(); } catch {}
 }
 
+function configureClientNav() {
+  if (adminMode || !nav) return;
+  nav.classList.remove('hidden');
+
+  const buttonFromEvent = (event) => {
+    const target = event.target instanceof Element ? event.target.closest('[data-route]') : null;
+    return target && nav.contains(target) ? target : null;
+  };
+
+  const go = (button, event) => {
+    const route = String(button?.dataset?.route || '');
+    if (!['home', 'orders', 'profile'].includes(route)) return false;
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    releaseFocus();
+    lastNavRoute = route;
+    lastNavAt = Date.now();
+    haptic();
+    navigate(route);
+    return true;
+  };
+
+  nav.addEventListener('pointerup', (event) => {
+    const button = buttonFromEvent(event);
+    if (button) go(button, event);
+  }, true);
+
+  nav.addEventListener('click', (event) => {
+    const button = buttonFromEvent(event);
+    if (!button) return;
+    const route = String(button.dataset.route || '');
+    event.preventDefault();
+    event.stopPropagation();
+    if (route === lastNavRoute && Date.now() - lastNavAt < 650) return;
+    go(button, event);
+  }, true);
+}
+
+async function hydrateClientProfile() {
+  if (adminMode) return;
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || 'null'); } catch {}
+  if (cached && typeof cached === 'object') state.bootstrap.user = { ...(state.bootstrap?.user || {}), ...cached };
+  if (!tg?.initData) return;
+  try {
+    const response = await fetch('/api/client-profile', { headers: { 'X-Telegram-Init-Data': tg.initData } });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!data?.profile) return;
+    state.bootstrap.user = { ...(state.bootstrap?.user || {}), ...data.profile };
+    try { localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data.profile)); } catch {}
+  } catch (error) {
+    console.warn('Profile hydrate skipped', error);
+  }
+}
+
 async function syncOwnDemoOrders() {
   if (!isDemoMode || !tg?.initData || adminMode) return;
   let local = [];
-  try { local = JSON.parse(localStorage.getItem(DEMO_ORDERS_KEY) || '[]'); }
-  catch { local = []; }
+  try { local = JSON.parse(localStorage.getItem(DEMO_ORDERS_KEY) || '[]'); } catch {}
   if (!Array.isArray(local)) local = [];
-
   try {
-    const response = await fetch('/api/demo-client-orders', {
-      headers: { 'X-Telegram-Init-Data': tg.initData },
-    });
+    const response = await fetch('/api/demo-client-orders', { headers: { 'X-Telegram-Init-Data': tg.initData } });
     if (!response.ok) return;
     const data = await response.json();
     const stored = Array.isArray(data?.orders) ? data.orders : [];
-    if (!stored.length) return;
-
     const byNumber = new Map(local.map((item) => [String(item.order_number || ''), item]));
     let nextId = local.reduce((max, item) => Math.max(max, Number(item.id || 0)), 0) + 1;
     for (const server of stored) {
@@ -153,16 +204,14 @@ export function navigate(route, params = {}) {
   if (adminMode && route !== 'admin') route = 'admin';
   if (route !== 'booking') releaseFocus();
   state.route = route;
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
   if (route === 'admin') return renderAdmin(root, navigate);
-
   if (route === 'home') {
-    setActiveNav('home');
     document.body.classList.remove('booking-flow');
+    setActiveNav('home');
     return renderConciergeHome(root, navigate);
   }
-
   if (route === 'booking') {
     setActiveNav('home');
     if (!Number(state.draft?.step || 0)) {
@@ -171,7 +220,6 @@ export function navigate(route, params = {}) {
     }
     return renderBooking(root, navigate);
   }
-
   document.body.classList.remove('booking-flow');
   setActiveNav(route);
   if (route === 'orders') return renderConciergeOrders(root, navigate, params);
@@ -182,7 +230,7 @@ export function navigate(route, params = {}) {
 async function start() {
   configureTelegram();
   configureFocusContext();
-  configureAdminNav();
+  configureAdminMode();
   configureNavSync();
   root.innerHTML = `<div class="loading"><div><div class="spinner"></div>Загружаем HOUSE CLEANING...</div></div>`;
 
@@ -193,21 +241,8 @@ async function start() {
 
   try {
     state.bootstrap = await api.bootstrap();
-    await syncOwnDemoOrders();
-    await state.restorePhotos();
-
-    if (!adminMode) {
-      nav.classList.remove('hidden');
-      nav.querySelectorAll('[data-route]').forEach((button) => {
-        button.onpointerdown = () => releaseFocus();
-        button.onclick = () => {
-          haptic();
-          navigate(button.dataset.route);
-        };
-      });
-    } else {
-      nav.classList.add('hidden');
-    }
+    await Promise.all([hydrateClientProfile(), syncOwnDemoOrders(), state.restorePhotos()]);
+    configureClientNav();
 
     if (!adminMode && reviewOrderParam) {
       const data = await api.orders();
