@@ -1,11 +1,11 @@
 import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v2.js?v=28';
-import { renderConciergeHome } from './views/concierge-home-v2.js?v=28';
-import { renderConciergeOrders } from './views/concierge-orders-v2.js?v=28';
-import { renderConciergeProfile } from './views/concierge-profile.js?v=28';
-import { renderAdmin } from './views/admin-v3.js?v=28';
+import { renderBooking } from './views/booking-v2.js?v=29';
+import { renderConciergeHome } from './views/concierge-home-v3.js?v=29';
+import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=29';
+import { renderConciergeProfile } from './views/concierge-profile-v3.js?v=29';
+import { renderAdmin } from './views/admin-v4.js?v=29';
 
 const tg = window.Telegram?.WebApp;
 const root = document.querySelector('#app');
@@ -14,6 +14,7 @@ const focusContext = document.querySelector('#focus-context');
 const query = new URLSearchParams(window.location.search);
 const adminMode = query.get('admin') === '1';
 const reviewOrderParam = String(query.get('review') || '').trim();
+const openParam = String(query.get('open') || '').trim().toLowerCase();
 const DEMO_ORDERS_KEY = 'hc-demo-orders-v2';
 const PROFILE_CACHE_KEY = 'hc-client-profile-v1';
 let lastNavRoute = '';
@@ -243,6 +244,10 @@ async function start() {
     state.bootstrap = await api.bootstrap();
     await Promise.all([hydrateClientProfile(), syncOwnDemoOrders(), state.restorePhotos()]);
     configureClientNav();
+
+    if (!adminMode && openParam === 'referral') {
+      return navigate('profile', { section: 'referral' });
+    }
 
     if (!adminMode && reviewOrderParam) {
       const data = await api.orders();
