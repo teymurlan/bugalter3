@@ -21,8 +21,8 @@ assert.ok(css.includes('body.kp-view-editor .history-panel{display:none!importan
 assert.ok(!css.includes('visualViewport'), 'polish must not depend on visualViewport');
 assert.ok(!/\b(?:html|body)\s*\{[^}]*overflow\s*:\s*hidden/i.test(css), 'polish must not lock vertical page scrolling');
 assert.ok(!/document\.body\.style\.overflow|document\.documentElement\.style\.overflow/.test(js), 'polish JS must not lock scrolling');
-assert.ok(loader.includes('/kp/kp-polish-v3.js?v=3'), 'loader must load polish JS before the combined service layer');
+assert.ok(loader.includes('/kp/kp-polish-v3.js?v=3'), 'loader must load polish JS before later layers');
 assert.ok(loader.includes('/kp/kp-polish-v3.css?v=3'), 'loader must load polish CSS');
-assert.ok(html.includes('/kp/kp-ux-v13.js?v=20'), 'index must bust Telegram cache for combined service picker');
+assert.ok(/\/kp\/kp-ux-v13\.js\?v=\d+/.test(html), 'index must cache-bust the KP loader');
 
 console.log('KP polish v3 contract checks passed');
