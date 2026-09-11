@@ -78,6 +78,11 @@
   stepsCss.href = '/kp/kp-steps7-9-v1.css?v=1';
   document.head.appendChild(stepsCss);
 
+  const flowCss = document.createElement('link');
+  flowCss.rel = 'stylesheet';
+  flowCss.href = '/kp/kp-flow-v2.css?v=2';
+  document.head.appendChild(flowCss);
+
   const script = document.createElement('script');
   script.src = '/kp/kp-ux-v14.js?v=16';
   script.onload = () => {
@@ -89,6 +94,11 @@
       step6.onload = () => {
         const steps79 = document.createElement('script');
         steps79.src = '/kp/kp-steps7-9-v1.js?v=1';
+        steps79.onload = () => {
+          const flow = document.createElement('script');
+          flow.src = '/kp/kp-flow-v2.js?v=2';
+          document.head.appendChild(flow);
+        };
         document.head.appendChild(steps79);
       };
       document.head.appendChild(step6);
