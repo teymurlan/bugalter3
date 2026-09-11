@@ -6,7 +6,6 @@ const flowGuard = readFileSync('public/kp/kp-flow-guard-v2.js', 'utf8');
 const css = readFileSync('public/kp/kp-flow-v2.css', 'utf8');
 const renderer = readFileSync('public/kp/kp-ux-v12.js', 'utf8');
 const worker = readFileSync('src/demo-worker-v19-kp-flow.js', 'utf8');
-const guard = readFileSync('src/demo-worker-v20-kp-number-guard.js', 'utf8');
 const wrangler = readFileSync('wrangler.jsonc', 'utf8');
 
 for (const label of ['Данные', 'Услуги', 'Условия', 'Проверка']) {
@@ -29,14 +28,13 @@ assert.ok(renderer.includes("? [['Условия оплаты:'"), 'payment row 
 assert.ok(flowGuard.includes('KP_PDF_CANCELLED'), 'cancelled native PDF share must be detected');
 assert.ok(flowGuard.includes('state.currentId && state.lastSaved?.id === state.currentId'), 'cancelled PDF share must preserve the current quote state');
 assert.ok(worker.includes("const USED_PREFIX = 'kp:outgoing-used:v3:'"), 'permanent used-number ledger must exist');
+assert.ok(worker.includes("const RESET_MARKER = 'kp:outgoing-reset-to-15:first5-v1'"), 'number guard must preserve the existing one-time start-at-15 marker');
 assert.ok(worker.includes("url.pathname === '/kp/delete'"), 'delete flow must reserve the old outgoing number');
+assert.ok(worker.includes('sequence <= highWater'), 'historically deleted numbers below the high-water mark must be blocked');
 assert.ok(worker.includes('raiseCounterTo'), 'counter must only move forward');
+assert.ok(worker.includes('sequence === currentSequence'), 'editing an existing KP must retain its own number');
 assert.ok(worker.includes("./demo-worker-v18-client.js"), 'numbering worker must preserve current bot/referral worker as its base');
-assert.ok(guard.includes("const RESET_MARKER = 'kp:outgoing-reset-to-15:first5-v1'"), 'historical guard must respect the one-time reset to 15');
-assert.ok(guard.includes('requested <= highWater'), 'historically deleted numbers below high-water mark must be blocked');
-assert.ok(guard.includes('existingSequence !== requested'), 'editing an existing KP must retain its own number');
-assert.ok(guard.includes("./demo-worker-v19-kp-flow.js"), 'high-water guard must extend the permanent-ledger worker');
-assert.ok(wrangler.includes('src/demo-worker-v20-kp-number-guard.js'), 'wrangler must point to the final guarded KP worker');
+assert.ok(wrangler.includes('src/demo-worker-v19-kp-flow.js'), 'wrangler must point to the hardened KP worker');
 assert.ok(!css.includes('visualViewport'), 'flow CSS must not depend on visualViewport');
 assert.ok(!/\b(?:html|body)\s*\{[^}]*overflow\s*:\s*hidden/i.test(css), 'flow must not lock page scrolling');
 assert.ok(!/document\.body\.style\.overflow|document\.documentElement\.style\.overflow/.test(flow), 'flow JS must not lock page scrolling');
