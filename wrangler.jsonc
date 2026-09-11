@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bugalter3",
-  "main": "src/demo-worker-v24-referral-dashboard.js",
+  "main": "src/demo-worker-v25-referral-safety.js",
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "preview_urls": true,
