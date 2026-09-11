@@ -6,6 +6,7 @@ const flowGuard = readFileSync('public/kp/kp-flow-guard-v2.js', 'utf8');
 const css = readFileSync('public/kp/kp-flow-v2.css', 'utf8');
 const renderer = readFileSync('public/kp/kp-ux-v12.js', 'utf8');
 const worker = readFileSync('src/demo-worker-v19-kp-flow.js', 'utf8');
+const activeWorker = readFileSync('src/demo-worker-v20-mobile-fixes.js', 'utf8');
 const wrangler = readFileSync('wrangler.jsonc', 'utf8');
 
 for (const label of ['Данные', 'Услуги', 'Условия', 'Проверка']) {
@@ -34,7 +35,8 @@ assert.ok(worker.includes('sequence <= highWater'), 'historically deleted number
 assert.ok(worker.includes('raiseCounterTo'), 'counter must only move forward');
 assert.ok(worker.includes('sequence === currentSequence'), 'editing an existing KP must retain its own number');
 assert.ok(worker.includes("./demo-worker-v18-client.js"), 'numbering worker must preserve current bot/referral worker as its base');
-assert.ok(wrangler.includes('src/demo-worker-v19-kp-flow.js'), 'wrangler must point to the hardened KP worker');
+assert.ok(activeWorker.includes("./demo-worker-v19-kp-flow.js"), 'active worker must preserve the hardened numbering worker as its base');
+assert.ok(wrangler.includes('src/demo-worker-v20-mobile-fixes.js'), 'wrangler must point to the current KP worker');
 assert.ok(!css.includes('visualViewport'), 'flow CSS must not depend on visualViewport');
 assert.ok(!/\b(?:html|body)\s*\{[^}]*overflow\s*:\s*hidden/i.test(css), 'flow must not lock page scrolling');
 assert.ok(!/document\.body\.style\.overflow|document\.documentElement\.style\.overflow/.test(flow), 'flow JS must not lock page scrolling');
