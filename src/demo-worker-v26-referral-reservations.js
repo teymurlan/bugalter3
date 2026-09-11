@@ -64,6 +64,26 @@ export class AppStore extends BaseAppStore {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    if (url.pathname === '/api/demo-admin-benefits' && request.method === 'GET') {
+      const clientId = positiveInt(url.searchParams.get('user'));
+      if (!clientId) return json({ ok: false, error: 'Invalid client' }, 400);
+
+      // Reuse the existing protected admin referral endpoint only as the
+      // authorization gate, so this wrapper does not duplicate Telegram auth.
+      const authUrl = new URL(`${url.origin}/api/demo-admin-referral`);
+      authUrl.searchParams.set('user', String(clientId));
+      const authRequest = new Request(authUrl, {
+        method: 'GET',
+        headers: { 'X-Telegram-Init-Data': request.headers.get('X-Telegram-Init-Data') || '' },
+      });
+      const authorized = await baseWorker.fetch(authRequest, env, ctx);
+      if (!authorized.ok) return authorized;
+
+      const benefitsResponse = await appStub(env)?.fetch(`https://app.internal/benefits?user=${encodeURIComponent(clientId)}`);
+      return benefitsResponse?.ok ? proxy(benefitsResponse) : json({ ok: false, error: 'Benefits unavailable' }, 503);
+    }
+
     if (url.pathname === '/api/referral-dashboard' && request.method === 'GET') {
       const response = await baseWorker.fetch(request, env, ctx);
       if (!response.ok) return response;
@@ -100,6 +120,12 @@ function userIdFromValidatedInitData(initData) {
 function positiveInt(value) {
   const number = Number(value);
   return Number.isSafeInteger(number) && number > 0 ? number : 0;
+}
+
+function proxy(response) {
+  const headers = new Headers(response.headers);
+  headers.set('cache-control', 'no-store');
+  return new Response(response.body, { status: response.status, headers });
 }
 
 function json(value, status = 200) {
