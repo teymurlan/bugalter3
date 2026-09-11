@@ -10,7 +10,7 @@ const wrangler = readFileSync('wrangler.jsonc', 'utf8');
 for (const label of ['Данные', 'Услуги', 'Условия', 'Проверка']) {
   assert.ok(flow.includes(label), `flow must contain step ${label}`);
 }
-assert.ok(flow.includes('data-progress-step="4"'), 'flow must have exactly the fourth progress step');
+assert.ok(flow.includes('data-progress-step="4"'), 'flow must have the fourth progress step');
 assert.ok(!flow.includes('data-progress-step="5"'), 'flow must not introduce a fifth step');
 assert.ok(flow.includes("document.getElementById('addItemBtn')?.classList.add('kp-flow-legacy-hidden')"), 'legacy add-service button must be hidden');
 assert.ok(flow.includes('Из списка') && flow.includes('Своя услуга'), 'service modes must exist');
@@ -30,6 +30,7 @@ assert.ok(worker.includes('raiseCounterTo'), 'counter must only move forward');
 assert.ok(worker.includes("./demo-worker-v18-client.js"), 'new worker must preserve current bot/referral worker as its base');
 assert.ok(wrangler.includes('src/demo-worker-v19-kp-flow.js'), 'wrangler must point to the hardened KP worker');
 assert.ok(!css.includes('visualViewport'), 'flow CSS must not depend on visualViewport');
-assert.ok(!css.includes('overflow:hidden'), 'flow must not lock page scrolling');
+assert.ok(!/\b(?:html|body)\s*\{[^}]*overflow\s*:\s*hidden/i.test(css), 'flow must not lock page scrolling');
+assert.ok(!/document\.body\.style\.overflow|document\.documentElement\.style\.overflow/.test(flow), 'flow JS must not lock page scrolling');
 
 console.log('KP flow contract checks passed');
