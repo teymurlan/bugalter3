@@ -71,7 +71,7 @@
     progress.insertAdjacentElement('afterend', placeholder);
 
     const [refData, reviewsData, allRefData] = await Promise.all([
-      getJson(`/api/demo-admin-referral?user=${encodeURIComponent(clientId)}`),
+      getJson(`/api/demo-admin-benefits?user=${encodeURIComponent(clientId)}`),
       getJson('/api/demo-admin-reviews'),
       getJson('/api/demo-admin-referrals'),
     ]);
@@ -83,7 +83,8 @@
     const average = reviews.length
       ? (reviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / reviews.length).toFixed(1)
       : '—';
-    const available = Number(refData?.available_rewards ?? refData?.available_referral_rewards ?? 0);
+    const available = Number(refData?.available_referral_rewards || 0);
+    const reserved = Number(refData?.reserved_referral_rewards || 0);
     const friendDiscount = Number(refData?.friend_discount_percent || 0);
 
     placeholder.classList.remove('loading-state');
@@ -95,7 +96,7 @@
         <div><strong>${available}</strong><span>Доступно скидок 15%</span></div>
         <div><strong>${average}${average !== '—' ? ' ★' : ''}</strong><span>Средняя оценка</span></div>
       </div>
-      <div class="ops-client-insight-foot"><span>Отзывов клиента</span><strong>${reviews.length}</strong></div>`;
+      <div class="ops-client-insight-foot"><span>${reserved ? `Зарезервировано скидок: ${reserved} · Отзывов клиента` : 'Отзывов клиента'}</span><strong>${reviews.length}</strong></div>`;
   }
 
   async function decorate() {
