@@ -1,11 +1,11 @@
 import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v2.js?v=23';
-import { renderConciergeHome } from './views/concierge-home.js?v=23';
-import { renderConciergeOrders } from './views/concierge-orders.js?v=23';
-import { renderConciergeProfile } from './views/concierge-profile.js?v=23';
-import { renderAdmin } from './views/admin-v2.js?v=23';
+import { renderBooking } from './views/booking-v2.js?v=24';
+import { renderConciergeHome } from './views/concierge-home.js?v=24';
+import { renderConciergeOrders } from './views/concierge-orders.js?v=24';
+import { renderConciergeProfile } from './views/concierge-profile.js?v=24';
+import { renderAdmin } from './views/admin-v2.js?v=24';
 
 const tg = window.Telegram?.WebApp;
 const root = document.querySelector('#app');
@@ -13,6 +13,7 @@ const nav = document.querySelector('#bottom-nav');
 const focusContext = document.querySelector('#focus-context');
 const query = new URLSearchParams(window.location.search);
 const adminMode = query.get('admin') === '1';
+const reviewOrderParam = String(query.get('review') || '').trim();
 const DEMO_ORDERS_KEY = 'hc-demo-orders-v2';
 
 function configureTelegram() {
@@ -195,6 +196,12 @@ async function start() {
       });
     } else {
       nav.classList.add('hidden');
+    }
+
+    if (!adminMode && reviewOrderParam) {
+      const data = await api.orders();
+      const order = (data?.orders || []).find((item) => String(item.order_number || '') === reviewOrderParam);
+      if (order?.id) return navigate('orders', { orderId: Number(order.id) });
     }
 
     const startParam = tg?.initDataUnsafe?.start_param || '';
