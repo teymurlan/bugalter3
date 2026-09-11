@@ -97,6 +97,11 @@
         steps79.onload = () => {
           const flow = document.createElement('script');
           flow.src = '/kp/kp-flow-v2.js?v=2';
+          flow.onload = () => {
+            const guard = document.createElement('script');
+            guard.src = '/kp/kp-flow-guard-v2.js?v=2';
+            document.head.appendChild(guard);
+          };
           document.head.appendChild(flow);
         };
         document.head.appendChild(steps79);
