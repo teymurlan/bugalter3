@@ -4,6 +4,7 @@ import { showToast } from './utils.js';
 const root = document.querySelector('#app');
 let choice = '';
 let queued = false;
+let bookingVisible = false;
 
 function profileSummary(user) {
   const address = [user.locality, user.street, user.house, user.apartment ? `кв./офис ${user.apartment}` : ''].filter(Boolean).join(', ');
@@ -33,9 +34,18 @@ function applyProfile(user) {
 }
 
 function enhance() {
-  if (!root || choice) return;
+  if (!root) return;
   const serviceGrid = root.querySelector('.service-grid-v2');
-  if (!serviceGrid || root.querySelector('[data-profile-prefill]')) return;
+  if (!serviceGrid) {
+    if (bookingVisible) {
+      bookingVisible = false;
+      choice = '';
+    }
+    return;
+  }
+  bookingVisible = true;
+  if (choice || root.querySelector('[data-profile-prefill]')) return;
+
   const user = state.bootstrap?.user || {};
   if (!hasSavedProfile(user)) return;
   const summary = profileSummary(user);
