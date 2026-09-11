@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bugalter3",
-  "main": "src/demo-worker-v20-kp-number-guard.js",
+  "main": "src/demo-worker-v19-kp-flow.js",
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "preview_urls": true,
