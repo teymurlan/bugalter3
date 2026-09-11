@@ -1,5 +1,6 @@
 (() => {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  let resetWrapped = false;
 
   function parseNumber(value) {
     const match = String(value ?? '').match(/\d+/);
@@ -22,6 +23,35 @@
       state.lastSaved = null;
       outgoing.dispatchEvent(new Event('input', { bubbles: true }));
     }
+  }
+
+  async function refreshBootstrapNumber() {
+    try {
+      const data = await api('/api/kp/bootstrap');
+      if (!data?.defaults) return;
+      state.bootstrap = {
+        ...(state.bootstrap || {}),
+        ...data,
+        defaults: {
+          ...(state.bootstrap?.defaults || {}),
+          ...data.defaults,
+        },
+      };
+      syncFreshOutgoingNumber();
+    } catch (error) {
+      console.warn('KP next number refresh failed', error);
+    }
+  }
+
+  function wrapResetForFreshNumber() {
+    if (resetWrapped || typeof resetForm !== 'function') return;
+    resetWrapped = true;
+    const previousResetForm = resetForm;
+    resetForm = async function resetFormWithFreshOutgoingNumber(...args) {
+      const result = await previousResetForm(...args);
+      await refreshBootstrapNumber();
+      return result;
+    };
   }
 
   function keepServiceSearchVisible() {
@@ -56,6 +86,7 @@
     for (let i = 0; i < 160 && !document.getElementById('kpServiceSearch'); i += 1) await sleep(25);
     for (let i = 0; i < 120 && !state?.bootstrap; i += 1) await sleep(25);
     syncFreshOutgoingNumber();
+    wrapResetForFreshNumber();
     keepServiceSearchVisible();
   }
 
