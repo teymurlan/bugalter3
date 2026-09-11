@@ -83,6 +83,11 @@
   flowCss.href = '/kp/kp-flow-v2.css?v=2';
   document.head.appendChild(flowCss);
 
+  const polishCss = document.createElement('link');
+  polishCss.rel = 'stylesheet';
+  polishCss.href = '/kp/kp-polish-v3.css?v=3';
+  document.head.appendChild(polishCss);
+
   const script = document.createElement('script');
   script.src = '/kp/kp-ux-v14.js?v=16';
   script.onload = () => {
@@ -100,6 +105,11 @@
           flow.onload = () => {
             const guard = document.createElement('script');
             guard.src = '/kp/kp-flow-guard-v2.js?v=2';
+            guard.onload = () => {
+              const polish = document.createElement('script');
+              polish.src = '/kp/kp-polish-v3.js?v=3';
+              document.head.appendChild(polish);
+            };
             document.head.appendChild(guard);
           };
           document.head.appendChild(flow);
