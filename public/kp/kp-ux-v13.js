@@ -88,6 +88,11 @@
   polishCss.href = '/kp/kp-polish-v3.css?v=3';
   document.head.appendChild(polishCss);
 
+  const combinedCss = document.createElement('link');
+  combinedCss.rel = 'stylesheet';
+  combinedCss.href = '/kp/kp-service-combined-v1.css?v=1';
+  document.head.appendChild(combinedCss);
+
   const script = document.createElement('script');
   script.src = '/kp/kp-ux-v14.js?v=16';
   script.onload = () => {
@@ -108,6 +113,11 @@
             guard.onload = () => {
               const polish = document.createElement('script');
               polish.src = '/kp/kp-polish-v3.js?v=3';
+              polish.onload = () => {
+                const combined = document.createElement('script');
+                combined.src = '/kp/kp-service-combined-v1.js?v=1';
+                document.head.appendChild(combined);
+              };
               document.head.appendChild(polish);
             };
             document.head.appendChild(guard);
