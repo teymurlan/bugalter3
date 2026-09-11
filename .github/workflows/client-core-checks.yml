@@ -25,3 +25,5 @@ jobs:
       - name: Confirm active Worker exists
         run: |
           node -e "const fs=require('fs');const s=fs.readFileSync('wrangler.jsonc','utf8');const m=s.match(/\"main\"\s*:\s*\"([^\"]+)\"/);if(!m||!fs.existsSync(m[1])){console.error('Active Worker missing');process.exit(1)};console.log('Active Worker:',m[1])"
+      - name: Run v29 release contracts
+        run: node --test tests/v29-release-contract.test.mjs
