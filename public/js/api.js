@@ -8,7 +8,7 @@ export const isDemoMode = params.get('demo') === '1'
 const DEMO_ORDERS_KEY = 'hc-demo-orders-v2';
 const DEMO_USER_KEY = 'hc-demo-user-v1';
 const ACTIVE_STATUSES = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
-const SELF_CANCEL_STATUSES = new Set(['NEW', 'REVIEW', 'CONFIRMED']);
+const SELF_CANCEL_STATUSES = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED']);
 const DAILY_CAPACITY_M2 = 300;
 const CANCEL_CUTOFF_HOURS = 24;
 
@@ -284,6 +284,7 @@ const demoApi = {
       time: payload.time,
       customer_name: payload.customerName,
       phone: payload.phone,
+      contact_method: payload.contact_method || payload.contactMethod || 'telegram',
       comment: payload.comment || '',
       addon_ids: Array.isArray(payload.addonIds) ? payload.addonIds : [],
       addon_names: selectedAddons.map((item) => item.name),
