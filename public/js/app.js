@@ -1,10 +1,10 @@
 import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v2.js?v=21';
-import { renderConciergeHome } from './views/concierge-home.js?v=21';
-import { renderConciergeOrders } from './views/concierge-orders.js?v=21';
-import { renderConciergeProfile } from './views/concierge-profile.js?v=21';
+import { renderBooking } from './views/booking-v2.js?v=22';
+import { renderConciergeHome } from './views/concierge-home.js?v=22';
+import { renderConciergeOrders } from './views/concierge-orders.js?v=22';
+import { renderConciergeProfile } from './views/concierge-profile.js?v=22';
 import { renderAdmin } from './views/admin.js?v=18';
 
 const tg = window.Telegram?.WebApp;
@@ -13,6 +13,7 @@ const nav = document.querySelector('#bottom-nav');
 const focusContext = document.querySelector('#focus-context');
 const query = new URLSearchParams(window.location.search);
 const adminMode = query.get('admin') === '1';
+const DEMO_ORDERS_KEY = 'hc-demo-orders-v2';
 
 function configureTelegram() {
   if (!tg) return;
@@ -99,6 +100,43 @@ function haptic() {
   try { tg?.HapticFeedback?.selectionChanged?.(); } catch {}
 }
 
+async function syncOwnDemoOrders() {
+  if (!isDemoMode || !tg?.initData || adminMode) return;
+  let local = [];
+  try { local = JSON.parse(localStorage.getItem(DEMO_ORDERS_KEY) || '[]'); }
+  catch { local = []; }
+  if (!Array.isArray(local)) local = [];
+
+  try {
+    const response = await fetch('/api/demo-client-orders', {
+      headers: { 'X-Telegram-Init-Data': tg.initData },
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    const stored = Array.isArray(data?.orders) ? data.orders : [];
+    if (!stored.length) return;
+
+    const byNumber = new Map(local.map((item) => [String(item.order_number || ''), item]));
+    let nextId = local.reduce((max, item) => Math.max(max, Number(item.id || 0)), 0) + 1;
+    for (const server of stored) {
+      const number = String(server.order_number || '');
+      if (!number) continue;
+      const existing = byNumber.get(number);
+      if (existing) {
+        Object.assign(existing, server, { id: existing.id });
+      } else {
+        const item = { ...server, id: Number(server.id || 0) || nextId++ };
+        local.push(item);
+        byNumber.set(number, item);
+      }
+    }
+    local.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    localStorage.setItem(DEMO_ORDERS_KEY, JSON.stringify(local));
+  } catch (error) {
+    console.warn('Own order sync skipped', error);
+  }
+}
+
 export function navigate(route, params = {}) {
   state.route = route;
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -140,6 +178,7 @@ async function start() {
 
   try {
     state.bootstrap = await api.bootstrap();
+    await syncOwnDemoOrders();
     await state.restorePhotos();
     nav.classList.remove('hidden');
     nav.querySelectorAll('[data-route]').forEach((button) => {
