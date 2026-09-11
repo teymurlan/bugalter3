@@ -1,11 +1,11 @@
 import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v2.js?v=22';
-import { renderConciergeHome } from './views/concierge-home.js?v=22';
-import { renderConciergeOrders } from './views/concierge-orders.js?v=22';
-import { renderConciergeProfile } from './views/concierge-profile.js?v=22';
-import { renderAdmin } from './views/admin.js?v=18';
+import { renderBooking } from './views/booking-v2.js?v=23';
+import { renderConciergeHome } from './views/concierge-home.js?v=23';
+import { renderConciergeOrders } from './views/concierge-orders.js?v=23';
+import { renderConciergeProfile } from './views/concierge-profile.js?v=23';
+import { renderAdmin } from './views/admin-v2.js?v=23';
 
 const tg = window.Telegram?.WebApp;
 const root = document.querySelector('#app');
@@ -26,8 +26,9 @@ function configureTelegram() {
 }
 
 function configureAdminNav() {
-  nav.classList.toggle('admin-mode', adminMode);
   document.body.classList.toggle('client-concierge', !adminMode);
+  document.body.classList.toggle('admin-ops-mode', adminMode);
+  if (adminMode) nav.classList.add('hidden');
 }
 
 function configureFocusContext() {
@@ -55,7 +56,7 @@ function configureFocusContext() {
 }
 
 function moveIndicator(button, retry = 0) {
-  if (!button) return;
+  if (adminMode || !button) return;
   requestAnimationFrame(() => {
     const navRect = nav.getBoundingClientRect();
     const buttonRect = button.getBoundingClientRect();
@@ -69,6 +70,7 @@ function moveIndicator(button, retry = 0) {
 }
 
 function setActiveNav(route) {
+  if (adminMode) return;
   const visualRoute = route === 'booking' ? 'home' : route;
   let activeButton = null;
   nav.querySelectorAll('[data-route]').forEach((button) => {
@@ -80,9 +82,10 @@ function setActiveNav(route) {
 }
 
 function configureNavSync() {
+  if (adminMode) return;
   const sync = () => {
     const booking = Boolean(root.querySelector('.booking-top'));
-    document.body.classList.toggle('booking-flow', booking && !adminMode);
+    document.body.classList.toggle('booking-flow', booking);
     if (root.querySelector('.cc-home') || root.querySelector('.home-hero') || booking) setActiveNav('home');
   };
   const observer = new MutationObserver(sync);
@@ -122,9 +125,8 @@ async function syncOwnDemoOrders() {
       const number = String(server.order_number || '');
       if (!number) continue;
       const existing = byNumber.get(number);
-      if (existing) {
-        Object.assign(existing, server, { id: existing.id });
-      } else {
+      if (existing) Object.assign(existing, server, { id: existing.id });
+      else {
         const item = { ...server, id: Number(server.id || 0) || nextId++ };
         local.push(item);
         byNumber.set(number, item);
@@ -138,8 +140,11 @@ async function syncOwnDemoOrders() {
 }
 
 export function navigate(route, params = {}) {
+  if (adminMode && route !== 'admin') route = 'admin';
   state.route = route;
   window.scrollTo({ top: 0, behavior: 'instant' });
+
+  if (route === 'admin') return renderAdmin(root, navigate);
 
   if (route === 'home') {
     setActiveNav('home');
@@ -160,7 +165,6 @@ export function navigate(route, params = {}) {
   setActiveNav(route);
   if (route === 'orders') return renderConciergeOrders(root, navigate, params);
   if (route === 'profile') return renderConciergeProfile(root, navigate, params);
-  if (route === 'admin') return renderAdmin(root, navigate);
   return navigate('home');
 }
 
@@ -180,23 +184,28 @@ async function start() {
     state.bootstrap = await api.bootstrap();
     await syncOwnDemoOrders();
     await state.restorePhotos();
-    nav.classList.remove('hidden');
-    nav.querySelectorAll('[data-route]').forEach((button) => {
-      button.onclick = () => {
-        haptic();
-        navigate(button.dataset.route);
-      };
-    });
+
+    if (!adminMode) {
+      nav.classList.remove('hidden');
+      nav.querySelectorAll('[data-route]').forEach((button) => {
+        button.onclick = () => {
+          haptic();
+          navigate(button.dataset.route);
+        };
+      });
+    } else {
+      nav.classList.add('hidden');
+    }
 
     const startParam = tg?.initDataUnsafe?.start_param || '';
-    if (!isDemoMode && startParam.startsWith('order_')) {
+    if (!adminMode && !isDemoMode && startParam.startsWith('order_')) {
       const orderId = Number(startParam.slice(6));
       if (Number.isInteger(orderId)) return navigate('orders', { orderId });
     }
 
     const initialRoute = adminMode ? 'admin' : 'home';
     navigate(initialRoute);
-    requestAnimationFrame(() => requestAnimationFrame(() => setActiveNav(initialRoute)));
+    if (!adminMode) requestAnimationFrame(() => requestAnimationFrame(() => setActiveNav(initialRoute)));
   } catch (error) {
     root.innerHTML = `<div class="card pad" style="margin-top:60px"><h2>Не удалось открыть приложение</h2><p class="page-subtitle">${escapeHtml(error.message || 'Ошибка')}</p><button class="primary-btn" onclick="location.reload()">Попробовать снова</button></div>`;
   }
