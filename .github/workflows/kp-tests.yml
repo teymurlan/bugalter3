@@ -19,6 +19,7 @@ on:
       - feature/kp-flow-v2
       - feature/kp-polish-v3
       - feature/kp-service-combined
+      - feature/kp-mobile-fixes-v4
   pull_request:
     paths:
       - 'src/kp-math.js'
@@ -32,11 +33,13 @@ on:
       - 'src/demo-worker-v17-safe.js'
       - 'src/demo-worker-v18-client.js'
       - 'src/demo-worker-v19-kp-flow.js'
+      - 'src/demo-worker-v20-mobile-fixes.js'
       - 'public/kp/**'
       - 'tests/kp-math.test.mjs'
       - 'tests/kp-flow-contract.test.mjs'
       - 'tests/kp-polish-v3-contract.test.mjs'
       - 'tests/kp-service-combined-v1.test.mjs'
+      - 'tests/kp-mobile-fixes-v4.test.mjs'
       - 'wrangler.jsonc'
 
 jobs:
@@ -60,6 +63,7 @@ jobs:
           node --check src/demo-worker-v17-safe.js
           node --check src/demo-worker-v18-client.js
           node --check src/demo-worker-v19-kp-flow.js
+          node --check src/demo-worker-v20-mobile-fixes.js
           node --check public/kp/kp.js
           node --check public/kp/kp-ux-v4.js
           node --check public/kp/kp-ux-v5.js
@@ -77,10 +81,12 @@ jobs:
           node --check public/kp/kp-flow-guard-v2.js
           node --check public/kp/kp-polish-v3.js
           node --check public/kp/kp-service-combined-v1.js
+          node --check public/kp/kp-mobile-fixes-v4.js
           node --check public/kp/logo-data-v5.js
           node --check tests/kp-flow-contract.test.mjs
           node --check tests/kp-polish-v3-contract.test.mjs
           node --check tests/kp-service-combined-v1.test.mjs
+          node --check tests/kp-mobile-fixes-v4.test.mjs
       - name: Calculation tests
         run: node tests/kp-math.test.mjs
       - name: KP flow contract tests
@@ -89,3 +95,5 @@ jobs:
         run: node tests/kp-polish-v3-contract.test.mjs
       - name: KP combined service picker tests
         run: node tests/kp-service-combined-v1.test.mjs
+      - name: KP mobile fixes v4 tests
+        run: node tests/kp-mobile-fixes-v4.test.mjs
