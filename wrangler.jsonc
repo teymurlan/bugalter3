@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bugalter3",
-  "main": "src/demo-worker-v30-contact-links.js",
+  "main": "src/demo-worker-v31-order-create-safe.js",
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "preview_urls": true,
