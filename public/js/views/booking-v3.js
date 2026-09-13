@@ -11,10 +11,25 @@ function normalize(value) {
     .replace(/\s+/g, ' ');
 }
 
+function unitFrom(address, apartment) {
+  const direct = normalize(apartment);
+  if (direct) return direct;
+  const match = String(address || '').match(/(?:квартира|кв\.?|офис)\s*([0-9а-яa-z-]+)/i);
+  return normalize(match?.[1] || '');
+}
+
+function addressCore(value) {
+  return normalize(String(value || '').replace(/(?:квартира|кв\.?|офис)\s*[0-9а-яa-z-]+/ig, ' '))
+    .replace(/\b(улица|ул|проспект|просп|пр кт|переулок|пер|набережная|наб|шоссе)\b/g, ' ')
+    .replace(/\b(дом|д)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function sameAddress(order, draft) {
   const city = normalize(order?.city) === normalize(draft?.city);
-  const address = normalize(order?.address) === normalize(draft?.address);
-  const apartment = normalize(order?.apartment) === normalize(draft?.apartment);
+  const address = addressCore(order?.address) === addressCore(draft?.address);
+  const apartment = unitFrom(order?.address, order?.apartment) === unitFrom(draft?.address, draft?.apartment);
   return city && address && apartment;
 }
 
