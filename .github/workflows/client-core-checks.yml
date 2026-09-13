@@ -29,3 +29,5 @@ jobs:
         run: node --test tests/v29-release-contract.test.mjs
       - name: Run v31 order creation contracts
         run: node --test tests/v31-order-create-contract.test.mjs
+      - name: Run v33 raw photo transport contracts
+        run: node --test tests/v33-raw-photo-contract.test.mjs
