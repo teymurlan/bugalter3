@@ -39,12 +39,21 @@ export function money(value) {
   return new Intl.NumberFormat('ru-RU').format(value) + ' ₽';
 }
 
+export function friendlyError(message, fallback = 'Не удалось выполнить действие. Попробуйте ещё раз.') {
+  const raw = String(message || '').trim();
+  if (!raw) return fallback;
+  const technical = /(boundary|truncated|http\s*\d{3}|\b500\b|\b502\b|\b503\b|internal server|stack|typeerror|referenceerror|syntaxerror|cloudflare|worker exception|formdata|unexpected token)/i;
+  if (technical.test(raw)) return fallback;
+  return raw.length > 220 ? fallback : raw;
+}
+
 export function showToast(message, error = false) {
   const toast = document.querySelector('#toast');
-  toast.textContent = message;
+  if (!toast) return;
+  toast.textContent = error ? friendlyError(message) : String(message || '');
   toast.className = `toast show${error ? ' error' : ''}`;
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => { toast.className = 'toast'; }, 2600);
+  showToast.timer = setTimeout(() => { toast.className = 'toast'; }, 3000);
 }
 showToast.timer = null;
 
