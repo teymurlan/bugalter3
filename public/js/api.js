@@ -5,7 +5,7 @@ export const isDemoMode = params.get('demo') === '1'
   || window.location.hostname.endsWith('.pages.dev')
   || window.location.hostname.endsWith('.workers.dev');
 
-const DEMO_ORDERS_KEY = 'hc-demo-orders-v2';
+const DEMO_ORDERS_KEY = 'hc-demo-orders-v3';
 const DEMO_USER_KEY = 'hc-demo-user-v1';
 const ACTIVE_STATUSES = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
 const SELF_CANCEL_STATUSES = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED']);
@@ -97,46 +97,47 @@ export function canSelfCancel(order) {
     && hoursUntilOrder(order) >= CANCEL_CUTOFF_HOURS;
 }
 
-async function uploadOrderPhotos(orderNumber, photos = []) {
-  const files = Array.isArray(photos) ? photos.slice(0, 10) : [];
-  const errors = [];
-  let latestOrder = null;
-
-  for (let index = 0; index < files.length; index += 1) {
-    const photo = files[index];
-    const contentType = String(photo?.type || 'image/jpeg');
-    const fileName = encodeURIComponent(photo?.name || `object-${index + 1}.jpg`);
-    let uploaded = false;
-
-    for (let attempt = 0; attempt < 2 && !uploaded; attempt += 1) {
-      try {
-        const response = await fetch(`/api/demo-order-photo?order=${encodeURIComponent(orderNumber)}&index=${index}&count=${files.length}`, {
-          method: 'POST',
-          headers: authHeaders({
-            'Content-Type': contentType,
-            'X-File-Name': fileName,
-          }),
-          body: photo,
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data?.ok) {
-          throw new Error(data?.error || `Ошибка загрузки фото ${response.status}`);
-        }
-        latestOrder = data.order || latestOrder;
-        uploaded = true;
-      } catch (error) {
-        if (attempt === 1) errors.push(`Фото ${index + 1}: ${String(error?.message || error)}`);
-      }
-    }
+async function fileToBase64(file) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
+  return btoa(binary);
+}
 
-  return { order: latestOrder, errors };
+async function uploadOrderMedia(orderNumber, photos = []) {
+  const files = Array.isArray(photos) ? photos.slice(0, 10) : [];
+  if (!files.length) return { ok: true, adminNotified: 0, order: null };
+  const payload = [];
+  for (let index = 0; index < files.length; index += 1) {
+    const file = files[index];
+    payload.push({
+      name: file?.name || `object-${index + 1}.jpg`,
+      type: file?.type || 'image/jpeg',
+      data: await fileToBase64(file),
+    });
+  }
+  const response = await fetch('/api/demo-order-media', {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ order_number: orderNumber, photos: payload }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.ok) throw new Error(data?.error || 'Не удалось отправить фотографии');
+  return data;
 }
 
 async function notifyBackend(order, event = 'created', photos = []) {
+  const hasPhotos = event === 'created' && Array.isArray(photos) && photos.length > 0;
   const response = await fetch('/api/demo-order', {
     method: 'POST',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    headers: authHeaders({
+      'Content-Type': 'application/json',
+      ...(hasPhotos ? { 'X-HC-Photo-Bundle': '1' } : {}),
+    }),
     body: JSON.stringify({ order, event }),
   });
 
@@ -145,14 +146,15 @@ async function notifyBackend(order, event = 'created', photos = []) {
     const details = Array.isArray(data?.adminErrors) && data.adminErrors.length
       ? ` (${data.adminErrors[0]})`
       : '';
-    throw new Error(`${data?.error || `Ошибка уведомления ${response.status}`}${details}`);
+    throw new Error(`${data?.error || 'Не удалось оформить заявку'}${details}`);
   }
 
-  if (event === 'created' && Array.isArray(photos) && photos.length && order?.order_number) {
-    const uploaded = await uploadOrderPhotos(order.order_number, photos);
-    if (uploaded.order) data.order = uploaded.order;
-    data.photoNotified = uploaded.errors.length === 0;
-    data.photoErrors = uploaded.errors;
+  if (hasPhotos && order?.order_number) {
+    const media = await uploadOrderMedia(order.order_number, photos);
+    if (media?.order) data.order = media.order;
+    data.adminNotified = Number(media?.adminNotified || 0);
+    data.adminErrors = media?.adminErrors || [];
+    data.photoNotified = true;
   }
 
   return data;
@@ -332,10 +334,11 @@ const demoApi = {
     if (Number(notification.adminNotified || 0) < 1) throw new Error('Заявка не отправлена: администратор не получил уведомление');
 
     if (notification?.order?.photo_file_ids) order.photo_file_ids = notification.order.photo_file_ids;
-    orders.unshift(order);
+    const finalOrder = notification?.order ? { ...order, ...notification.order, id } : order;
+    orders.unshift(finalOrder);
     saveDemoOrders(orders);
 
-    return { ok: true, demo: true, order, notification };
+    return { ok: true, demo: true, order: finalOrder, notification };
   },
 
   photoUrl: () => '',
