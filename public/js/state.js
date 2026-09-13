@@ -1,7 +1,8 @@
-const STORAGE_KEY = 'hc-booking-draft-v1';
+const STORAGE_KEY = 'hc-booking-draft-v2';
 const DB_NAME = 'house-cleaning-mini-app';
 const DB_VERSION = 1;
 const PHOTO_STORE = 'draft_photos';
+let remoteTimer = null;
 
 function defaultDraft() {
   return {
@@ -26,6 +27,8 @@ function defaultDraft() {
     phone: '',
     contactMethod: 'telegram',
     comment: '',
+    photoRequired: null,
+    knownAddress: false,
     idempotencyKey: crypto.randomUUID(),
   };
 }
@@ -37,6 +40,22 @@ function loadDraft() {
   } catch {
     return defaultDraft();
   }
+}
+
+function authHeaders(extra = {}) {
+  return { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || '', ...extra };
+}
+
+function scheduleRemoteDraft(draft) {
+  if (!window.Telegram?.WebApp?.initData) return;
+  clearTimeout(remoteTimer);
+  remoteTimer = setTimeout(() => {
+    fetch('/api/client-draft', {
+      method: 'PUT',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ draft }),
+    }).catch(() => {});
+  }, 450);
 }
 
 function openPhotoDb() {
@@ -72,6 +91,25 @@ export const state = {
   photos: [],
   saveDraft() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.draft));
+    scheduleRemoteDraft(this.draft);
+  },
+  async hydrateRemoteDraft() {
+    if (!window.Telegram?.WebApp?.initData) return;
+    try {
+      const response = await fetch('/api/client-draft', { headers: authHeaders() });
+      if (!response.ok) return;
+      const data = await response.json();
+      const remote = data?.draft;
+      if (!remote || typeof remote !== 'object') return;
+      const localStep = Number(this.draft?.step || 0);
+      const remoteStep = Number(remote?.step || 0);
+      if (localStep <= 0 && remoteStep > 0) {
+        this.draft = { ...defaultDraft(), ...remote };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.draft));
+      }
+    } catch (error) {
+      console.warn('Remote draft hydrate skipped', error);
+    }
   },
   async persistPhotos() {
     try {
@@ -102,7 +140,11 @@ export const state = {
     this.draft = defaultDraft();
     this.photos.forEach((item) => URL.revokeObjectURL(item.url));
     this.photos = [];
-    this.saveDraft();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.draft));
+    clearTimeout(remoteTimer);
+    if (window.Telegram?.WebApp?.initData) {
+      fetch('/api/client-draft', { method: 'DELETE', headers: authHeaders() }).catch(() => {});
+    }
     try {
       await withStore('readwrite', (store, resolve) => {
         store.clear();
