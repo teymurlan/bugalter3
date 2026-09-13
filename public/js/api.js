@@ -97,26 +97,48 @@ export function canSelfCancel(order) {
     && hoursUntilOrder(order) >= CANCEL_CUTOFF_HOURS;
 }
 
-async function notifyBackend(order, event = 'created', photos = []) {
-  let response;
+async function uploadOrderPhotos(orderNumber, photos = []) {
+  const files = Array.isArray(photos) ? photos.slice(0, 10) : [];
+  const errors = [];
+  let latestOrder = null;
 
-  if (event === 'created' && Array.isArray(photos) && photos.length) {
-    const form = new FormData();
-    form.append('order', JSON.stringify(order));
-    form.append('event', event);
-    photos.slice(0, 10).forEach((photo, index) => form.append('photos', photo, photo.name || `object-${index + 1}.jpg`));
-    response = await fetch('/api/demo-order', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: form,
-    });
-  } else {
-    response = await fetch('/api/demo-order', {
-      method: 'POST',
-      headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ order, event }),
-    });
+  for (let index = 0; index < files.length; index += 1) {
+    const photo = files[index];
+    const contentType = String(photo?.type || 'image/jpeg');
+    const fileName = encodeURIComponent(photo?.name || `object-${index + 1}.jpg`);
+    let uploaded = false;
+
+    for (let attempt = 0; attempt < 2 && !uploaded; attempt += 1) {
+      try {
+        const response = await fetch(`/api/demo-order-photo?order=${encodeURIComponent(orderNumber)}&index=${index}&count=${files.length}`, {
+          method: 'POST',
+          headers: authHeaders({
+            'Content-Type': contentType,
+            'X-File-Name': fileName,
+          }),
+          body: photo,
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data?.ok) {
+          throw new Error(data?.error || `Ошибка загрузки фото ${response.status}`);
+        }
+        latestOrder = data.order || latestOrder;
+        uploaded = true;
+      } catch (error) {
+        if (attempt === 1) errors.push(`Фото ${index + 1}: ${String(error?.message || error)}`);
+      }
+    }
   }
+
+  return { order: latestOrder, errors };
+}
+
+async function notifyBackend(order, event = 'created', photos = []) {
+  const response = await fetch('/api/demo-order', {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ order, event }),
+  });
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data?.ok) {
@@ -125,6 +147,14 @@ async function notifyBackend(order, event = 'created', photos = []) {
       : '';
     throw new Error(`${data?.error || `Ошибка уведомления ${response.status}`}${details}`);
   }
+
+  if (event === 'created' && Array.isArray(photos) && photos.length && order?.order_number) {
+    const uploaded = await uploadOrderPhotos(order.order_number, photos);
+    if (uploaded.order) data.order = uploaded.order;
+    data.photoNotified = uploaded.errors.length === 0;
+    data.photoErrors = uploaded.errors;
+  }
+
   return data;
 }
 
