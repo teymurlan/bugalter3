@@ -7,6 +7,7 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const worker29 = read('src/demo-worker-v29-automation.js');
 const worker30 = read('src/demo-worker-v30-contact-links.js');
 const worker31 = read('src/demo-worker-v31-order-create-safe.js');
+const worker32 = read('src/demo-worker-v32-multipart-boundary.js');
 const wrangler = read('wrangler.jsonc');
 const app = read('public/js/app.js');
 const index = read('public/index.html');
@@ -15,9 +16,11 @@ const orders = read('public/js/views/concierge-orders-v4.js');
 const profile = read('public/js/views/concierge-profile-v3.js');
 const contacts = read('public/js/contact-links-v30.js');
 
-test('v31 order safety worker is active above v30 and preserves 24h cron', () => {
-  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v31-order-create-safe\.js"/);
+test('v32 boundary worker is active above v31/v30 and preserves 24h cron', () => {
+  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v32-multipart-boundary\.js"/);
   assert.match(wrangler, /"crons"\s*:\s*\["\*\/10 \* \* \* \*"\]/);
+  assert.match(worker32, /demo-worker-v31-order-create-safe\.js/);
+  assert.match(worker32, /baseWorker\.scheduled/);
   assert.match(worker31, /demo-worker-v30-contact-links\.js/);
   assert.match(worker31, /baseWorker\.scheduled/);
   assert.match(worker30, /baseWorker\.scheduled/);
