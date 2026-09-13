@@ -1,0 +1,50 @@
+/* HOUSE CLEANING · release v1 */
+:root{--release-gold:#f2c85f;--release-blue:#438fff;--release-green:#3bc37c;--release-panel:#0b151b;--release-line:#2c3942}
+
+/* One clear active outline in bottom navigation */
+.nav-active-indicator{display:none!important}
+.bottom-nav .nav-item,.hc-admin-nav button{box-shadow:none!important;outline:none!important}
+.bottom-nav .nav-item::before,.bottom-nav .nav-item::after,.hc-admin-nav button::before,.hc-admin-nav button::after{display:none!important;content:none!important}
+.bottom-nav .nav-item.active{border:1px solid rgba(242,200,95,.52)!important;background:rgba(242,200,95,.07)!important;border-radius:22px!important;box-shadow:0 0 0 1px rgba(242,200,95,.04)!important}
+.bottom-nav .nav-item.active .nav-icon,.bottom-nav .nav-item.active>span{color:#f5d77e!important}
+.bottom-nav .nav-icon,.bottom-nav .nav-icon svg{width:27px!important;height:27px!important}
+
+/* Phone action temporarily removed everywhere */
+[data-call]{display:none!important}
+
+/* Booking: fixed actions never cover the review text */
+body.booking-flow #app{padding-bottom:calc(230px + env(safe-area-inset-bottom,0px))!important}
+.review-head{padding-bottom:4px!important}.review-card{margin-bottom:12px!important}.summary-row{padding:13px 0!important;gap:16px!important}.summary-row span{font-size:13px!important;line-height:1.35}.summary-row strong{font-size:15px!important;line-height:1.4;text-align:right;word-break:break-word}
+.price-card{margin-top:12px!important;margin-bottom:0!important}.hc-final-review-note{margin:10px 4px 28px;padding:13px 14px;border:1px solid rgba(242,200,95,.2);border-radius:15px;background:rgba(242,200,95,.045);color:#a9b1b7;font-size:13px;line-height:1.55}
+.wizard-actions{bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;z-index:420!important;max-width:760px!important;padding:10px 12px!important;border-radius:22px!important;background:rgba(5,10,13,.95)!important}
+.wizard-actions .primary-btn,.wizard-actions .secondary-btn{min-height:54px!important;font-size:16px!important}
+.photo-step .page-subtitle,.booking-title-block .page-subtitle{font-size:14px!important;line-height:1.55!important}
+
+/* Subscription launch banner */
+.hc-subscription-banner{margin:18px 0!important;padding:18px!important;border:1px solid rgba(242,200,95,.28)!important;background:radial-gradient(circle at 90% 0%,rgba(242,200,95,.14),transparent 42%),#0b1419!important;overflow:hidden}
+.hc-subscription-badge{display:inline-flex;padding:6px 9px;border:1px solid rgba(242,200,95,.35);border-radius:999px;color:#f3cf76;font-size:10px;font-weight:900;letter-spacing:1px}
+.hc-subscription-banner h3{margin:12px 0 5px;font-size:21px;line-height:1.2}.hc-subscription-banner p{margin:0 0 14px;color:#909ba3;font-size:14px;line-height:1.5}.hc-subscription-banner .hc-btn{width:100%;min-height:49px}
+.hc-pass-launch{padding:18px!important}.hc-pass-launch.featured{border-color:rgba(242,200,95,.38)!important;box-shadow:0 12px 34px rgba(242,200,95,.05)}.hc-pass-launch>p{color:#9ba5ac;font-size:14px;line-height:1.5}.hc-pass-launch .primary-btn{margin-top:14px;min-height:51px}
+
+/* Profile launch order */
+.cc-profile-page>.cc-menu{margin-top:14px!important}.cc-menu-row{min-height:68px!important}.cc-menu-copy strong{font-size:15px!important}.cc-menu-copy small{font-size:12px!important;line-height:1.35!important}
+.cc-loyalty-card,[data-loyalty-slot],.hc-active-benefit,.hc-profile-active-benefit{display:none!important}
+.hc-manager-only-btn{width:100%;min-height:54px;margin-top:14px!important;font-size:15px!important}
+.hc-contact-launch{display:flex;align-items:center;gap:14px;padding:18px!important}.hc-contact-launch>span{font-size:30px}.hc-contact-launch strong{font-size:17px}.hc-contact-launch p{margin:4px 0 0;color:#8e9aa2;font-size:13px;line-height:1.45}
+
+/* FAQ */
+.hc-faq-clean{display:grid;gap:9px!important}.hc-faq-clean .cc-faq{min-height:62px!important;padding:0!important;overflow:hidden!important}.hc-faq-clean .cc-faq-q{min-height:62px!important;padding:14px 16px!important;display:grid!important;grid-template-columns:minmax(0,1fr) 28px!important;align-items:center!important;gap:12px!important}.hc-faq-clean .cc-faq-q strong{font-size:15px!important;line-height:1.35!important;text-align:left!important}.hc-faq-clean .cc-faq-q i{width:28px;height:28px;display:grid;place-items:center;font-size:20px}.hc-faq-clean .cc-faq-a{padding:0 16px 16px!important;font-size:14px!important;line-height:1.6!important;text-align:left!important}
+
+/* Review input */
+.hc-review-score-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 16px}.hc-review-score-row>strong{flex:0 0 auto;min-width:54px;text-align:right;font-size:25px;color:#f3cf75;font-variant-numeric:tabular-nums}.hc-review-stars{display:flex!important;gap:7px!important;flex-wrap:nowrap!important}.hc-review-star{width:43px!important;height:43px!important;padding:0!important;font-size:34px!important;line-height:1!important}.hc-review-readonly{display:flex;align-items:center;gap:12px}.hc-review-readonly>strong{font-size:23px;color:#f3cf75}.hc-review-textarea{font-size:15px!important;line-height:1.5!important}
+
+/* Public reviews */
+.hc-public-review-summary{display:flex;align-items:flex-end;gap:11px;padding:18px!important;margin-bottom:12px}.hc-public-review-summary strong{font-size:42px;line-height:1;color:#f3cf75}.hc-public-review-summary span{padding-bottom:3px;color:#9ba6ad;font-size:14px}.hc-public-review-filters{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}.hc-public-review-filters::-webkit-scrollbar{display:none}.hc-public-review-filters button{flex:0 0 auto;min-height:43px;padding:9px 13px;border:1px solid #35434d;border-radius:14px;background:#091218;color:#aeb7be;font-weight:800}.hc-public-review-filters button.active{border-color:rgba(242,200,95,.48);background:rgba(242,200,95,.1);color:#f3d47d}.hc-public-review-list{display:grid;gap:10px}.hc-public-review{padding:16px!important}.hc-public-review>div{display:flex;justify-content:space-between;gap:12px}.hc-public-review>div strong{font-size:15px}.hc-public-review>div span{color:#f3cf75;font-size:16px;font-weight:900}.hc-public-review>small{display:block;margin-top:3px;color:#717e87;font-size:11px}.hc-public-review p{margin:10px 0 0;color:#bac1c6;font-size:14px;line-height:1.55}.hc-muted{color:#75818a!important}
+
+/* Admin launch tools */
+.hc-admin-launch-tools{margin:15px 0 18px;padding:16px!important}.hc-admin-launch-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.hc-admin-launch-head span{display:block;color:#76838c;font-size:10px;text-transform:uppercase;letter-spacing:.8px}.hc-admin-launch-head strong{display:block;margin-top:4px;font-size:17px}.hc-admin-launch-head .hc-btn{min-height:45px}.hc-admin-health{display:grid;gap:7px;margin:14px 0;padding:12px;border-radius:14px;background:#081116;border:1px solid rgba(255,255,255,.055)}.hc-admin-health>div,.hc-admin-health{font-size:12px}.hc-admin-health>div{display:flex;justify-content:space-between;gap:10px}.hc-admin-health span{color:#7f8c94}.hc-admin-health b.ok{color:#76dda5}.hc-admin-health b.warn{color:#f3cb6d}.hc-admin-health b.bad{color:#f08b91}.hc-admin-test-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.hc-admin-test-actions .hc-btn{min-height:49px}.hc-admin-test-list{display:grid;gap:8px;margin-top:12px}.hc-admin-test-card{padding:13px;border:1px solid rgba(242,200,95,.18);border-radius:15px;background:#091217}.hc-admin-test-card>div:first-child{display:flex;justify-content:space-between;align-items:center}.hc-admin-test-card>div:first-child span{padding:4px 7px;border-radius:999px;background:rgba(242,200,95,.12);color:#f3cf75;font-size:9px;font-weight:900}.hc-admin-test-card p{margin:7px 0;color:#89959d;font-size:12px}.hc-admin-test-card>div:last-child{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.hc-admin-test-card .hc-btn{min-height:41px;padding:7px;font-size:11px}.hc-admin-test-empty,.hc-admin-test-loading{margin-top:12px;color:#7d8992;font-size:12px}
+
+/* Active admin nav uses one outline */
+.hc-admin-nav button.active{border:1px solid rgba(242,200,95,.48)!important;box-shadow:none!important;background:rgba(242,200,95,.075)!important}
+
+@media(max-width:390px){.hc-review-star{width:39px!important;height:39px!important;font-size:31px!important}.hc-admin-test-actions{grid-template-columns:1fr}.hc-admin-test-card>div:last-child{grid-template-columns:1fr}.hc-admin-launch-head{align-items:flex-start;flex-direction:column}.hc-admin-launch-head .hc-btn{width:100%}}
