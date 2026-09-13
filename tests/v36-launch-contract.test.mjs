@@ -4,24 +4,30 @@ import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const wrangler = read('wrangler.jsonc');
+const worker37 = read('src/demo-worker-v37-booking-resilience.js');
 const worker36 = read('src/demo-worker-v36-release.js');
 const worker35 = read('src/demo-worker-v35-bundled-orders.js');
 const worker34 = read('src/demo-worker-v34-launch.js');
 const worker33 = read('src/demo-worker-v33-raw-order-photos.js');
 const worker29 = read('src/demo-worker-v29-automation.js');
 const api = read('public/js/api.js');
+const releaseApi = read('public/js/api-release-v2.js');
 const state = read('public/js/state.js');
 const app = read('public/js/app-release.js');
+const entry = read('public/js/app-release-v2.js');
 const booking = read('public/js/views/booking-v3.js');
 const profile = read('public/js/views/concierge-profile-v4.js');
 const reviews = read('public/js/reviews-v2.js');
 const admin = read('public/js/views/admin-v5.js');
 const index = read('public/index.html');
 const css = read('public/release-v1.css');
+const css2 = read('public/release-v2.css');
+const banner = read('public/js/home-subscription-v2.js');
 
-test('v36 release worker is active and preserves reminder chain', () => {
-  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v36-release\.js"/);
+test('v37 release worker is active and preserves reminder chain', () => {
+  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v37-booking-resilience\.js"/);
   assert.match(wrangler, /"crons"\s*:\s*\["\*\/10 \* \* \* \*"\]/);
+  assert.match(worker37, /demo-worker-v36-release\.js/);
   assert.match(worker36, /demo-worker-v35-bundled-orders\.js/);
   assert.match(worker35, /demo-worker-v34-launch\.js/);
   assert.match(worker34, /demo-worker-v33-raw-order-photos\.js/);
@@ -48,13 +54,15 @@ test('prelaunch orders are isolated as tests and admin can create dedicated test
   assert.match(admin, /Тестовая заявка/);
 });
 
-test('order photos are delivered as one bundled album and not one client request per photo', () => {
-  assert.match(api, /\/api\/demo-order-media/);
-  assert.match(api, /X-HC-Photo-Bundle/);
-  assert.doesNotMatch(api, /\/api\/demo-order-photo\?order=/);
+test('photo orders use one album and a failed album cannot invalidate a saved booking', () => {
+  assert.match(releaseApi, /\/api\/demo-order-media/);
+  assert.match(releaseApi, /X-HC-Photo-Bundle/);
+  assert.match(releaseApi, /bookingCreated: true/);
   assert.match(worker34, /sendAlbumRaw/);
   assert.match(worker34, /sendMediaGroup/);
   assert.match(worker35, /X-HC-Photo-Bundle/);
+  assert.match(worker37, /fallback notification used/);
+  assert.match(worker37, /photoNotified: false/);
 });
 
 test('reviews use JSON transport, combined photo album and numeric ratings', () => {
@@ -95,10 +103,21 @@ test('client navigation uses one active outline and phone actions are hidden glo
   assert.match(css, /bottom-nav \.nav-item\.active/);
 });
 
-test('release bundle is the one loaded by index', () => {
-  assert.match(index, /app-release\.js\?v=34/);
-  assert.match(index, /reviews-v2\.js\?v=34/);
-  assert.match(index, /release-v1\.css\?v=34/);
+test('final review has dedicated clearance and subscription banner is raised with visual', () => {
+  assert.match(css2, /hc-review-flow #app/);
+  assert.match(css2, /hc-subscription-banner-v2/);
+  assert.match(banner, /hc-subscription-visual/);
+  assert.match(banner, /cc-for-you-section/);
+});
+
+test('release v2 bundle is loaded by index', () => {
+  assert.match(index, /app-release-v2\.js\?v=35/);
+  assert.match(index, /reviews-v2\.js\?v=35/);
+  assert.match(index, /release-v2\.css\?v=35/);
+  assert.match(index, /release-layout-v2\.js\?v=35/);
+  assert.match(index, /home-subscription-v2\.js\?v=35/);
+  assert.match(entry, /api-release-v2\.js/);
+  assert.match(entry, /state-release-v2\.js/);
   assert.doesNotMatch(index, /<script[^>]+app\.js\?v=/);
   assert.doesNotMatch(index, /reviews-v1\.js\?v=/);
 });
