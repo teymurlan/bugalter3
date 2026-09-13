@@ -13,7 +13,8 @@ test('order creation no longer uses multipart FormData', () => {
   const block = api.slice(start, end);
   assert.doesNotMatch(block, /new FormData\(\)/);
   assert.match(block, /Content-Type': 'application\/json'/);
-  assert.match(block, /\/api\/demo-order-photo/);
+  assert.match(block, /uploadOrderPhotos\(order\.order_number, photos\)/);
+  assert.match(api, /\/api\/demo-order-photo/);
 });
 
 test('raw photo endpoint is present and binary', () => {
