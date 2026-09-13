@@ -1,0 +1,36 @@
+/* HOUSE CLEANING · release v2 booking + subscriptions */
+
+/* Final review must always scroll fully above the fixed action dock. */
+body.hc-review-flow #app{padding-bottom:calc(365px + env(safe-area-inset-bottom,0px))!important}
+body.hc-review-flow .review-head{padding-top:8px!important;margin-bottom:12px!important}
+body.hc-review-flow .review-card{margin-bottom:14px!important}
+body.hc-review-flow .price-card{margin-bottom:12px!important}
+body.hc-review-flow .hc-final-review-note{margin:10px 4px 56px!important;padding:14px 15px!important;font-size:14px!important;line-height:1.55!important}
+body.hc-review-flow .wizard-actions{bottom:calc(104px + env(safe-area-inset-bottom,0px))!important;padding:10px!important;gap:10px!important;border-radius:21px!important;background:rgba(5,10,13,.97)!important;box-shadow:0 -10px 28px rgba(0,0,0,.28)!important}
+body.hc-review-flow .wizard-actions .wizard-back{min-width:31%!important}
+body.hc-review-flow .wizard-actions .wizard-next{min-width:0!important;flex:1 1 auto!important}
+
+/* Subscription banner is a real hero card, not a footer tile. */
+.hc-subscription-banner-v2{position:relative!important;display:grid!important;grid-template-columns:minmax(0,1.28fr) minmax(128px,.72fr)!important;align-items:center!important;gap:14px!important;margin:14px 0 22px!important;padding:19px!important;min-height:188px!important;border:1px solid rgba(242,200,95,.34)!important;border-radius:24px!important;background:radial-gradient(circle at 88% 8%,rgba(242,200,95,.17),transparent 34%),linear-gradient(145deg,#111b20 0%,#0a1116 68%,#15170f 100%)!important;box-shadow:0 18px 44px rgba(0,0,0,.22),inset 0 0 0 1px rgba(255,255,255,.018)!important;overflow:hidden!important}
+.hc-subscription-banner-v2::after{content:"";position:absolute;inset:auto -30px -68px auto;width:180px;height:180px;border-radius:50%;background:rgba(242,200,95,.055);pointer-events:none}
+.hc-subscription-copy{position:relative;z-index:2;min-width:0}
+.hc-subscription-banner-v2 .hc-subscription-badge{display:inline-flex!important;max-width:100%;padding:6px 10px!important;font-size:10px!important;letter-spacing:.8px!important;white-space:normal!important}
+.hc-subscription-banner-v2 h3{margin:12px 0 7px!important;font-size:22px!important;line-height:1.16!important;letter-spacing:-.35px!important}
+.hc-subscription-banner-v2 p{margin:0 0 15px!important;max-width:390px;color:#9da8af!important;font-size:14px!important;line-height:1.5!important}
+.hc-subscription-banner-v2 .hc-btn{width:auto!important;min-width:190px!important;min-height:48px!important;padding:11px 15px!important}
+.hc-subscription-visual{position:relative;z-index:1;display:grid;place-items:center;align-self:stretch;min-width:0}
+.hc-subscription-visual svg{display:block;width:100%;max-width:210px;height:auto;filter:drop-shadow(0 14px 20px rgba(0,0,0,.26))}
+
+@media(max-width:430px){
+  body.hc-review-flow #app{padding-bottom:calc(390px + env(safe-area-inset-bottom,0px))!important}
+  .hc-subscription-banner-v2{grid-template-columns:minmax(0,1.2fr) minmax(105px,.8fr)!important;gap:8px!important;padding:17px!important;min-height:182px!important}
+  .hc-subscription-banner-v2 h3{font-size:20px!important}
+  .hc-subscription-banner-v2 p{font-size:13px!important;line-height:1.45!important}
+  .hc-subscription-banner-v2 .hc-btn{width:100%!important;min-width:0!important;font-size:13px!important}
+  .hc-subscription-visual svg{max-width:160px}
+}
+
+@media(max-width:360px){
+  .hc-subscription-banner-v2{grid-template-columns:1fr!important}
+  .hc-subscription-visual{display:none!important}
+}
