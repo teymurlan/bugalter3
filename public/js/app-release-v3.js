@@ -45,8 +45,13 @@ async function startSpecialMode() {
   loadSpecialStyles();
   configureLightApp();
   if (adminMode) {
-    const { renderAdmin } = await import('./views/admin-v6.js?v=36');
-    return renderAdmin(root, () => {});
+    const [{ renderAdmin }, { installAdminPolish }] = await Promise.all([
+      import('./views/admin-v6.js?v=36'),
+      import('./admin-v6-polish.js?v=36'),
+    ]);
+    await renderAdmin(root, () => {});
+    installAdminPolish(root);
+    return;
   }
   const { renderStaffPortal } = await import('./views/staff-v1.js?v=36');
   return renderStaffPortal(root);
