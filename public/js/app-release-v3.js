@@ -3,6 +3,20 @@ const adminMode = params.get('admin') === '1';
 const staffMode = params.get('staff') === '1';
 const tg = window.Telegram?.WebApp;
 
+function ensureStyle(id, href) {
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  link.href = href;
+  document.head.appendChild(link);
+}
+
+function loadSpecialStyles() {
+  ensureStyle('hc-admin-mobile-style', '/admin-mobile-v1.css?v=36');
+  if (staffMode) ensureStyle('hc-staff-style', '/staff-v1.css?v=36');
+}
+
 function configureLightApp() {
   try {
     tg?.ready?.();
@@ -14,11 +28,21 @@ function configureLightApp() {
   } catch {}
 }
 
+function showFatal(error) {
+  const root = document.querySelector('#app');
+  if (!root) return;
+  root.innerHTML = '<div class="hc-staff-error"><h2>Не удалось открыть приложение</h2><p data-error-message></p><button type="button" data-retry>Повторить</button></div>';
+  const message = root.querySelector('[data-error-message]');
+  if (message) message.textContent = String(error?.message || 'Попробуйте ещё раз');
+  root.querySelector('[data-retry]')?.addEventListener('click', () => location.reload());
+}
+
 async function startSpecialMode() {
   const root = document.querySelector('#app');
   const nav = document.querySelector('#bottom-nav');
   if (!root) return;
   nav?.classList.add('hidden');
+  loadSpecialStyles();
   configureLightApp();
   if (adminMode) {
     const { renderAdmin } = await import('./views/admin-v6.js?v=36');
@@ -29,10 +53,7 @@ async function startSpecialMode() {
 }
 
 if (adminMode || staffMode) {
-  startSpecialMode().catch((error) => {
-    const root = document.querySelector('#app');
-    if (root) root.innerHTML = `<div class="hc-staff-error"><h2>Не удалось открыть приложение</h2><p>${String(error?.message || 'Попробуйте ещё раз')}</p><button onclick="location.reload()">Повторить</button></div>`;
-  });
+  startSpecialMode().catch(showFatal);
 } else {
   import('./app-release-v2.js?v=35');
 }
