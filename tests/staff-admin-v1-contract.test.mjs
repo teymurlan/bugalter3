@@ -8,7 +8,8 @@ const entry = read('public/js/app-release-v3.js');
 const admin = read('public/js/views/admin-v6.js');
 const polish = read('public/js/admin-v6-polish.js');
 const staff = read('public/js/views/staff-v1.js');
-const worker = read('src/demo-worker-v38-staff.js');
+const worker38 = read('src/demo-worker-v38-staff.js');
+const worker39 = read('src/demo-worker-v39-admin-menu.js');
 const wrangler = read('wrangler.jsonc');
 
 test('client booking remains on the proven v2 path', () => {
@@ -38,17 +39,29 @@ test('new employees must finish regulation, lessons and 80 percent quiz before w
   assert.match(staff, /accept_regulations/);
   assert.match(staff, /action:'quiz'/);
   assert.match(staff, /action:'finish'/);
-  assert.match(worker, /if\(!tr\?\.completed\)return json\(\{ok:false,error:'Нельзя назначить сотрудника: обучение ещё не завершено\.'/);
-  assert.match(worker, /Number\(t\.quiz_score\|\|0\)>=80/);
-  assert.match(worker, /new Set\(t\.lessons_done\|\|\[\]\)\.size>=LESSON_IDS\.length/);
+  assert.match(worker38, /if\(!tr\?\.completed\)return json\(\{ok:false,error:'Нельзя назначить сотрудника: обучение ещё не завершено\.'/);
+  assert.match(worker38, /Number\(t\.quiz_score\|\|0\)>=80/);
+  assert.match(worker38, /new Set\(t\.lessons_done\|\|\[\]\)\.size>=LESSON_IDS\.length/);
 });
 
-test('staff storage and notifications extend rather than replace the current worker', () => {
-  assert.match(wrangler, /src\/demo-worker-v38-staff\.js/);
-  assert.match(worker, /demo-worker-v37-booking-resilience\.js/);
-  assert.match(worker, /\/api\/admin-staff/);
-  assert.match(worker, /\/api\/staff-me/);
-  assert.match(worker, /\/api\/staff-training/);
-  assert.match(worker, /Новый заказ назначен/);
-  assert.match(worker, /Время уборки изменено/);
+test('staff storage and notifications remain in v38 behind the admin menu wrapper', () => {
+  assert.match(wrangler, /src\/demo-worker-v39-admin-menu\.js/);
+  assert.match(worker39, /demo-worker-v38-staff\.js/);
+  assert.match(worker38, /demo-worker-v37-booking-resilience\.js/);
+  assert.match(worker38, /\/api\/admin-staff/);
+  assert.match(worker38, /\/api\/staff-me/);
+  assert.match(worker38, /\/api\/staff-training/);
+  assert.match(worker38, /Новый заказ назначен/);
+  assert.match(worker38, /Время уборки изменено/);
+});
+
+test('admin-only Telegram entry configures native menu and slash command', () => {
+  assert.match(worker39, /\/telegram\/webhook/);
+  assert.match(worker39, /webhookSecretValid/);
+  assert.match(worker39, /isAdminId/);
+  assert.match(worker39, /'\/admin'/);
+  assert.match(worker39, /setChatMenuButton/);
+  assert.match(worker39, /Админ-панель/);
+  assert.match(worker39, /\?admin=1/);
+  assert.match(worker39, /demo-worker-v38-staff\.js/);
 });
