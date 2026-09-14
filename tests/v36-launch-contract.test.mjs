@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const wrangler = read('wrangler.jsonc');
+const worker38 = read('src/demo-worker-v38-staff.js');
 const worker37 = read('src/demo-worker-v37-booking-resilience.js');
 const worker36 = read('src/demo-worker-v36-release.js');
 const worker35 = read('src/demo-worker-v35-bundled-orders.js');
@@ -15,6 +16,7 @@ const releaseApi = read('public/js/api-release-v2.js');
 const state = read('public/js/state.js');
 const app = read('public/js/app-release.js');
 const entry = read('public/js/app-release-v2.js');
+const specialEntry = read('public/js/app-release-v3.js');
 const booking = read('public/js/views/booking-v3.js');
 const profile = read('public/js/views/concierge-profile-v4.js');
 const reviews = read('public/js/reviews-v2.js');
@@ -24,9 +26,10 @@ const css = read('public/release-v1.css');
 const css2 = read('public/release-v2.css');
 const banner = read('public/js/home-subscription-v2.js');
 
-test('v37 release worker is active and preserves reminder chain', () => {
-  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v37-booking-resilience\.js"/);
+test('v38 staff worker is active and preserves the v37 reminder/release chain', () => {
+  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v38-staff\.js"/);
   assert.match(wrangler, /"crons"\s*:\s*\["\*\/10 \* \* \* \*"\]/);
+  assert.match(worker38, /demo-worker-v37-booking-resilience\.js/);
   assert.match(worker37, /demo-worker-v36-release\.js/);
   assert.match(worker36, /demo-worker-v35-bundled-orders\.js/);
   assert.match(worker35, /demo-worker-v34-launch\.js/);
@@ -110,8 +113,11 @@ test('final review has dedicated clearance and subscription banner is raised wit
   assert.match(banner, /cc-for-you-section/);
 });
 
-test('release v2 bundle is loaded by index', () => {
-  assert.match(index, /app-release-v2\.js\?v=35/);
+test('v3 router keeps the proven v2 client bundle and isolates admin/staff modes', () => {
+  assert.match(index, /app-release-v3\.js\?v=36/);
+  assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=35'\)/);
+  assert.match(specialEntry, /admin-v6\.js\?v=36/);
+  assert.match(specialEntry, /staff-v1\.js\?v=36/);
   assert.match(index, /reviews-v2\.js\?v=35/);
   assert.match(index, /release-v2\.css\?v=35/);
   assert.match(index, /release-layout-v2\.js\?v=35/);

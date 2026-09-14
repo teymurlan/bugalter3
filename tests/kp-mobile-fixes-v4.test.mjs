@@ -6,6 +6,7 @@ const css = readFileSync('public/kp/kp-mobile-fixes-v4.css', 'utf8');
 const loader = readFileSync('public/kp/kp-ux-v13.js', 'utf8');
 const html = readFileSync('public/kp/index.html', 'utf8');
 const worker = readFileSync('src/demo-worker-v20-mobile-fixes.js', 'utf8');
+const releaseWorker = readFileSync('src/demo-worker-v38-staff.js', 'utf8');
 const wrangler = readFileSync('wrangler.jsonc', 'utf8');
 
 assert.ok(js.includes("scrollIntoView({ block: 'center'"), 'service field must be brought above the iOS keyboard accessory');
@@ -24,6 +25,7 @@ assert.ok(worker.includes('await txn.put(OUTGOING_COUNTER_KEY, OUTGOING_START - 
 assert.ok(worker.includes("HARD_RESET_MARKER = 'kp:outgoing-hard-reset-to-15:mobile-v4'"), 'outgoing reset must be one-time');
 assert.ok(worker.includes("url.pathname === '/kp/peek-number'"), 'bootstrap number lookup must apply the one-time reset');
 assert.ok(worker.includes('requested === counter + 1'), 'displayed next number must be treated as automatic, not a manual duplicate');
-assert.ok(wrangler.includes('src/demo-worker-v20-mobile-fixes.js'), 'wrangler must deploy the mobile fixes worker');
+assert.ok(wrangler.includes('src/demo-worker-v38-staff.js'), 'wrangler must deploy the current release worker');
+assert.ok(releaseWorker.includes("./demo-worker-v37-booking-resilience.js"), 'current release worker must preserve the existing worker chain containing KP mobile fixes');
 
 console.log('KP mobile fixes v4 checks passed');
