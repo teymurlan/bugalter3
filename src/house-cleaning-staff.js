@@ -7,7 +7,7 @@ export async function handleHouseCleaningStaff(request, env, ctx, baseWorker) {
 
   const user = await validateTelegramUser(request, env);
   if (!user) return json({ ok:false, error:'Откройте HOUSE CLEANING STAFF из Telegram.' }, 401);
-  const role = isAdmin(env, user.id) ? 'admin' : (await getStaff(env, user.id) ? 'staff' : 'none');
+  const role = isFullAdmin(env, user.id) ? 'admin' : (await getStaff(env, user.id) ? 'staff' : 'none');
 
   if (url.pathname === '/api/staff-v1/session' && request.method === 'GET') {
     if (role === 'none') return json({ ok:false, error:'Доступ к HOUSE CLEANING STAFF ещё не выдан.' }, 403);
@@ -123,7 +123,7 @@ function buildAttention(orders, staff) {
   const out=[];
   orders.filter(o=>o.date===today && o.status!=='CANCELLED').forEach(o=>{
     if (!assignedIds(o).length && ['CONFIRMED','CLEANER_ASSIGNED'].includes(o.status)) out.push({ type:'danger', order_number:o.order_number, text:`${o.time||''} · сотрудник не назначен` });
-    if (assignedIds(o).length && !Object.values(o.staff_progress||{}).some(x=>['accepted','departure_confirmed','started','completed'].includes(x?.stage))) out.push({ type:'warn', order_number:o.order_number, text:`Команда ещё не подтвердила выход` });
+    if (assignedIds(o).length && !Object.values(o.staff_progress||{}).some(x=>['accepted','departure_confirmed','started','completed'].includes(x?.stage))) out.push({ type:'warn', order_number:o.order_number, text:'Команда ещё не подтвердила выход' });
     const r=normalizeReport(o.staff_report); if (o.status==='IN_PROGRESS' && r.after_count<r.required_after) out.push({ type:'warn', order_number:o.order_number, text:'Фото ПОСЛЕ ещё не загружены' });
   });
   const pendingTraining=staff.filter(s=>!s.training_complete).length;
@@ -142,8 +142,8 @@ async function getOrders(env){const r=await appStub(env)?.fetch('https://app.int
 async function getStaffList(env){const r=await appStub(env)?.fetch('https://app.internal/staff/list');if(!r?.ok)return[];return (await r.json()).staff||[]}
 async function getStaff(env,id){const r=await appStub(env)?.fetch(`https://app.internal/staff/get?id=${encodeURIComponent(id)}`);if(!r?.ok)return null;return (await r.json()).staff||null}
 async function saveOrder(env,order){const r=await appStub(env)?.fetch('https://app.internal/order',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(order)});if(!r?.ok)throw new Error('Не удалось сохранить заявку');return (await r.json()).order||order}
-function isAdmin(env,id){const raw=[env.ADMIN_TELEGRAM_IDS,env.ADMIN_TELEGRAM_ID,env.ADMIN_ID,env.KP_ADMIN_TELEGRAM_IDS,env.KP_ADMIN_TELEGRAM_ID].filter(Boolean).join(',');return raw.split(/[;,\s]+/).includes(String(id))}
-async function validateTelegramUser(request,env){const init=request.headers.get('X-Telegram-Init-Data')||'';if(!init||!env.TELEGRAM_BOT_TOKEN)return null;try{const p=new URLSearchParams(init);const hash=(p.get('hash')||'').toLowerCase();const auth=Number(p.get('auth_date')||0);const raw=p.get('user');if(!hash||!auth||!raw||Math.abs(Date.now()/1000-auth)>86400)return null;p.delete('hash');const entries=[...p.entries()].filter(([k])=>k!=='signature').sort(([a],[b])=>a.localeCompare(b));const check=entries.map(([k,v])=>`${k}=${v}`).join('\n');const enc=new TextEncoder();const s1=await hmac(enc.encode('WebAppData'),enc.encode(env.TELEGRAM_BOT_TOKEN));const s2=await hmac(s1,enc.encode(check));const hex=[...new Uint8Array(s2)].map(b=>b.toString(16).padStart(2,'0')).join('');if(!constantEqual(hex,hash))return null;const user=JSON.parse(raw);return positiveInt(user?.id)?user:null}catch{return null}}
+function isFullAdmin(env,id){const raw=[env.ADMIN_TELEGRAM_IDS,env.ADMIN_TELEGRAM_ID,env.ADMIN_ID].filter(Boolean).join(',');return raw.split(/[;,\s]+/).map(v=>v.trim()).filter(Boolean).includes(String(id))}
+async function validateTelegramUser(request,env){const init=request.headers.get('X-Telegram-Init-Data')||'';if(!init||!env.TELEGRAM_BOT_TOKEN)return null;try{const p=new URLSearchParams(init);const hash=(p.get('hash')||'').toLowerCase();const auth=Number(p.get('auth_date')||0);const raw=p.get('user');if(!hash||!auth||!raw||Math.abs(Date.now()/1000-auth)>86400)return null;p.delete('hash');const all=[...p.entries()];const candidates=[all,all.filter(([k])=>k!=='signature')];const enc=new TextEncoder();const secret=await hmac(enc.encode('WebAppData'),enc.encode(env.TELEGRAM_BOT_TOKEN));for(const entries of candidates){const check=[...entries].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>`${k}=${v}`).join('\n');const digest=await hmac(secret,enc.encode(check));const hex=[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');if(constantEqual(hex,hash)){const user=JSON.parse(raw);return positiveInt(user?.id)?user:null}}return null}catch{return null}}
 async function hmac(k,d){const key=await crypto.subtle.importKey('raw',k,{name:'HMAC',hash:'SHA-256'},false,['sign']);return crypto.subtle.sign('HMAC',key,d)}
 function constantEqual(a,b){if(a.length!==b.length)return false;let d=0;for(let i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0}
 async function bodyJson(r){try{return await r.json()}catch{return{}}}
