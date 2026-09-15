@@ -17,16 +17,23 @@ export default {
       const userId = positiveInt(message?.from?.id);
       const command = commandName(message?.text);
 
-      if (chatId && userId && ['/admin','/staff'].includes(command)) {
-        const role = isAdmin(env,userId) ? 'admin' : (await staffExists(env,userId) ? 'staff' : 'none');
+      if (chatId && userId && command === '/admin') {
+        if (isFullAdmin(env,userId)) {
+          await openStaffApp(env,chatId,'admin',url.origin);
+          return json({ok:true,role:'admin'});
+        }
+        await telegramSafe(env,'sendMessage',{chat_id:chatId,text:'Полный доступ HOUSE CLEANING STAFF есть только у главного администратора.'});
+        return json({ok:true,role:'none'});
+      }
+
+      if (chatId && userId && command === '/staff') {
+        const role = isFullAdmin(env,userId) ? 'admin' : (await staffExists(env,userId) ? 'staff' : 'none');
         if (role !== 'none') {
           await openStaffApp(env, chatId, role, url.origin);
           return json({ ok:true, role });
         }
-        if (command === '/staff') {
-          await telegramSafe(env,'sendMessage',{ chat_id:chatId, text:'Доступ к HOUSE CLEANING STAFF ещё не выдан. Обратитесь к руководителю.' });
-          return json({ ok:true, role:'none' });
-        }
+        await telegramSafe(env,'sendMessage',{ chat_id:chatId, text:'Доступ к HOUSE CLEANING STAFF ещё не выдан. Обратитесь к руководителю.' });
+        return json({ ok:true, role:'none' });
       }
     }
 
@@ -50,7 +57,7 @@ async function openStaffApp(env, chatId, role, origin) {
 }
 
 async function staffExists(env,id){try{if(!env.APP_STORE)return false;const stub=env.APP_STORE.get(env.APP_STORE.idFromName('house-cleaning-app-v1'));const r=await stub.fetch(`https://app.internal/staff/get?id=${encodeURIComponent(id)}`);return Boolean(r?.ok)}catch{return false}}
-function isAdmin(env,id){const raw=[env.ADMIN_TELEGRAM_IDS,env.ADMIN_TELEGRAM_ID,env.ADMIN_ID,env.KP_ADMIN_TELEGRAM_IDS,env.KP_ADMIN_TELEGRAM_ID].filter(Boolean).join(',');return raw.split(/[;,\s]+/).includes(String(id))}
+function isFullAdmin(env,id){const raw=[env.ADMIN_TELEGRAM_IDS,env.ADMIN_TELEGRAM_ID,env.ADMIN_ID].filter(Boolean).join(',');return raw.split(/[;,\s]+/).map(v=>v.trim()).filter(Boolean).includes(String(id))}
 function commandName(v){const first=String(v||'').trim().split(/\s+/,1)[0].toLowerCase();return first.split('@',1)[0]}
 function positiveInt(v){const n=Number(v);return Number.isInteger(n)&&n>0?n:0}
 async function telegramSafe(env,method,payload){try{return await telegram(env,method,payload)}catch(e){console.error('HOUSE CLEANING STAFF Telegram error',e);return null}}
