@@ -10,19 +10,16 @@ const kpWorker = readFileSync('src/demo-worker-v20-mobile-fixes.js', 'utf8');
 const releaseWorker = readFileSync('src/demo-worker-v38-staff.js', 'utf8');
 const menuWorker = readFileSync('src/demo-worker-v39-admin-menu.js', 'utf8');
 const diagnosticWorker = readFileSync('src/demo-worker-v40-admin-diagnostic.js', 'utf8');
+const staffEntry = readFileSync('src/demo-worker-v41-house-cleaning-staff.js', 'utf8');
 const wrangler = readFileSync('wrangler.jsonc', 'utf8');
 
-for (const label of ['Данные', 'Услуги', 'Условия', 'Проверка']) {
-  assert.ok(flow.includes(label), `flow must contain step ${label}`);
-}
+for (const label of ['Данные', 'Услуги', 'Условия', 'Проверка']) assert.ok(flow.includes(label), `flow must contain step ${label}`);
 assert.ok(flow.includes('data-progress-step="4"'), 'flow must have the fourth progress step');
 assert.ok(!flow.includes('data-progress-step="5"'), 'flow must not introduce a fifth step');
 assert.ok(flow.includes("document.getElementById('addItemBtn')?.classList.add('kp-flow-legacy-hidden')"), 'legacy add-service button must be hidden');
 assert.ok(flow.includes('Из списка') && flow.includes('Своя услуга'), 'service modes must exist');
 assert.ok(flow.includes('Добавить в КП'), 'single primary add action must be named Add to KP');
-for (const unit of ['м²', 'шт.', 'усл. ед.', 'Другое']) {
-  assert.ok(flow.includes(unit), `quick unit ${unit} must exist`);
-}
+for (const unit of ['м²', 'шт.', 'усл. ед.', 'Другое']) assert.ok(flow.includes(unit), `quick unit ${unit} must exist`);
 assert.ok(flow.includes('guessUnit'), 'automatic unit suggestion must exist');
 assert.ok(flow.includes('unitTouched'), 'manual unit choice must have priority over automatic suggestion');
 assert.ok(flow.includes('Редактировать существующую') && flow.includes('Добавить отдельной строкой'), 'duplicate control must stay explicit');
@@ -32,17 +29,18 @@ assert.ok(renderer.includes("? [['Условия оплаты:'"), 'payment row 
 assert.ok(flowGuard.includes('KP_PDF_CANCELLED'), 'cancelled native PDF share must be detected');
 assert.ok(flowGuard.includes('state.currentId && state.lastSaved?.id === state.currentId'), 'cancelled PDF share must preserve the current quote state');
 assert.ok(worker.includes("const USED_PREFIX = 'kp:outgoing-used:v3:'"), 'permanent used-number ledger must exist');
-assert.ok(worker.includes("const RESET_MARKER = 'kp:outgoing-reset-to-15:first5-v1'"), 'number guard must preserve the existing one-time start-at-15 marker');
+assert.ok(worker.includes("const RESET_MARKER = 'kp:outgoing-reset-to-15:first5-v1'"), 'number guard must preserve start-at-15 marker');
 assert.ok(worker.includes("url.pathname === '/kp/delete'"), 'delete flow must reserve the old outgoing number');
-assert.ok(worker.includes('sequence <= highWater'), 'historically deleted numbers below the high-water mark must be blocked');
+assert.ok(worker.includes('sequence <= highWater'), 'historically deleted numbers below high-water must be blocked');
 assert.ok(worker.includes('raiseCounterTo'), 'counter must only move forward');
 assert.ok(worker.includes('sequence === currentSequence'), 'editing an existing KP must retain its own number');
-assert.ok(worker.includes("./demo-worker-v18-client.js"), 'numbering worker must preserve current bot/referral worker as its base');
-assert.ok(kpWorker.includes("./demo-worker-v19-kp-flow.js"), 'KP worker must preserve the hardened numbering worker as its base');
-assert.ok(releaseWorker.includes("./demo-worker-v37-booking-resilience.js"), 'staff worker must preserve the existing release chain');
-assert.ok(menuWorker.includes("./demo-worker-v38-staff.js"), 'admin menu wrapper must preserve the staff/release chain');
-assert.ok(diagnosticWorker.includes("./demo-worker-v39-admin-menu.js"), 'diagnostic wrapper must preserve the admin menu chain');
-assert.ok(wrangler.includes('src/demo-worker-v40-admin-diagnostic.js'), 'wrangler must point to the current wrapper without changing KP module files');
+assert.ok(worker.includes("./demo-worker-v18-client.js"), 'numbering worker must preserve client worker as its base');
+assert.ok(kpWorker.includes("./demo-worker-v19-kp-flow.js"), 'KP worker must preserve hardened numbering worker');
+assert.ok(releaseWorker.includes("./demo-worker-v37-booking-resilience.js"), 'staff worker must preserve release chain');
+assert.ok(menuWorker.includes("./demo-worker-v38-staff.js"), 'admin menu wrapper must preserve staff/release chain');
+assert.ok(diagnosticWorker.includes("./demo-worker-v39-admin-menu.js"), 'diagnostic wrapper must preserve admin menu chain');
+assert.ok(staffEntry.includes("./demo-worker-v40-admin-diagnostic.js"), 'HOUSE CLEANING STAFF wrapper must preserve diagnostic chain');
+assert.ok(wrangler.includes('src/demo-worker-v41-house-cleaning-staff.js'), 'wrangler must point to the STAFF wrapper without changing KP files');
 assert.ok(!css.includes('visualViewport'), 'flow CSS must not depend on visualViewport');
 assert.ok(!/\b(?:html|body)\s*\{[^}]*overflow\s*:\s*hidden/i.test(css), 'flow CSS must not lock page scrolling');
 assert.ok(!/document\.body\.style\.overflow|document\.documentElement\.style\.overflow/.test(flow), 'flow JS must not lock page scrolling');
