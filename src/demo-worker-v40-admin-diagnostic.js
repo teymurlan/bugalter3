@@ -7,8 +7,6 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
-      if (!webhookAllowed(request, env)) return baseWorker.fetch(request, env, ctx);
-
       let update = null;
       try { update = await request.clone().json(); } catch {}
 
@@ -28,17 +26,17 @@ export default {
           await telegramSafe(env, 'sendMessage', {
             chat_id: chatId,
             text: [
-              '<b>HOUSE CLEANING · Диагностика администратора</b>',
+              '<b>HOUSE CLEANING · Доступ администратора</b>',
               '',
               'Команда <code>/admin</code> дошла до рабочего Worker.',
               '',
               adminConfigured
-                ? 'Но Telegram ID этого аккаунта не совпадает с администратором, сохранённым в Cloudflare.'
-                : 'В Cloudflare не найдено значение ADMIN_TELEGRAM_ID / ADMIN_TELEGRAM_IDS / ADMIN_ID.',
+                ? 'Этот Telegram ID пока не найден среди администраторов.'
+                : 'В Cloudflare не найден администратор.',
               '',
               `Ваш Telegram ID: <code>${userId}</code>`,
               '',
-              'Укажите этот ID в переменной <code>ADMIN_TELEGRAM_ID</code>, сохраните и повторите /admin.',
+              'Разрешённые переменные: <code>ADMIN_TELEGRAM_ID</code>, <code>ADMIN_TELEGRAM_IDS</code>, <code>ADMIN_ID</code>, а также существующие <code>KP_ADMIN_TELEGRAM_ID</code> / <code>KP_ADMIN_TELEGRAM_IDS</code>.',
             ].join('\n'),
             parse_mode: 'HTML',
           });
@@ -63,15 +61,14 @@ export default {
   },
 };
 
-function webhookAllowed(request, env) {
-  const expected = String(env.TELEGRAM_WEBHOOK_SECRET || '').trim();
-  if (!expected) return true;
-  const actual = String(request.headers.get('X-Telegram-Bot-Api-Secret-Token') || '');
-  return actual === expected;
-}
-
 function adminValues(env) {
-  return [env.ADMIN_TELEGRAM_IDS, env.ADMIN_TELEGRAM_ID, env.ADMIN_ID]
+  return [
+    env.ADMIN_TELEGRAM_IDS,
+    env.ADMIN_TELEGRAM_ID,
+    env.ADMIN_ID,
+    env.KP_ADMIN_TELEGRAM_IDS,
+    env.KP_ADMIN_TELEGRAM_ID,
+  ]
     .filter(Boolean)
     .join(',')
     .split(/[;,\s]+/)

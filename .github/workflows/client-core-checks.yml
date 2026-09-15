@@ -29,3 +29,5 @@ jobs:
         run: node --test tests/v36-launch-contract.test.mjs
       - name: Run staff and admin contracts
         run: node --test tests/staff-admin-v1-contract.test.mjs
+      - name: Run admin entry hardening contract
+        run: node --test tests/admin-entry-hardening.test.mjs
