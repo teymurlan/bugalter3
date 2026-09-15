@@ -25,7 +25,7 @@ test('client booking remains on the proven v2 path', () => {
   assert.doesNotMatch(index, /staff\/app\.js/);
 });
 
-test('legacy admin and employee onboarding remain intact', () => {
+test('legacy employee onboarding remains intact', () => {
   assert.match(admin, /let section = 'staff'/);
   assert.match(admin, /Связаться/);
   assert.match(polish, /data-staff-search/);
@@ -55,7 +55,7 @@ test('HOUSE CLEANING STAFF is an isolated second Mini App', () => {
 
 test('server checks Telegram role and supports multi-employee assignment', () => {
   assert.match(staffSystem, /validateTelegramUser/);
-  assert.match(staffSystem, /isAdmin\(env, user\.id\)/);
+  assert.match(staffSystem, /isFullAdmin\(env, user\.id\)/);
   assert.match(staffSystem, /assigned_staff_ids/);
   assert.match(staffSystem, /assigned_staff_names/);
   assert.match(staffSystem, /training_complete/);
@@ -64,14 +64,20 @@ test('server checks Telegram role and supports multi-employee assignment', () =>
   assert.match(staffSystem, /required_before/);
   assert.match(staffSystem, /required_after/);
   assert.match(staffSystem, /Нельзя завершить уборку/);
+  assert.match(staffSystem, /ADMIN_TELEGRAM_IDS,env\.ADMIN_TELEGRAM_ID,env\.ADMIN_ID/);
+  assert.doesNotMatch(staffSystem, /KP_ADMIN_TELEGRAM_IDS/);
 });
 
-test('v41 wrapper preserves the entire previous worker chain', () => {
+test('v41 wrapper preserves previous chain and separates admin from employee entry', () => {
   assert.match(wrangler, /src\/demo-worker-v41-house-cleaning-staff\.js/);
   assert.match(worker41, /demo-worker-v40-admin-diagnostic\.js/);
   assert.match(worker40, /demo-worker-v39-admin-menu\.js/);
   assert.match(worker39, /demo-worker-v38-staff\.js/);
   assert.match(worker38, /demo-worker-v37-booking-resilience\.js/);
-  assert.match(worker41, /'\/admin','\/staff'/);
+  assert.match(worker41, /command === '\/admin'/);
+  assert.match(worker41, /command === '\/staff'/);
+  assert.match(worker41, /isFullAdmin/);
+  assert.match(worker41, /staffExists/);
+  assert.match(worker41, /Полный доступ HOUSE CLEANING STAFF есть только у главного администратора/);
   assert.match(worker41, /staffAppUrl\(origin\)/);
 });
