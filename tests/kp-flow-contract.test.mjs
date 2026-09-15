@@ -9,6 +9,7 @@ const worker = readFileSync('src/demo-worker-v19-kp-flow.js', 'utf8');
 const kpWorker = readFileSync('src/demo-worker-v20-mobile-fixes.js', 'utf8');
 const releaseWorker = readFileSync('src/demo-worker-v38-staff.js', 'utf8');
 const menuWorker = readFileSync('src/demo-worker-v39-admin-menu.js', 'utf8');
+const diagnosticWorker = readFileSync('src/demo-worker-v40-admin-diagnostic.js', 'utf8');
 const wrangler = readFileSync('wrangler.jsonc', 'utf8');
 
 for (const label of ['Данные', 'Услуги', 'Условия', 'Проверка']) {
@@ -40,7 +41,8 @@ assert.ok(worker.includes("./demo-worker-v18-client.js"), 'numbering worker must
 assert.ok(kpWorker.includes("./demo-worker-v19-kp-flow.js"), 'KP worker must preserve the hardened numbering worker as its base');
 assert.ok(releaseWorker.includes("./demo-worker-v37-booking-resilience.js"), 'staff worker must preserve the existing release chain');
 assert.ok(menuWorker.includes("./demo-worker-v38-staff.js"), 'admin menu wrapper must preserve the staff/release chain');
-assert.ok(wrangler.includes('src/demo-worker-v39-admin-menu.js'), 'wrangler must point to the current wrapper without changing KP module files');
+assert.ok(diagnosticWorker.includes("./demo-worker-v39-admin-menu.js"), 'diagnostic wrapper must preserve the admin menu chain');
+assert.ok(wrangler.includes('src/demo-worker-v40-admin-diagnostic.js'), 'wrangler must point to the current wrapper without changing KP module files');
 assert.ok(!css.includes('visualViewport'), 'flow CSS must not depend on visualViewport');
 assert.ok(!/\b(?:html|body)\s*\{[^}]*overflow\s*:\s*hidden/i.test(css), 'flow CSS must not lock page scrolling');
 assert.ok(!/document\.body\.style\.overflow|document\.documentElement\.style\.overflow/.test(flow), 'flow JS must not lock page scrolling');
