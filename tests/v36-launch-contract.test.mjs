@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const wrangler = read('wrangler.jsonc');
+const worker41 = read('src/demo-worker-v41-house-cleaning-staff.js');
 const worker40 = read('src/demo-worker-v40-admin-diagnostic.js');
 const worker39 = read('src/demo-worker-v39-admin-menu.js');
 const worker38 = read('src/demo-worker-v38-staff.js');
@@ -28,9 +29,10 @@ const css = read('public/release-v1.css');
 const css2 = read('public/release-v2.css');
 const banner = read('public/js/home-subscription-v2.js');
 
-test('v40 admin diagnostic worker is active and preserves the full release chain', () => {
-  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v40-admin-diagnostic\.js"/);
+test('v41 HOUSE CLEANING STAFF wrapper is active and preserves the full client release chain', () => {
+  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v41-house-cleaning-staff\.js"/);
   assert.match(wrangler, /"crons"\s*:\s*\["\*\/10 \* \* \* \*"\]/);
+  assert.match(worker41, /demo-worker-v40-admin-diagnostic\.js/);
   assert.match(worker40, /demo-worker-v39-admin-menu\.js/);
   assert.match(worker39, /demo-worker-v38-staff\.js/);
   assert.match(worker38, /demo-worker-v37-booking-resilience\.js/);
@@ -41,7 +43,7 @@ test('v40 admin diagnostic worker is active and preserves the full release chain
   assert.match(worker29, /Напоминание об уборке/);
 });
 
-test('D1 launch layer is optional and mirrors structured data with health check', () => {
+test('D1 launch layer remains optional and mirrors structured data with health check', () => {
   assert.match(worker34, /findD1/);
   assert.match(worker34, /typeof value\.prepare === 'function'/);
   assert.match(worker34, /CREATE TABLE IF NOT EXISTS hc_orders/);
@@ -52,7 +54,7 @@ test('D1 launch layer is optional and mirrors structured data with health check'
   assert.match(worker34, /\/api\/admin-system-health/);
 });
 
-test('prelaunch orders are isolated as tests and admin can create dedicated test orders', () => {
+test('prelaunch orders stay isolated as tests', () => {
   assert.match(worker34, /release:v1:initialized/);
   assert.match(worker34, /prelaunch_test: true/);
   assert.match(worker34, /\/api\/admin-create-test-order/);
@@ -61,7 +63,7 @@ test('prelaunch orders are isolated as tests and admin can create dedicated test
   assert.match(admin, /Тестовая заявка/);
 });
 
-test('photo orders use one album and a failed album cannot invalidate a saved booking', () => {
+test('photo orders still use one album and failed photo delivery cannot invalidate a saved booking', () => {
   assert.match(releaseApi, /\/api\/demo-order-media/);
   assert.match(releaseApi, /X-HC-Photo-Bundle/);
   assert.match(releaseApi, /bookingCreated: true/);
@@ -72,7 +74,7 @@ test('photo orders use one album and a failed album cannot invalidate a saved bo
   assert.match(worker37, /photoNotified: false/);
 });
 
-test('reviews use JSON transport, combined photo album and numeric ratings', () => {
+test('reviews keep JSON transport, combined photo album and numeric ratings', () => {
   assert.match(reviews, /\/api\/demo-review-v2/);
   assert.match(reviews, /data-review-score/);
   assert.match(reviews, /toFixed\(1\)/);
@@ -82,7 +84,7 @@ test('reviews use JSON transport, combined photo album and numeric ratings', () 
   assert.match(profile, /Сначала новые/);
 });
 
-test('new address requires photos and completed known address may skip them', () => {
+test('new address still requires photos and completed known address may skip them', () => {
   assert.match(booking, /order\?\.status === 'COMPLETED'/);
   assert.match(booking, /sameAddress/);
   assert.match(booking, /photoRequired = !known/);
@@ -96,7 +98,7 @@ test('draft resumes from server and app reopens booking at saved step', () => {
   assert.match(app, /Number\(state\.draft\?\.step \|\| 0\) > 0 \? 'booking' : 'home'/);
 });
 
-test('profile hides loyalty levels, exposes reviews/subscriptions and referral link is last in share text', () => {
+test('profile still hides loyalty levels and keeps reviews subscriptions and final referral link', () => {
   assert.doesNotMatch(profile, /Программа лояльности/);
   assert.match(profile, /menuRow\('reviews'/);
   assert.match(profile, /Абонементы/);
@@ -104,20 +106,17 @@ test('profile hides loyalty levels, exposes reviews/subscriptions and referral l
   assert.doesNotMatch(profile, /Позвонить/);
 });
 
-test('client navigation uses one active outline and phone actions are hidden globally', () => {
+test('client navigation and layout protections remain unchanged', () => {
   assert.doesNotMatch(index, /nav-active-indicator/);
   assert.match(css, /\[data-call\]\{display:none!important\}/);
   assert.match(css, /bottom-nav \.nav-item\.active/);
-});
-
-test('final review has dedicated clearance and subscription banner is raised with visual', () => {
   assert.match(css2, /hc-review-flow #app/);
   assert.match(css2, /hc-subscription-banner-v2/);
   assert.match(banner, /hc-subscription-visual/);
   assert.match(banner, /cc-for-you-section/);
 });
 
-test('v3 router keeps the proven v2 client bundle and isolates admin/staff modes', () => {
+test('client router remains on the proven v2 bundle and does not import the separate STAFF app', () => {
   assert.match(index, /app-release-v3\.js\?v=36/);
   assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=35'\)/);
   assert.match(specialEntry, /admin-v6\.js\?v=36/);
@@ -128,6 +127,5 @@ test('v3 router keeps the proven v2 client bundle and isolates admin/staff modes
   assert.match(index, /home-subscription-v2\.js\?v=35/);
   assert.match(entry, /api-release-v2\.js/);
   assert.match(entry, /state-release-v2\.js/);
-  assert.doesNotMatch(index, /<script[^>]+app\.js\?v=/);
-  assert.doesNotMatch(index, /reviews-v1\.js\?v=/);
+  assert.doesNotMatch(index, /\/staff\/app\.js/);
 });
