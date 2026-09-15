@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const wrangler = read('wrangler.jsonc');
+const worker40 = read('src/demo-worker-v40-admin-diagnostic.js');
 const worker39 = read('src/demo-worker-v39-admin-menu.js');
 const worker38 = read('src/demo-worker-v38-staff.js');
 const worker37 = read('src/demo-worker-v37-booking-resilience.js');
@@ -27,9 +28,10 @@ const css = read('public/release-v1.css');
 const css2 = read('public/release-v2.css');
 const banner = read('public/js/home-subscription-v2.js');
 
-test('v39 admin-menu worker is active and preserves the full release chain', () => {
-  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v39-admin-menu\.js"/);
+test('v40 admin diagnostic worker is active and preserves the full release chain', () => {
+  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v40-admin-diagnostic\.js"/);
   assert.match(wrangler, /"crons"\s*:\s*\["\*\/10 \* \* \* \*"\]/);
+  assert.match(worker40, /demo-worker-v39-admin-menu\.js/);
   assert.match(worker39, /demo-worker-v38-staff\.js/);
   assert.match(worker38, /demo-worker-v37-booking-resilience\.js/);
   assert.match(worker37, /demo-worker-v36-release\.js/);
