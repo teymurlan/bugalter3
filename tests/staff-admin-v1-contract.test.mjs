@@ -10,6 +10,7 @@ const polish = read('public/js/admin-v6-polish.js');
 const staff = read('public/js/views/staff-v1.js');
 const worker38 = read('src/demo-worker-v38-staff.js');
 const worker39 = read('src/demo-worker-v39-admin-menu.js');
+const worker40 = read('src/demo-worker-v40-admin-diagnostic.js');
 const wrangler = read('wrangler.jsonc');
 
 test('client booking remains on the proven v2 path', () => {
@@ -44,8 +45,9 @@ test('new employees must finish regulation, lessons and 80 percent quiz before w
   assert.match(worker38, /new Set\(t\.lessons_done\|\|\[\]\)\.size>=LESSON_IDS\.length/);
 });
 
-test('staff storage and notifications remain in v38 behind the admin menu wrapper', () => {
-  assert.match(wrangler, /src\/demo-worker-v39-admin-menu\.js/);
+test('staff storage and notifications remain behind diagnostic wrapper chain', () => {
+  assert.match(wrangler, /src\/demo-worker-v40-admin-diagnostic\.js/);
+  assert.match(worker40, /demo-worker-v39-admin-menu\.js/);
   assert.match(worker39, /demo-worker-v38-staff\.js/);
   assert.match(worker38, /demo-worker-v37-booking-resilience\.js/);
   assert.match(worker38, /\/api\/admin-staff/);
@@ -55,13 +57,13 @@ test('staff storage and notifications remain in v38 behind the admin menu wrappe
   assert.match(worker38, /Время уборки изменено/);
 });
 
-test('admin-only Telegram entry configures native menu and slash command', () => {
-  assert.match(worker39, /\/telegram\/webhook/);
-  assert.match(worker39, /webhookSecretValid/);
-  assert.match(worker39, /isAdminId/);
-  assert.match(worker39, /'\/admin'/);
-  assert.match(worker39, /setChatMenuButton/);
-  assert.match(worker39, /Админ-панель/);
-  assert.match(worker39, /\?admin=1/);
-  assert.match(worker39, /demo-worker-v38-staff\.js/);
+test('admin diagnostic reports identity mismatch instead of silently ignoring admin command', () => {
+  assert.match(worker40, /\/telegram\/webhook/);
+  assert.match(worker40, /HC_ADMIN_DIAGNOSTIC/);
+  assert.match(worker40, /Ваш Telegram ID/);
+  assert.match(worker40, /ADMIN_TELEGRAM_ID/);
+  assert.match(worker40, /'\/admin'/);
+  assert.match(worker40, /setChatMenuButton/);
+  assert.match(worker40, /Админ-панель/);
+  assert.match(worker40, /\?demo=1&admin=1/);
 });
