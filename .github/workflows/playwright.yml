@@ -30,70 +30,14 @@ jobs:
           python3 -m http.server 4173 --directory public > /tmp/server.log 2>&1 &
           sleep 2
 
-      - name: Проверить как на iPhone
-        run: |
-          node --input-type=module <<'EOF'
-          import { webkit, devices } from 'playwright';
+      - name: Проверить оформление уборки как на iPhone
+        run: node tests/playwright-booking-check.mjs
 
-          const browser = await webkit.launch();
-
-          const iphone =
-            devices['iPhone 15 Pro'] ||
-            devices['iPhone 14 Pro'] || {
-              viewport: { width: 393, height: 852 },
-              isMobile: true,
-              hasTouch: true
-            };
-
-          const context = await browser.newContext({
-            ...iphone,
-            locale: 'ru-RU'
-          });
-
-          const page = await context.newPage();
-
-          await page.goto(
-            'http://127.0.0.1:4173/?demo=1',
-            { waitUntil: 'domcontentloaded' }
-          );
-
-          await page.waitForTimeout(1500);
-
-          const title = await page.title();
-
-          if (title !== 'HOUSE CLEANING') {
-            throw new Error(
-              `Неверный заголовок приложения: ${title}`
-            );
-          }
-
-          const layout = await page.evaluate(() => ({
-            screenWidth: document.documentElement.clientWidth,
-            contentWidth: document.documentElement.scrollWidth
-          }));
-
-          if (layout.contentWidth > layout.screenWidth + 2) {
-            throw new Error(
-              `Интерфейс выходит за экран iPhone: ${layout.contentWidth}px > ${layout.screenWidth}px`
-            );
-          }
-
-          await page.screenshot({
-            path: 'iphone-check.png',
-            fullPage: true
-          });
-
-          console.log('✅ HOUSE CLEANING открылся');
-          console.log('✅ Проверка iPhone пройдена');
-          console.log('✅ Элементы не выходят за экран');
-
-          await browser.close();
-          EOF
-
-      - name: Сохранить скриншот проверки
+      - name: Сохранить скриншоты проверки
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: iphone-playwright-check
-          path: iphone-check.png
+          path: |
+            playwright-*.png
           if-no-files-found: ignore
