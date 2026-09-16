@@ -1,1 +1,0 @@
-Release 55: stable server-owned public order numbers (#001, #002, ...), shared across client, admin and HOUSE CLEANING STAFF. Technical order keys remain internal.
