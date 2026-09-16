@@ -131,7 +131,7 @@ await run('повторный заказ сразу открывает дату 
   assert.equal(saved.photoRequired, false);
   assert.equal(saved.step, 6, 'Повторный заказ должен сразу переходить на шаг даты и времени');
 
-  await page.getByRole('button', { name: 'Назад', exact: true }).last().click();
+  await page.locator('[data-global-booking-back]').click();
   await page.getByText('Вы уже заказывали уборку по этому адресу?').waitFor();
   assert.equal(await page.locator('.photo-step').count(), 0, 'Назад из даты не должен вести на фотографии для повторного заказа');
 });
