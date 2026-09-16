@@ -1,17 +1,82 @@
-import baseWorker, { ConsentStore, AppStore } from './demo-worker-v43-cache-bust.js';
-
-export { ConsentStore, AppStore };
+import baseWorker, { ConsentStore as BaseConsentStore, AppStore as BaseAppStore } from './demo-worker-v43-cache-bust.js';
 
 const RELEASE = '44';
 const CONSENT_VERSION = '2026-09-09-v1';
 const APP_STORE_NAME = 'house-cleaning-app-v1';
+const CLEAN_START_MARKER = 'system:clean-start:v45';
+let cleanStartPromise = null;
+
+export class ConsentStore extends BaseConsentStore {
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname === '/system/reset' && request.method === 'POST') {
+      await clearStorage(this.state.storage);
+      return json({ ok: true });
+    }
+    return super.fetch(request);
+  }
+}
+
+export class AppStore extends BaseAppStore {
+  async fetch(request) {
+    const url = new URL(request.url);
+
+    if (url.pathname === '/system/clean-start/status' && request.method === 'GET') {
+      const marker = await this.state.storage.get(CLEAN_START_MARKER);
+      return json({ ok: true, marker: marker || null });
+    }
+
+    if (url.pathname === '/system/clean-start/claim' && request.method === 'POST') {
+      const marker = await this.state.storage.get(CLEAN_START_MARKER);
+      if (marker?.status === 'complete') return json({ ok: true, claimed: false, complete: true });
+      const startedAt = Number(marker?.started_at || 0);
+      if (marker?.status === 'running' && Date.now() - startedAt < 30000) {
+        return json({ ok: true, claimed: false, running: true });
+      }
+      await this.state.storage.put(CLEAN_START_MARKER, { status: 'running', started_at: Date.now() });
+      return json({ ok: true, claimed: true });
+    }
+
+    if (url.pathname === '/system/clean-start/snapshot' && request.method === 'GET') {
+      const rows = await this.state.storage.list();
+      const userIds = new Set();
+      for (const [key, value] of rows.entries()) {
+        harvestUserIds(key, userIds);
+        harvestUserIds(value, userIds);
+      }
+      return json({ ok: true, user_ids: [...userIds] });
+    }
+
+    if (url.pathname === '/system/clean-start/finish' && request.method === 'POST') {
+      await clearStorage(this.state.storage);
+      await this.state.storage.put(CLEAN_START_MARKER, {
+        status: 'complete',
+        completed_at: new Date().toISOString(),
+        generation: 'v45-clean-launch',
+      });
+      return json({ ok: true, complete: true });
+    }
+
+    return super.fetch(request);
+  }
+}
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    if ((url.pathname.startsWith('/api/') || url.pathname === '/telegram/webhook')
+      && url.pathname !== '/api/release-version') {
+      try {
+        await ensureCleanStart(env);
+      } catch (error) {
+        console.error('One-time clean start failed', error);
+        return json({ ok: false, error: 'Подготавливаем чистую базу. Повторите через несколько секунд.' }, 503);
+      }
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/release-version') {
-      return json({ ok: true, release: RELEASE, worker: 'demo-worker-v44-production' });
+      return json({ ok: true, release: RELEASE, worker: 'demo-worker-v44-production', clean_generation: 'v45' });
     }
 
     if (isKpPath(url.pathname)) {
@@ -31,6 +96,22 @@ export default {
       return json({ ok: false, error: 'Раздел КП отключён' }, 404);
     }
 
+    if (url.pathname === '/api/demo-order'
+      && request.method === 'POST'
+      && request.headers.get('X-HC-Photo-Bundle') === '1') {
+      let body = null;
+      try { body = await request.clone().json(); } catch {}
+      const response = await baseWorker.fetch(request, env, ctx);
+      if (response.ok) {
+        const data = await response.clone().json().catch(() => ({}));
+        if (data?.ok && !data?.duplicateRecovered) {
+          const order = data?.order || body?.order;
+          await notifyAdminsImmediately(env, order, url.origin);
+        }
+      }
+      return withRelease(response);
+    }
+
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
       let update = null;
       try { update = await request.clone().json(); } catch {}
@@ -40,8 +121,6 @@ export default {
       const chatId = positiveInt(message?.chat?.id);
       const userId = positiveInt(message?.from?.id || update?.callback_query?.from?.id);
 
-      // KP is intentionally removed from the production bot. Intercept the old
-      // command before legacy workers in the chain can recreate its button.
       if (command === '/kp') {
         if (chatId && message?.message_id) {
           await telegramSafe(env, 'deleteMessage', {
@@ -71,6 +150,110 @@ export default {
     if (typeof baseWorker.scheduled === 'function') return baseWorker.scheduled(controller, env, ctx);
   },
 };
+
+async function ensureCleanStart(env) {
+  if (!cleanStartPromise) {
+    cleanStartPromise = runCleanStart(env).catch((error) => {
+      cleanStartPromise = null;
+      throw error;
+    });
+  }
+  return cleanStartPromise;
+}
+
+async function runCleanStart(env) {
+  const stub = appStub(env);
+  if (!stub) return;
+
+  const statusResponse = await stub.fetch('https://app.internal/system/clean-start/status');
+  const statusData = statusResponse.ok ? await statusResponse.json().catch(() => ({})) : {};
+  if (statusData?.marker?.status === 'complete') return;
+
+  const claimResponse = await stub.fetch('https://app.internal/system/clean-start/claim', { method: 'POST' });
+  if (!claimResponse.ok) throw new Error('Unable to claim clean start');
+  const claim = await claimResponse.json().catch(() => ({}));
+  if (!claim?.claimed) {
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      await delay(100);
+      const poll = await stub.fetch('https://app.internal/system/clean-start/status');
+      const data = poll.ok ? await poll.json().catch(() => ({})) : {};
+      if (data?.marker?.status === 'complete') return;
+    }
+    throw new Error('Clean start is still running');
+  }
+
+  const userIds = new Set();
+  try {
+    const snapshot = await stub.fetch('https://app.internal/system/clean-start/snapshot');
+    const data = snapshot.ok ? await snapshot.json().catch(() => ({})) : {};
+    for (const id of data?.user_ids || []) if (positiveInt(id)) userIds.add(Number(id));
+  } catch (error) {
+    console.warn('App snapshot before reset skipped', error);
+  }
+
+  const db = findD1(env);
+  if (db) {
+    for (const table of ['hc_clients', 'hc_orders', 'hc_drafts', 'hc_reviews', 'hc_referrals']) {
+      try {
+        const result = await db.prepare(`SELECT * FROM ${table}`).all();
+        for (const row of Array.isArray(result?.results) ? result.results : []) harvestUserIds(row, userIds);
+      } catch {}
+    }
+  }
+
+  if (env.CONSENT_STORE) {
+    await Promise.allSettled([...userIds].map(async (id) => {
+      const objectId = env.CONSENT_STORE.idFromName(String(id));
+      const consent = env.CONSENT_STORE.get(objectId);
+      await consent.fetch('https://consent.internal/system/reset', { method: 'POST' });
+    }));
+  }
+
+  if (db) {
+    for (const table of ['hc_drafts', 'hc_reviews', 'hc_referrals', 'hc_orders', 'hc_clients']) {
+      try { await db.prepare(`DELETE FROM ${table}`).run(); }
+      catch (error) { console.warn(`D1 reset skipped for ${table}`, error); }
+    }
+  }
+
+  const finish = await stub.fetch('https://app.internal/system/clean-start/finish', { method: 'POST' });
+  if (!finish.ok) throw new Error('Unable to finish clean start');
+}
+
+async function notifyAdminsImmediately(env, order, origin) {
+  if (!order?.order_number) return;
+  const ids = adminIds(env);
+  if (!ids.length) return;
+  const address = [order.city, order.address, order.apartment ? `кв./офис ${order.apartment}` : ''].filter(Boolean).join(', ');
+  const addons = Array.isArray(order.addon_names) && order.addon_names.length ? order.addon_names.join(', ') : 'Нет';
+  const text = [
+    '🟡 <b>НОВАЯ ЗАЯВКА</b>',
+    '',
+    `<b>${escapeHtml(order.order_number)}</b>`,
+    `Уборка: <b>${escapeHtml(order.service_name || 'Уборка')}</b>`,
+    `Дата: <b>${escapeHtml(formatDate(order.date))}</b> · <b>${escapeHtml(String(order.time || '').slice(0, 5))}</b>`,
+    `Адрес: ${escapeHtml(address)}`,
+    Number(order.area) > 0 ? `Площадь: <b>${Number(order.area)} м²</b>` : '',
+    `Доп. услуги: ${escapeHtml(addons)}`,
+    `Клиент: <b>${escapeHtml(order.customer_name || 'Клиент')}</b>`,
+    order.phone ? `Телефон: <b>${escapeHtml(order.phone)}</b>` : '',
+    '',
+    '📸 Фотографии объекта загружаются следом.',
+  ].filter(Boolean).join('\n');
+
+  await Promise.allSettled(ids.map((id) => telegram(env, 'sendMessage', {
+    chat_id: Number(id),
+    text,
+    parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: [[{
+        text: 'Открыть панель',
+        web_app: { url: `${origin}/?demo=1&admin=1&release=${RELEASE}` },
+        style: 'primary',
+      }]],
+    },
+  })));
+}
 
 function isKpPath(pathname) {
   return pathname === '/kp' || pathname.startsWith('/kp/') || pathname === '/api/kp' || pathname.startsWith('/api/kp/');
@@ -143,6 +326,57 @@ async function getMenuId(env, userId) {
   } catch { return 0; }
 }
 
+function appStub(env) {
+  if (!env.APP_STORE) return null;
+  return env.APP_STORE.get(env.APP_STORE.idFromName(APP_STORE_NAME));
+}
+
+function findD1(env) {
+  for (const name of ['DB', 'D1', 'DATABASE']) {
+    const value = env?.[name];
+    if (value && typeof value.prepare === 'function') return value;
+  }
+  for (const value of Object.values(env || {})) {
+    if (value && typeof value.prepare === 'function' && typeof value.batch === 'function') return value;
+  }
+  return null;
+}
+
+async function clearStorage(storage) {
+  const rows = await storage.list();
+  const keys = [...rows.keys()];
+  if (!keys.length) return;
+  try {
+    for (let index = 0; index < keys.length; index += 128) {
+      await storage.delete(keys.slice(index, index + 128));
+    }
+  } catch {
+    for (const key of keys) await storage.delete(key);
+  }
+}
+
+function harvestUserIds(value, out, depth = 0) {
+  if (depth > 4 || value == null) return;
+  if (typeof value === 'number' || typeof value === 'string') {
+    const raw = String(value);
+    if (/^\d{5,20}$/.test(raw)) out.add(Number(raw));
+    if (typeof value === 'string') {
+      for (const match of raw.matchAll(/(?:user|client|telegram|draft|profile)[:_-](\d{5,20})/gi)) out.add(Number(match[1]));
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) harvestUserIds(item, out, depth + 1);
+    return;
+  }
+  if (typeof value === 'object') {
+    for (const [key, item] of Object.entries(value)) {
+      if (/^(?:user_id|telegram_id|client_telegram_id|inviter_id|referee_id)$/i.test(key) && positiveInt(item)) out.add(Number(item));
+      else harvestUserIds(item, out, depth + 1);
+    }
+  }
+}
+
 function adminIds(env) {
   const raw = [env.ADMIN_TELEGRAM_IDS, env.ADMIN_TELEGRAM_ID, env.ADMIN_ID].filter(Boolean).join(',');
   return [...new Set(String(raw).split(/[;,\s]+/).map((value) => value.trim()).filter((value) => /^-?\d+$/.test(value)))];
@@ -156,6 +390,14 @@ function positiveInt(value) {
   const number = Number(value);
   return Number.isSafeInteger(number) && number > 0 ? number : 0;
 }
+function formatDate(value) {
+  const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : String(value || '');
+}
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+function delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
 function withRelease(response) {
   const headers = new Headers(response.headers);
