@@ -4,7 +4,7 @@ import { escapeHtml, formatDate, formatTime, modal, money, showToast } from '../
 
 const ACTIVE = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
 const MANAGER_PHONE = '+79992107977';
-let currentFilter = 'all';
+let currentFilter = 'active';
 let currentQuery = '';
 let managerCache = null;
 
@@ -34,16 +34,24 @@ function orderStart(order) {
   return Number.isFinite(stamp) ? stamp : Number.POSITIVE_INFINITY;
 }
 
+function shortOrderNumber(order) {
+  const direct = Number(order?.display_number || order?.short_number || order?.id || 0);
+  if (Number.isFinite(direct) && direct > 0) return `#${String(Math.trunc(direct)).padStart(3, '0')}`;
+  const digits = String(order?.order_number || '').replace(/\D/g, '');
+  const fallback = digits.slice(-3);
+  return fallback ? `#${fallback.padStart(3, '0')}` : '#---';
+}
+
 function sortOrders(a, b) {
-  const priority = (order) => order.status === 'IN_PROGRESS' ? 0
-    : ['NEW', 'REVIEW'].includes(order.status) ? 1
-      : ['CONFIRMED', 'CLEANER_ASSIGNED'].includes(order.status) ? 2
-        : order.status === 'CANCELLED' ? 3
-          : order.status === 'COMPLETED' ? 4 : 3;
-  const diff = priority(a) - priority(b);
-  if (diff) return diff;
-  if (a.status === 'COMPLETED' && b.status === 'COMPLETED') return orderStart(b) - orderStart(a);
-  return orderStart(a) - orderStart(b) || String(b.created_at || '').localeCompare(String(a.created_at || ''));
+  const aActive = ACTIVE.has(a.status);
+  const bActive = ACTIVE.has(b.status);
+  if (aActive !== bActive) return aActive ? -1 : 1;
+  if (aActive && bActive) {
+    if (a.status === 'IN_PROGRESS' && b.status !== 'IN_PROGRESS') return -1;
+    if (b.status === 'IN_PROGRESS' && a.status !== 'IN_PROGRESS') return 1;
+    return orderStart(a) - orderStart(b) || String(b.created_at || '').localeCompare(String(a.created_at || ''));
+  }
+  return orderStart(b) - orderStart(a) || String(b.created_at || '').localeCompare(String(a.created_at || ''));
 }
 
 function mergeOrders(localOrders, storedOrders) {
@@ -96,25 +104,18 @@ function contactMethodLabel(value) {
 
 function matchesFilter(order) {
   if (currentFilter === 'active' && !ACTIVE.has(order.status)) return false;
-  if (currentFilter === 'pending' && !['NEW', 'REVIEW'].includes(order.status)) return false;
-  if (currentFilter === 'confirmed' && !['CONFIRMED', 'CLEANER_ASSIGNED'].includes(order.status)) return false;
-  if (currentFilter === 'progress' && order.status !== 'IN_PROGRESS') return false;
-  if (currentFilter === 'completed' && order.status !== 'COMPLETED') return false;
-  if (currentFilter === 'cancelled' && order.status !== 'CANCELLED') return false;
+  if (currentFilter === 'history' && ACTIVE.has(order.status)) return false;
   const query = currentQuery.trim().toLowerCase();
   if (!query) return true;
-  return [order.order_number, order.address, order.city, order.service_name, formatDate(order.date), formatTime(order.time)]
+  return [shortOrderNumber(order), order.order_number, order.address, order.city, order.service_name, formatDate(order.date), formatTime(order.time)]
     .some((value) => String(value || '').toLowerCase().includes(query));
 }
 
 function countFilter(list, id) {
   if (id === 'all') return list.length;
-  if (id === 'active') return list.filter((o) => ACTIVE.has(o.status)).length;
-  if (id === 'pending') return list.filter((o) => ['NEW', 'REVIEW'].includes(o.status)).length;
-  if (id === 'confirmed') return list.filter((o) => ['CONFIRMED', 'CLEANER_ASSIGNED'].includes(o.status)).length;
-  if (id === 'progress') return list.filter((o) => o.status === 'IN_PROGRESS').length;
-  if (id === 'completed') return list.filter((o) => o.status === 'COMPLETED').length;
-  return list.filter((o) => o.status === 'CANCELLED').length;
+  if (id === 'active') return list.filter((order) => ACTIVE.has(order.status)).length;
+  if (id === 'history') return list.filter((order) => !ACTIVE.has(order.status)).length;
+  return 0;
 }
 
 function whenLabel(order) {
@@ -129,29 +130,37 @@ function orderCard(order) {
   const address = [order.city, order.address].filter(Boolean).join(', ');
   const price = Number(order.estimated_price || 0);
   const showEstimate = order.status !== 'COMPLETED' && price > 0;
-  return `<article class="card cc-order-card hc-order-card status-${status.cls}" data-order-id="${escapeHtml(order.id)}">
-    <div class="cc-order-topline"><span class="cc-order-number">${escapeHtml(order.order_number || `#${order.id}`)}</span><span class="cc-status-pill hc-status ${status.cls}">${escapeHtml(status.label)}</span></div>
-    <div class="cc-order-service">${escapeHtml(order.service_name || 'Уборка')}</div>
-    <div class="hc-order-when">${escapeHtml(whenLabel(order))}</div>
-    <div class="hc-order-address">${escapeHtml(address || 'Адрес указан в заявке')}</div>
-    <div class="hc-order-footer"><span>${escapeHtml(String(order.area || 0))} м²</span>${showEstimate ? `<strong>от ${escapeHtml(money(price))}</strong>` : '<strong></strong>'}</div>
-    <button class="hc-btn hc-btn-blue hc-order-more" type="button" data-open>Подробнее</button>
+  return `<article class="card hc-order-card-v54 status-${status.cls}" data-order-id="${escapeHtml(order.id)}">
+    <div class="hc-order-card-head-v54">
+      <div><span class="hc-order-number-v54">Заказ ${escapeHtml(shortOrderNumber(order))}</span><strong>${escapeHtml(order.service_name || 'Уборка')}</strong></div>
+      <span class="cc-status-pill hc-status ${status.cls}">${escapeHtml(status.label)}</span>
+    </div>
+    <div class="hc-order-meta-v54">
+      <div><small>Дата и время</small><b>${escapeHtml(whenLabel(order))}</b></div>
+      <div><small>Площадь</small><b>${escapeHtml(String(order.area || 0))} м²</b></div>
+      <div class="wide"><small>Адрес</small><b>${escapeHtml(address || 'Адрес указан в заявке')}</b></div>
+    </div>
+    <div class="hc-order-card-foot-v54">
+      <span>${showEstimate ? `от ${escapeHtml(money(price))}` : status.label}</span>
+      <button class="hc-order-more-v54" type="button" data-open>Подробнее <i>›</i></button>
+    </div>
   </article>`;
 }
 
 function renderList(root, navigate, list) {
   const visible = list.filter(matchesFilter).sort(sortOrders);
   const searchText = currentQuery.trim() || currentFilter !== 'all'
-    ? (visible.length ? `Найдено: ${visible.length}` : 'Ничего не найдено')
+    ? (visible.length ? `Показано: ${visible.length}` : 'Ничего не найдено')
     : `Всего заявок: ${list.length}`;
   const filters = [
-    ['all', 'Все'], ['active', 'Активные'], ['progress', 'Уборка началась'], ['pending', 'Ожидают'],
-    ['confirmed', 'Подтверждённые'], ['completed', 'Завершённые'], ['cancelled', 'Отменённые'],
+    ['active', 'Активные'],
+    ['history', 'История'],
+    ['all', 'Все'],
   ];
-  root.innerHTML = `<section class="cc-orders-head"><span class="cc-kicker">HOUSE CLEANING</span><h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Активные уборки наверху, завершённые — в конце истории.</p></section>
-    <div class="hc-client-search"><input type="search" value="${escapeHtml(currentQuery)}" data-order-search placeholder="Номер, услуга, адрес или дата"><span>${escapeHtml(searchText)}</span></div>
-    <div class="cc-filter-row hc-scroll-chips" role="tablist">${filters.map(([id, label]) => `<button class="cc-filter ${currentFilter === id ? 'active' : ''}" type="button" data-filter="${id}">${label}<b>${countFilter(list, id)}</b></button>`).join('')}</div>
-    <div class="cc-order-list">${visible.length ? visible.map(orderCard).join('') : '<div class="card cc-order-empty">По текущему фильтру заявок нет.</div>'}</div>`;
+  root.innerHTML = `<section class="cc-orders-head hc-orders-head-v54"><span class="cc-kicker">HOUSE CLEANING</span><h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Сначала актуальные уборки. Завершённые и отменённые — в истории.</p></section>
+    <div class="hc-client-search hc-client-search-v54"><input type="search" value="${escapeHtml(currentQuery)}" data-order-search placeholder="Заказ #023, услуга, адрес или дата"><span>${escapeHtml(searchText)}</span></div>
+    <div class="cc-filter-row hc-orders-tabs-v54" role="tablist">${filters.map(([id, label]) => `<button class="cc-filter ${currentFilter === id ? 'active' : ''}" type="button" data-filter="${id}">${label}<b>${countFilter(list, id)}</b></button>`).join('')}</div>
+    <div class="cc-order-list hc-order-list-v54">${visible.length ? visible.map(orderCard).join('') : '<div class="card cc-order-empty">В этом разделе заявок пока нет.</div>'}</div>`;
   const input = root.querySelector('[data-order-search]');
   input.oninput = () => {
     currentQuery = input.value;
@@ -161,7 +170,7 @@ function renderList(root, navigate, list) {
   };
   root.querySelectorAll('[data-filter]').forEach((button) => button.onclick = () => { currentFilter = button.dataset.filter; renderList(root, navigate, list); });
   root.querySelectorAll('[data-order-id]').forEach((card) => {
-    const open = () => navigate('orders', { orderId: Number(card.dataset.orderId) });
+    const open = () => navigate('orders', { orderId: Number(card.dataset.orderId), from: 'orders' });
     card.querySelector('[data-open]').onclick = (event) => { event.stopPropagation(); open(); };
     card.onclick = (event) => { if (!event.target.closest('button')) open(); };
   });
@@ -203,7 +212,7 @@ async function renderOrderDetails(root, navigate, id) {
     const showEstimate = order.status !== 'COMPLETED' && price > 0;
 
     root.innerHTML = `<button class="cc-back hc-fixed-back" type="button" data-back>← Назад</button>
-      <section class="cc-detail-head hc-subpage-offset"><span class="cc-kicker hc-status ${status.cls}">${escapeHtml(status.label)}</span><h1>${escapeHtml(order.order_number || `Заявка #${order.id}`)}</h1><p class="page-subtitle">${escapeHtml(order.service_name || 'Уборка')}</p></section>
+      <section class="cc-detail-head hc-subpage-offset"><span class="cc-kicker hc-status ${status.cls}">${escapeHtml(status.label)}</span><h1>Заказ ${escapeHtml(shortOrderNumber(order))}</h1><p class="page-subtitle">${escapeHtml(order.service_name || 'Уборка')}</p></section>
       ${timeline(order.status)}
       <div class="hc-detail-sections">
         ${detailBlock('Дата и время', `${formatDate(order.date)} · ${formatTime(order.time)}`)}
