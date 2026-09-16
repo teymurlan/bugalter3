@@ -1,6 +1,6 @@
 (() => {
   const labels = new Map();
-  const technicalPattern = /HC-[A-Z0-9._-]+/g;
+  const technicalPattern = /HC-[A-Z0-9]+(?:-[A-Z0-9]+)+/g;
   const nativeFetch = window.fetch.bind(window);
   let rewriteQueued = false;
 
