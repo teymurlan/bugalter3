@@ -24,10 +24,10 @@ const worker50 = read('src/demo-worker-v50-shared-booking.js');
 const worker53 = read('src/demo-worker-v53-client-experience.js');
 const wrangler = read('wrangler.jsonc');
 
-test('client booking stays isolated while the client bundle uses release 53 cache keys', () => {
-  assert.match(index, /app-release-v3\.js\?v=53/);
-  assert.match(entry, /client-experience-v53\.js\?v=53/);
-  assert.match(entry, /app-release-v2\.js\?v=53/);
+test('client booking stays isolated while the client bundle uses release 54 cache keys', () => {
+  assert.match(index, /app-release-v3\.js\?v=54/);
+  assert.match(entry, /client-experience-v53\.js\?v=54/);
+  assert.match(entry, /app-release-v2\.js\?v=54/);
   assert.doesNotMatch(index, /staff\/staff\.css/);
   assert.doesNotMatch(index, /staff\/app\.js/);
 });

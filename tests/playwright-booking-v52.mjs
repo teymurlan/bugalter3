@@ -131,7 +131,8 @@ await run('повторный заказ сразу открывает дату 
   assert.equal(saved.photoRequired, false);
   assert.equal(saved.step, 6, 'Повторный заказ должен сразу переходить на шаг даты и времени');
 
-  await page.locator('[data-back]').click();
+  await page.locator('[data-global-booking-back]').waitFor({ state: 'visible' });
+  await page.locator('[data-global-booking-back]').click();
   await page.getByText('Вы уже заказывали уборку по этому адресу?').waitFor();
   assert.equal(await page.locator('.photo-step').count(), 0, 'Назад из даты не должен вести на фотографии для повторного заказа');
 });
@@ -143,8 +144,14 @@ await run('общая занятость приходит с сервера', dr
   photoRequired: false,
 }), async (page) => {
   await page.locator('.hc-calendar-v2').waitFor({ state: 'visible' });
-  await page.waitForFunction(() => document.body.textContent.includes('150 м²'));
-  assert.match(await page.locator('[data-capacity]').textContent(), /150 м²/);
+  const firstDate = page.locator('[data-calendar-date]:not([disabled])').first();
+  await firstDate.waitFor({ state: 'visible' });
+  await firstDate.click();
+
+  const capacity = page.locator('[data-capacity] .capacity-box-v2 strong');
+  await capacity.waitFor({ state: 'visible' });
+  await page.waitForFunction(() => document.querySelector('[data-capacity] .capacity-box-v2 strong')?.textContent?.includes('150 м²'));
+  assert.match(await capacity.textContent(), /150 м²/);
 
   const layout = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
@@ -156,4 +163,4 @@ await run('общая занятость приходит с сервера', dr
 }, { usedM2: 150, remainingM2: 150 });
 
 await browser.close();
-console.log('\n✅ Release 52: первый/повторный заказ и общая занятость проверены');
+console.log('\n✅ Release 54: первый/повторный заказ и общая занятость проверены');

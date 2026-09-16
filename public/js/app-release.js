@@ -2,8 +2,8 @@ import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
 import { renderBooking } from './views/booking-v5.js?v=52';
-import { renderConciergeHome } from './views/concierge-home-v4.js?v=44';
-import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=44';
+import { renderConciergeHome } from './views/concierge-home-v4.js?v=54';
+import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=54';
 import { renderConciergeProfile } from './views/concierge-profile-v4.js?v=44';
 import { renderAdmin } from './views/admin-v5.js?v=44';
 
