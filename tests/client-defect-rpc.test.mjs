@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const worker=fs.readFileSync('src/client-defect-rpc.js','utf8');
 const shared=fs.readFileSync('src/demo-worker-v50-shared-booking.js','utf8');
+const outer=fs.readFileSync('src/demo-worker-v53-client-experience.js','utf8');
 const wrangler=fs.readFileSync('wrangler.jsonc','utf8');
 
 test('private AppStore accepts defect delivery through reliable fetch channel',()=>{
@@ -34,8 +35,9 @@ test('large image has delivery fallback instead of silently disappearing',()=>{
   assert.ok(worker.includes("delivery = 'document'"));
 });
 
-test('active worker keeps full production chain through shared booking and defect wrapper',()=>{
-  assert.match(wrangler,/"main"\s*:\s*"src\/demo-worker-v50-shared-booking\.js"/);
+test('active worker keeps full production chain through release 53, shared booking and defect wrapper',()=>{
+  assert.match(wrangler,/"main"\s*:\s*"src\/demo-worker-v53-client-experience\.js"/);
+  assert.ok(outer.includes("from './demo-worker-v50-shared-booking.js'"));
   assert.ok(shared.includes("from './client-defect-rpc.js'"));
   assert.ok(worker.includes("from './demo-worker-v44-production.js'"));
 });
