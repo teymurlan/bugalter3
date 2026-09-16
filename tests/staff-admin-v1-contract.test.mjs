@@ -18,11 +18,12 @@ const worker40 = read('src/demo-worker-v40-admin-diagnostic.js');
 const worker41 = read('src/demo-worker-v41-house-cleaning-staff.js');
 const worker42 = read('src/demo-worker-v42-launch-hardening.js');
 const worker43 = read('src/demo-worker-v43-cache-bust.js');
+const worker44 = read('src/demo-worker-v44-production.js');
 const wrangler = read('wrangler.jsonc');
 
-test('client booking remains on the proven v2 path with release 40 hardening layered above it', () => {
-  assert.match(index, /app-release-v3\.js\?v=40/);
-  assert.match(entry, /else\s*\{\s*import\('\.\/app-release-v2\.js\?v=40'\)/s);
+test('client booking remains on the proven v2 path with release 44 hardening layered above it', () => {
+  assert.match(index, /app-release-v3\.js\?v=44/);
+  assert.match(entry, /else\s*\{\s*import\('\.\/app-release-v2\.js\?v=44'\)/s);
   assert.doesNotMatch(index, /staff\/staff\.css/);
   assert.doesNotMatch(index, /staff\/app\.js/);
 });
@@ -70,8 +71,12 @@ test('server checks Telegram role and supports multi-employee assignment', () =>
   assert.doesNotMatch(staffSystem, /KP_ADMIN_TELEGRAM_IDS/);
 });
 
-test('v43 wrapper preserves v42 and v41 staff entry with the previous server chain', () => {
-  assert.match(wrangler, /src\/demo-worker-v43-cache-bust\.js/);
+test('v44 gate preserves v43, v42 and v41 staff entry with KP disabled outside the legacy chain', () => {
+  assert.match(wrangler, /src\/demo-worker-v44-production\.js/);
+  assert.match(worker44, /demo-worker-v43-cache-bust\.js/);
+  assert.match(worker44, /command === '\/kp'/);
+  assert.match(worker44, /isKpPath/);
+  assert.doesNotMatch(worker44, /Коммерческие предложения/);
   assert.match(worker43, /demo-worker-v42-launch-hardening\.js/);
   assert.match(worker42, /demo-worker-v41-house-cleaning-staff\.js/);
   assert.match(worker41, /demo-worker-v40-admin-diagnostic\.js/);
