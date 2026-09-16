@@ -1,0 +1,38 @@
+/* HOUSE CLEANING · launch hardening v3 */
+
+/* Schedule: keep all controls inside the mobile viewport. */
+.hc-calendar-v2{min-width:0!important;max-width:100%!important;overflow:hidden!important;box-sizing:border-box!important}
+.hc-calendar-v2 .hc-calendar-head,.hc-calendar-v2 .time-section,.hc-calendar-v2 .hc-manual-date{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+.hc-calendar-v2 .calendar-strip{display:grid!important;grid-auto-flow:column!important;grid-auto-columns:calc((100% - 24px)/4)!important;gap:8px!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:auto!important;overflow-y:hidden!important;padding:3px 1px 10px!important;box-sizing:border-box!important;scroll-snap-type:x proximity!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important}
+.hc-calendar-v2 .calendar-strip::-webkit-scrollbar{display:none!important}
+.hc-calendar-v2 .calendar-day{width:100%!important;min-width:0!important;max-width:none!important;box-sizing:border-box!important;scroll-snap-align:start!important}
+.hc-calendar-v2 .hc-manual-date{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(132px,42%)!important;align-items:center!important;gap:12px!important;width:100%!important}
+.hc-calendar-v2 .hc-manual-date>span{min-width:0!important}
+.hc-calendar-v2 .hc-manual-date input{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
+.hc-calendar-v2 .slot-grid{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
+.hc-calendar-v2 .slot[hidden],.hc-calendar-v2 .calendar-day[hidden]{display:none!important}
+.hc-booking-lead-hint{display:block;margin:7px 0 0;color:#9aa5ad;font-size:12px;line-height:1.4}
+.hc-leadtime-empty{padding:22px 12px!important;text-align:center!important;color:#9aa5ad!important;font-size:15px!important;line-height:1.45!important}
+
+/* Final review: the price and note must never sit underneath the fixed action dock. */
+body.hc-review-flow #app{padding-bottom:calc(500px + env(safe-area-inset-bottom,0px))!important}
+body.hc-review-flow .review-card{margin-bottom:16px!important}
+body.hc-review-flow .price-card{position:relative!important;z-index:1!important;margin-bottom:14px!important}
+body.hc-review-flow .hc-final-review-note{position:relative!important;z-index:1!important;margin:10px 4px 200px!important}
+body.hc-review-flow .wizard-actions{left:max(16px,env(safe-area-inset-left,0px))!important;right:max(16px,env(safe-area-inset-right,0px))!important;width:auto!important;max-width:720px!important;margin-inline:auto!important;box-sizing:border-box!important;z-index:80!important}
+body.hc-review-flow .wizard-actions .wizard-back,body.hc-review-flow .wizard-actions .wizard-next{min-height:58px!important}
+body.hc-review-flow .wizard-actions.is-submitting{pointer-events:none!important;opacity:.96!important}
+body.hc-review-flow .wizard-actions.is-submitting .wizard-next{filter:saturate(.85)!important}
+
+@media(max-width:390px){
+  .hc-calendar-v2 .calendar-strip{grid-auto-columns:calc((100% - 18px)/4)!important;gap:6px!important}
+  .hc-calendar-v2 .calendar-day{padding-left:5px!important;padding-right:5px!important}
+  .hc-calendar-v2 .hc-manual-date{grid-template-columns:minmax(0,1fr) minmax(122px,41%)!important;gap:9px!important}
+  body.hc-review-flow #app{padding-bottom:calc(520px + env(safe-area-inset-bottom,0px))!important}
+}
+
+@media(max-width:355px){
+  .hc-calendar-v2 .calendar-strip{grid-auto-columns:calc((100% - 12px)/3)!important}
+  .hc-calendar-v2 .hc-manual-date{grid-template-columns:1fr!important}
+  body.hc-review-flow .wizard-actions{left:10px!important;right:10px!important}
+}
