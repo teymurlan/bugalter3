@@ -36,6 +36,16 @@ export default {
       }
     }
 
+    if (url.pathname === '/api/demo-client-orders' && request.method === 'GET') {
+      const response = await baseWorker.fetch(request, env, ctx);
+      if (!response.ok) return response;
+      const data = await response.json().catch(() => ({}));
+      const orders = Array.isArray(data?.orders) ? data.orders : [];
+      const userId = initUserId(request);
+      const reconciled = userId ? await reconcileCompletedFromMirror(env, userId, orders) : orders;
+      return json({ ...data, orders: reconciled });
+    }
+
     if (url.pathname === '/api/demo-order-status' && request.method === 'POST') {
       let body = null;
       try { body = await request.clone().json(); } catch {}
@@ -71,6 +81,43 @@ function validateBookingLead(order) {
     return 'Уборку можно оформить минимум за 6 часов до начала. Выберите более позднее время.';
   }
   return '';
+}
+
+async function reconcileCompletedFromMirror(env, userId, orders) {
+  const binding = findD1(env);
+  if (!binding || !orders.length) return orders;
+  try {
+    const result = await binding.prepare('SELECT order_number, status, order_json FROM hc_orders WHERE client_telegram_id = ?').bind(userId).all();
+    const rows = Array.isArray(result?.results) ? result.results : [];
+    const completed = new Map(rows.filter((row) => String(row?.status || '') === 'COMPLETED').map((row) => [String(row.order_number), row]));
+    if (!completed.size) return orders;
+
+    const out = [];
+    for (const order of orders) {
+      const row = completed.get(String(order?.order_number || ''));
+      if (!row || String(order?.status || '') === 'COMPLETED') {
+        out.push(order);
+        continue;
+      }
+      let mirrored = {};
+      try { mirrored = JSON.parse(String(row.order_json || '{}')); } catch {}
+      const next = { ...order, ...mirrored, status: 'COMPLETED', updated_at: mirrored.updated_at || new Date().toISOString() };
+      out.push(next);
+      try {
+        await appStub(env)?.fetch('https://app.internal/order', {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(next),
+        });
+      } catch (error) {
+        console.error('Completed order reconciliation save failed', error);
+      }
+    }
+    return out;
+  } catch (error) {
+    console.error('Completed order reconciliation skipped', error);
+    return orders;
+  }
 }
 
 async function ensureCompleted(env, body) {
@@ -119,6 +166,25 @@ async function ensureCompleted(env, body) {
     console.error('Completion status fallback save failed', error);
     return null;
   }
+}
+
+function initUserId(request) {
+  try {
+    const raw = request.headers.get('X-Telegram-Init-Data') || '';
+    const user = JSON.parse(new URLSearchParams(raw).get('user') || '{}');
+    return positiveInt(user?.id);
+  } catch { return 0; }
+}
+
+function findD1(env) {
+  for (const name of ['DB', 'D1', 'DATABASE']) {
+    const value = env?.[name];
+    if (value && typeof value.prepare === 'function') return value;
+  }
+  for (const value of Object.values(env || {})) {
+    if (value && typeof value.prepare === 'function' && typeof value.batch === 'function') return value;
+  }
+  return null;
 }
 
 function appStub(env) {
