@@ -1,0 +1,250 @@
+import { renderBooking as renderBaseBooking } from './booking-v2.js?v=52';
+import { state } from '../state.js';
+import { showToast } from '../utils.js';
+
+let activeRoot = null;
+let activeNavigate = null;
+let observer = null;
+let patchQueued = false;
+
+const STEP_NAMES = {
+  1: 'Услуга',
+  2: 'Объект',
+  3: 'Дополнительно',
+  4: 'Адрес',
+  5: 'Заказ',
+  6: 'Фото',
+  7: 'Дата',
+  8: 'Контакты',
+};
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function addressLooksValid(value) {
+  const raw = String(value || '').trim().replace(/\s+/g, ' ');
+  if (raw.length < 6 || raw.length > 160) return false;
+  const letters = raw.match(/[A-Za-zА-Яа-яЁё]/g) || [];
+  const digits = raw.match(/\d/g) || [];
+  const words = raw.split(/[\s,]+/).filter(Boolean);
+  return letters.length >= 4 && digits.length >= 1 && words.length >= 2 && !/(.)\1{5,}/i.test(raw);
+}
+
+function saveVisitChoice(type) {
+  const first = type === 'first';
+  state.draft.visitType = first ? 'first' : 'repeat';
+  state.draft.visitTypeConfirmed = false;
+  state.draft.photoRequired = first;
+  // Старое автоопределение больше не используется.
+  state.draft.knownAddress = false;
+  state.draft.photoAddressKey = '';
+  state.saveDraft();
+}
+
+function resetVisitChoice() {
+  state.draft.visitType = '';
+  state.draft.visitTypeConfirmed = false;
+  state.draft.photoRequired = null;
+  state.draft.knownAddress = false;
+  state.draft.photoAddressKey = '';
+  state.saveDraft();
+}
+
+function renderProgress(current, name) {
+  return `<div class="booking-top"><div><div class="progress-label">Шаг ${current} из 8 · ${escapeHtml(name)}</div><div class="progress-bars">${Array.from({ length: 8 }, (_, index) => `<i class="${index < current ? 'done' : ''}"></i>`).join('')}</div></div></div>`;
+}
+
+function renderVisitType(root, navigate) {
+  activeRoot = root;
+  activeNavigate = navigate;
+  const selected = state.draft.visitType;
+  root.innerHTML = `
+    ${renderProgress(5, 'Заказ')}
+    <div class="booking-title-block">
+      <h1 class="page-title booking-title">Вы уже заказывали уборку по этому адресу?</h1>
+      <p class="page-subtitle">Выберите один вариант. От этого зависит, обязательны ли фотографии объекта.</p>
+    </div>
+    <div class="hc-visit-type-grid" role="radiogroup" aria-label="Первый или повторный заказ">
+      <button type="button" class="hc-visit-type-card ${selected === 'first' ? 'selected' : ''}" data-visit-type="first" role="radio" aria-checked="${selected === 'first'}">
+        <span class="hc-visit-radio" aria-hidden="true"></span>
+        <span class="hc-visit-copy"><strong>Первый заказ</strong><small>Заказываю уборку по этому адресу впервые.</small><em>Фото объекта обязательно</em></span>
+      </button>
+      <button type="button" class="hc-visit-type-card ${selected === 'repeat' ? 'selected' : ''}" data-visit-type="repeat" role="radio" aria-checked="${selected === 'repeat'}">
+        <span class="hc-visit-radio" aria-hidden="true"></span>
+        <span class="hc-visit-copy"><strong>Повторный заказ</strong><small>Раньше уже заказывал(а) уборку по этому адресу.</small><em>Фото можно добавить по желанию</em></span>
+      </button>
+    </div>
+    <div class="hc-visit-hint">Если после прошлой уборки что-то изменилось, фотографии можно добавить и при повторном заказе.</div>
+    <div class="wizard-actions">
+      <button class="secondary-btn wizard-back" data-back type="button">← <span>Назад</span></button>
+      <button class="primary-btn wizard-next" data-next type="button" ${selected ? '' : 'disabled'}>Продолжить</button>
+    </div>`;
+
+  root.querySelectorAll('[data-visit-type]').forEach((button) => {
+    button.onclick = () => {
+      saveVisitChoice(button.dataset.visitType);
+      renderVisitType(root, navigate);
+    };
+  });
+
+  root.querySelector('[data-back]').onclick = () => {
+    state.draft.step = 4;
+    state.saveDraft();
+    renderBooking(root, navigate);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  root.querySelector('[data-next]').onclick = () => {
+    if (!['first', 'repeat'].includes(state.draft.visitType)) {
+      return showToast('Выберите: первый или повторный заказ', true);
+    }
+    state.draft.visitTypeConfirmed = true;
+    state.draft.photoRequired = state.draft.visitType === 'first';
+    state.saveDraft();
+    renderBooking(root, navigate);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+}
+
+function patchProgress(root, current, name) {
+  const top = root.querySelector('.booking-top');
+  if (!top) return;
+  const label = top.querySelector('.progress-label');
+  const bars = top.querySelector('.progress-bars');
+  if (label) label.textContent = `Шаг ${current} из 8 · ${name}`;
+  if (bars && bars.children.length !== 8) {
+    bars.innerHTML = Array.from({ length: 8 }, (_, index) => `<i class="${index < current ? 'done' : ''}"></i>`).join('');
+  } else if (bars) {
+    [...bars.children].forEach((bar, index) => bar.classList.toggle('done', index < current));
+  }
+}
+
+function patchAddressStep(root, navigate) {
+  patchProgress(root, 4, STEP_NAMES[4]);
+  if (root.dataset.hcVisitAddressPatched === '1') return;
+  root.dataset.hcVisitAddressPatched = '1';
+
+  root.querySelectorAll('[data-field="address"],[data-field="apartment"]').forEach((input) => {
+    input.addEventListener('input', () => {
+      if (state.draft.visitType || state.draft.visitTypeConfirmed || state.draft.photoRequired !== null) resetVisitChoice();
+    });
+  });
+
+  root.querySelectorAll('[data-location]').forEach((button) => {
+    button.addEventListener('click', () => resetVisitChoice());
+  });
+
+  const next = root.querySelector('[data-next]');
+  if (!next) return;
+  next.onclick = (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    const addressInput = root.querySelector('[data-field="address"]');
+    const clean = String(addressInput?.value || state.draft.address || '').trim().replace(/\s+/g, ' ');
+    if (!addressLooksValid(clean)) {
+      addressInput?.classList.add('input-error');
+      addressInput?.focus();
+      return showToast(state.draft?.serviceArea === 'lo'
+        ? 'Укажите населённый пункт, улицу и номер дома'
+        : 'Укажите улицу и номер дома', true);
+    }
+    state.draft.address = clean;
+    resetVisitChoice();
+    state.draft.step = 5;
+    state.saveDraft();
+    renderVisitType(root, navigate);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+}
+
+function patchPhotoStep(root, navigate) {
+  if (!state.draft.visitTypeConfirmed || !['first', 'repeat'].includes(state.draft.visitType)) {
+    renderVisitType(root, navigate);
+    return;
+  }
+
+  patchProgress(root, 6, STEP_NAMES[6]);
+  const title = root.querySelector('.booking-title');
+  const subtitle = root.querySelector('.booking-title-block .page-subtitle');
+  const status = root.querySelector('.photo-count span:last-child');
+  const repeat = state.draft.visitType === 'repeat';
+
+  if (title) title.textContent = 'Фотографии объекта';
+  if (subtitle) subtitle.textContent = repeat
+    ? 'Фотографии необязательны. Добавьте их только если хотите показать изменения или важные детали.'
+    : 'Для первого заказа добавьте минимум одну фотографию объекта для предварительной оценки.';
+  if (status && !state.photos.length) status.textContent = repeat
+    ? 'Необязательно — можно продолжить без фото'
+    : 'Добавьте минимум одно фото';
+
+  const back = root.querySelector('[data-back]');
+  if (back) back.onclick = () => {
+    state.draft.visitTypeConfirmed = false;
+    state.saveDraft();
+    renderVisitType(root, navigate);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const next = root.querySelector('[data-next]');
+  if (next) {
+    const canContinue = repeat || state.photos.length > 0;
+    next.disabled = !canContinue;
+    next.onclick = () => {
+      if (!repeat && !state.photos.length) return showToast('Для первого заказа добавьте минимум одно фото', true);
+      state.draft.photoRequired = !repeat;
+      state.draft.step = 6;
+      state.saveDraft();
+      renderBooking(root, navigate);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  }
+}
+
+function patchCurrent(root, navigate) {
+  if (!root || !document.contains(root)) return;
+  const step = Number(state.draft?.step || 0);
+  if (step >= 1 && step <= 4) patchProgress(root, step, STEP_NAMES[step]);
+  if (step === 4) patchAddressStep(root, navigate);
+  if (step === 5) patchPhotoStep(root, navigate);
+  if (step === 6) patchProgress(root, 7, STEP_NAMES[7]);
+  if (step === 7) patchProgress(root, 8, STEP_NAMES[8]);
+}
+
+function queuePatch(root, navigate) {
+  if (patchQueued) return;
+  patchQueued = true;
+  requestAnimationFrame(() => {
+    patchQueued = false;
+    patchCurrent(root, navigate);
+  });
+}
+
+function ensureObserver(root, navigate) {
+  activeRoot = root;
+  activeNavigate = navigate;
+  if (observer && activeRoot === root) return;
+  observer?.disconnect?.();
+  observer = new MutationObserver(() => queuePatch(activeRoot, activeNavigate));
+  observer.observe(root, { childList: true, subtree: true });
+}
+
+export function renderBooking(root, navigate) {
+  ensureObserver(root, navigate);
+
+  if (Number(state.draft?.step || 0) === 5 && !state.draft.visitTypeConfirmed) {
+    return renderVisitType(root, navigate);
+  }
+
+  if (Number(state.draft?.step || 0) === 5) {
+    state.draft.photoRequired = state.draft.visitType === 'first';
+  }
+
+  renderBaseBooking(root, navigate);
+  queuePatch(root, navigate);
+}
