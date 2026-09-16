@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const wrangler = read('wrangler.jsonc');
+const worker42 = read('src/demo-worker-v42-launch-hardening.js');
 const worker41 = read('src/demo-worker-v41-house-cleaning-staff.js');
 const worker40 = read('src/demo-worker-v40-admin-diagnostic.js');
 const worker39 = read('src/demo-worker-v39-admin-menu.js');
@@ -16,6 +17,7 @@ const worker33 = read('src/demo-worker-v33-raw-order-photos.js');
 const worker29 = read('src/demo-worker-v29-automation.js');
 const api = read('public/js/api.js');
 const releaseApi = read('public/js/api-release-v2.js');
+const launchHardening = read('public/js/launch-hardening-v37.js');
 const state = read('public/js/state.js');
 const app = read('public/js/app-release.js');
 const entry = read('public/js/app-release-v2.js');
@@ -27,11 +29,13 @@ const admin = read('public/js/views/admin-v5.js');
 const index = read('public/index.html');
 const css = read('public/release-v1.css');
 const css2 = read('public/release-v2.css');
+const css3 = read('public/release-v3.css');
 const banner = read('public/js/home-subscription-v2.js');
 
-test('v41 HOUSE CLEANING STAFF wrapper is active and preserves the full client release chain', () => {
-  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v41-house-cleaning-staff\.js"/);
+test('v42 launch hardening wrapper is active and preserves the full client release chain', () => {
+  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v42-launch-hardening\.js"/);
   assert.match(wrangler, /"crons"\s*:\s*\["\*\/10 \* \* \* \*"\]/);
+  assert.match(worker42, /demo-worker-v41-house-cleaning-staff\.js/);
   assert.match(worker41, /demo-worker-v40-admin-diagnostic\.js/);
   assert.match(worker40, /demo-worker-v39-admin-menu\.js/);
   assert.match(worker39, /demo-worker-v38-staff\.js/);
@@ -41,6 +45,15 @@ test('v41 HOUSE CLEANING STAFF wrapper is active and preserves the full client r
   assert.match(worker35, /demo-worker-v34-launch\.js/);
   assert.match(worker34, /demo-worker-v33-raw-order-photos\.js/);
   assert.match(worker29, /Напоминание об уборке/);
+});
+
+test('launch hardening enforces lead time and completed status persistence', () => {
+  assert.match(worker42, /MIN_BOOKING_LEAD_MS = 6 \* 60 \* 60 \* 1000/);
+  assert.match(worker42, /\/api\/demo-order-status/);
+  assert.match(worker42, /ensureCompleted/);
+  assert.match(worker42, /reconcileCompletedFromMirror/);
+  assert.match(launchHardening, /MIN_LEAD_MS = 6 \* 60 \* 60 \* 1000/);
+  assert.match(launchHardening, /Это время уже недоступно/);
 });
 
 test('D1 launch layer remains optional and mirrors structured data with health check', () => {
@@ -64,9 +77,11 @@ test('prelaunch orders stay isolated as tests', () => {
 });
 
 test('photo orders still use one album and failed photo delivery cannot invalidate a saved booking', () => {
-  assert.match(releaseApi, /\/api\/demo-order-media/);
+  assert.match(releaseApi, /\/api\/demo-order-media-async/);
   assert.match(releaseApi, /X-HC-Photo-Bundle/);
   assert.match(releaseApi, /bookingCreated: true/);
+  assert.match(worker42, /\/api\/demo-order-media-async/);
+  assert.match(worker42, /waitUntil/);
   assert.match(worker34, /sendAlbumRaw/);
   assert.match(worker34, /sendMediaGroup/);
   assert.match(worker35, /X-HC-Photo-Bundle/);
@@ -112,20 +127,24 @@ test('client navigation and layout protections remain unchanged', () => {
   assert.match(css, /bottom-nav \.nav-item\.active/);
   assert.match(css2, /hc-review-flow #app/);
   assert.match(css2, /hc-subscription-banner-v2/);
+  assert.match(css3, /calendar-strip/);
+  assert.match(css3, /wizard-actions\{position:relative!important/);
   assert.match(banner, /hc-subscription-visual/);
   assert.match(banner, /cc-for-you-section/);
 });
 
-test('client router remains on the proven v2 bundle and does not import the separate STAFF app', () => {
-  assert.match(index, /app-release-v3\.js\?v=36/);
-  assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=35'\)/);
+test('client router remains on the proven v2 bundle with launch hardening on top', () => {
+  assert.match(index, /app-release-v3\.js\?v=37/);
+  assert.match(index, /launch-hardening-v37\.js\?v=37/);
+  assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=37'\)/);
   assert.match(specialEntry, /admin-v6\.js\?v=36/);
   assert.match(specialEntry, /staff-v1\.js\?v=36/);
   assert.match(index, /reviews-v2\.js\?v=35/);
   assert.match(index, /release-v2\.css\?v=35/);
+  assert.match(index, /release-v3\.css\?v=37/);
   assert.match(index, /release-layout-v2\.js\?v=35/);
   assert.match(index, /home-subscription-v2\.js\?v=35/);
-  assert.match(entry, /api-release-v2\.js/);
+  assert.match(entry, /api-release-v2\.js\?v=37/);
   assert.match(entry, /state-release-v2\.js/);
   assert.doesNotMatch(index, /\/staff\/app\.js/);
 });
