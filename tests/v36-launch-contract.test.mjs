@@ -48,9 +48,11 @@ test('release 55 wraps release 53 with stable public order numbering while produ
 
 test('public order numbers are server-owned, sequential and do not count test orders', () => {
   assert.match(publicOrderWorker, /PUBLIC_SEQUENCE_KEY = 'system:public-order-sequence:v1'/);
+  assert.match(publicOrderWorker, /constructor\(state, env\)/);
+  assert.match(publicOrderWorker, /this\.hcState = state/);
   assert.match(publicOrderWorker, /public_order_number: number, display_number: number/);
   assert.match(publicOrderWorker, /filter\(\(order\) => !order\?\.is_test\)/);
-  assert.match(publicOrderWorker, /this\.state\.storage\.transaction/);
+  assert.match(publicOrderWorker, /this\.hcState\.storage\.transaction/);
   assert.match(publicOrderWorker, /nextPublicOrderNumber/);
   assert.match(publicOrderWorker, /ensurePublicOrderNumbers/);
   assert.match(publicOrderWorker, /created_at/);
