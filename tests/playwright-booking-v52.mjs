@@ -144,8 +144,10 @@ await run('общая занятость приходит с сервера', dr
   photoRequired: false,
 }), async (page) => {
   await page.locator('.hc-calendar-v2').waitFor({ state: 'visible' });
-  await page.waitForFunction(() => document.body.textContent.includes('150 м²'));
-  assert.match(await page.locator('[data-capacity]').textContent(), /150 м²/);
+  const capacity = page.locator('[data-capacity] .capacity-box-v2 strong');
+  await capacity.waitFor({ state: 'visible' });
+  await page.waitForFunction(() => document.querySelector('[data-capacity] .capacity-box-v2 strong')?.textContent?.includes('150 м²'));
+  assert.match(await capacity.textContent(), /150 м²/);
 
   const layout = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
