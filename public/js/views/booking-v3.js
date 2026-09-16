@@ -1,4 +1,4 @@
-import { renderBooking as renderBaseBooking } from './booking-v2.js?v=47';
+import { renderBooking as renderBaseBooking } from './booking-v2.js?v=48';
 import { state } from '../state.js';
 import { showToast } from '../utils.js';
 
@@ -165,16 +165,14 @@ function decorateSchedule(root) {
 }
 
 function applyKnownPhotoUi(root) {
-  if (Number(state.draft?.step || 0) !== 4 || !state.draft?.knownAddress) return;
+  if (Number(state.draft?.step || 0) !== 5 || !state.draft?.knownAddress) return;
   const step = root.querySelector('.photo-step');
   if (!step) return;
   step.classList.add('hc-repeat-address');
   const drop = step.querySelector('.photo-drop');
   if (drop) drop.hidden = true;
   const count = step.querySelector('.photo-count');
-  if (count) {
-    count.innerHTML = '<span>Фото не требуются</span><span>Адрес и квартира уже есть в истории заказов</span>';
-  }
+  if (count) count.innerHTML = '<span>Фото не требуются</span><span>Адрес и квартира уже есть в истории заказов</span>';
   root.querySelectorAll('.hc-known-address-note,.hc-known-address-v46').forEach((node) => node.remove());
   step.insertAdjacentHTML('beforeend', '<div class="hc-known-address-note">Мы уже обслуживали этот адрес и квартиру. Можно продолжить без повторной загрузки фотографий.</div>');
 }
@@ -185,38 +183,36 @@ async function decoratePhotoStep(root, navigate) {
   const subtitle = root.querySelector('.booking-title-block .page-subtitle');
   if (subtitle) subtitle.textContent = 'Для нового адреса фото обязательны. Для повторного заказа на тот же адрес и квартиру фото повторно не нужны.';
 
-  root.querySelectorAll('.hc-known-address-v46').forEach((node) => node.remove());
-
-  const count = root.querySelector('.photo-count');
-  if (count && !state.draft?.knownAddress) {
-    const spans = count.querySelectorAll('span');
-    if (spans[1]) spans[1].textContent = state.photos.length ? 'Фото сохранены в черновике' : 'Можно продолжить — адрес проверим на следующем шаге';
-  }
-
   const next = root.querySelector('[data-next]');
   if (next) {
-    next.disabled = false;
+    next.disabled = state.photos.length < 1 && state.draft.photoRequired !== false;
     next.onclick = () => {
-      state.draft.step = 5;
+      if (!state.photos.length && state.draft.photoRequired !== false) return showToast('Добавьте минимум одно фото', true);
+      state.draft.step = 6;
       state.saveDraft();
       renderBooking(root, navigate);
     };
   }
 
   if (state.photos.length) return;
-  if (state.draft?.knownAddress) {
+  if (state.draft?.knownAddress || state.draft?.photoRequired === false) {
+    state.draft.knownAddress = true;
+    state.draft.photoRequired = false;
+    state.saveDraft();
     applyKnownPhotoUi(root);
     return;
   }
-  if (!String(state.draft?.address || '').trim()) return;
 
   const token = ++photoCheckToken;
   const known = await checkKnownAddress();
-  if (token !== photoCheckToken || Number(state.draft?.step || 0) !== 4) return;
+  if (token !== photoCheckToken || Number(state.draft?.step || 0) !== 5) return;
   state.draft.knownAddress = known;
   state.draft.photoRequired = !known;
   state.saveDraft();
-  if (known) applyKnownPhotoUi(root);
+  if (known) {
+    if (next) next.disabled = false;
+    applyKnownPhotoUi(root);
+  }
 }
 
 function decorateAddressStep(root) {
@@ -266,17 +262,17 @@ function simplifyReview(root, navigate) {
 
   const next = root.querySelector('[data-next]');
   if (!next) return;
-  next.disabled = false;
+  next.disabled = state.photos.length < 1 && state.draft.photoRequired !== false;
   const original = next.onclick;
   next.onclick = async (event) => {
-    if (!state.photos.length) {
-      const known = state.draft.knownAddress || await checkKnownAddress();
+    if (!state.photos.length && state.draft.photoRequired !== false) {
+      const known = await checkKnownAddress();
       state.draft.knownAddress = known;
       state.draft.photoRequired = !known;
       state.saveDraft();
       if (!known) {
         showToast('Для нового адреса добавьте минимум одно фото объекта', true);
-        state.draft.step = 4;
+        state.draft.step = 5;
         state.saveDraft();
         renderBooking(root, navigate);
         return;
@@ -289,8 +285,8 @@ function simplifyReview(root, navigate) {
 export function renderBooking(root, navigate) {
   renderBaseBooking(root, navigate);
   const step = Number(state.draft?.step || 0);
-  if (step === 4) void decoratePhotoStep(root, navigate);
-  if (step === 5) decorateAddressStep(root);
+  if (step === 4) decorateAddressStep(root);
+  if (step === 5) void decoratePhotoStep(root, navigate);
   if (step === 6) decorateSchedule(root);
   if (step === 8) simplifyReview(root, navigate);
 }
