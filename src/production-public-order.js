@@ -1,5 +1,5 @@
 import baseWorker, { ConsentStore as BaseConsentStore, AppStore as BaseAppStore } from './demo-worker-v53-client-experience.js';
-import { sendCentralNotification } from './central-notifications.js';
+import { notificationEventFromRequest, sendCentralNotification } from './central-notifications.js';
 
 const PUBLIC_SEQUENCE_KEY = 'system:public-order-sequence:v1';
 
@@ -112,7 +112,7 @@ export class AppStore extends BaseAppStore {
 
 export default {
   async fetch(request, env, ctx) {
-    const candidate = await notificationCandidate(request);
+    const candidate = await notificationEventFromRequest(request);
     const response = await baseWorker.fetch(request, env, ctx);
 
     if (candidate && response.ok) {
@@ -141,22 +141,6 @@ export default {
     if (typeof baseWorker.scheduled === 'function') return baseWorker.scheduled(controller, env, ctx);
   },
 };
-
-async function notificationCandidate(request) {
-  if (request.method !== 'POST') return null;
-  const url = new URL(request.url);
-  if (url.pathname !== '/api/demo-order') return null;
-  if (request.headers.get('X-HC-Silent-Client') !== '1') return null;
-
-  try {
-    const body = await request.clone().json();
-    const event = String(body?.event || 'created');
-    if (event !== 'created' && event !== 'cancelled') return null;
-    return { event };
-  } catch {
-    return null;
-  }
-}
 
 function publicNumber(order) {
   const value = Number(order?.public_order_number || order?.display_number || 0);
