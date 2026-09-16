@@ -19,6 +19,7 @@ const worker41 = read('src/demo-worker-v41-house-cleaning-staff.js');
 const worker42 = read('src/demo-worker-v42-launch-hardening.js');
 const worker43 = read('src/demo-worker-v43-cache-bust.js');
 const worker44 = read('src/demo-worker-v44-production.js');
+const defectRpc = read('src/client-defect-rpc.js');
 const wrangler = read('wrangler.jsonc');
 
 test('client booking stays isolated while the client bundle uses release 49 cache keys', () => {
@@ -71,8 +72,9 @@ test('server checks Telegram role and supports multi-employee assignment', () =>
   assert.doesNotMatch(staffSystem, /KP_ADMIN_TELEGRAM_IDS/);
 });
 
-test('v44 gate preserves v43, v42 and v41 staff entry with KP disabled outside the legacy chain', () => {
-  assert.match(wrangler, /src\/demo-worker-v44-production\.js/);
+test('v44 gate preserves v43, v42 and v41 staff entry through narrow defect RPC wrapper', () => {
+  assert.match(wrangler, /src\/client-defect-rpc\.js/);
+  assert.match(defectRpc, /demo-worker-v44-production\.js/);
   assert.match(worker44, /demo-worker-v43-cache-bust\.js/);
   assert.match(worker44, /command === '\/kp'/);
   assert.match(worker44, /isKpPath/);
