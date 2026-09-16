@@ -31,3 +31,5 @@ jobs:
         run: node --test tests/staff-admin-v1-contract.test.mjs
       - name: Run admin entry hardening contract
         run: node --test tests/admin-entry-hardening.test.mjs
+      - name: Run client defect notification contract
+        run: node --test tests/client-defect-rpc.test.mjs

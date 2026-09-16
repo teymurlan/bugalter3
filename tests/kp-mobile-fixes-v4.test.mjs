@@ -10,6 +10,7 @@ const releaseWorker = readFileSync('src/demo-worker-v38-staff.js', 'utf8');
 const menuWorker = readFileSync('src/demo-worker-v39-admin-menu.js', 'utf8');
 const diagnosticWorker = readFileSync('src/demo-worker-v40-admin-diagnostic.js', 'utf8');
 const staffEntry = readFileSync('src/demo-worker-v41-house-cleaning-staff.js', 'utf8');
+const defectRpc = readFileSync('src/client-defect-rpc.js', 'utf8');
 const wrangler = readFileSync('wrangler.jsonc', 'utf8');
 
 assert.ok(js.includes("scrollIntoView({ block: 'center'"), 'service field must be brought above iOS keyboard accessory');
@@ -28,7 +29,8 @@ assert.ok(worker.includes('await txn.put(OUTGOING_COUNTER_KEY, OUTGOING_START - 
 assert.ok(worker.includes("HARD_RESET_MARKER = 'kp:outgoing-hard-reset-to-15:mobile-v4'"), 'outgoing reset must be one-time');
 assert.ok(worker.includes("url.pathname === '/kp/peek-number'"), 'bootstrap number lookup must apply reset');
 assert.ok(worker.includes('requested === counter + 1'), 'displayed next number must be automatic not manual duplicate');
-assert.ok(wrangler.includes('src/demo-worker-v41-house-cleaning-staff.js'), 'wrangler must deploy STAFF wrapper');
+assert.ok(wrangler.includes('src/client-defect-rpc.js'), 'wrangler must deploy the narrow defect RPC wrapper');
+assert.ok(defectRpc.includes("./demo-worker-v44-production.js"), 'defect RPC wrapper must preserve the full v44 production chain');
 assert.ok(staffEntry.includes("./demo-worker-v40-admin-diagnostic.js"), 'STAFF wrapper must preserve diagnostic wrapper');
 assert.ok(diagnosticWorker.includes("./demo-worker-v39-admin-menu.js"), 'diagnostic wrapper must preserve admin-menu wrapper');
 assert.ok(menuWorker.includes("./demo-worker-v38-staff.js"), 'menu wrapper must preserve release worker');
