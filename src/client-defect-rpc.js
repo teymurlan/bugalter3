@@ -89,7 +89,7 @@ export class AppStore extends BaseAppStore {
 
     let result = await telegramMultipart(token, 'sendPhoto', upload());
     let delivery = 'photo';
-    if (!result.ok) {
+    if (!result.ok && result.definitive_rejection) {
       const fallback = new FormData();
       fallback.append('chat_id', String(chatId));
       fallback.append('document', new Blob([bytes], { type:mime }), `defect-${defectId}.${extensionForMime(mime)}`);
@@ -97,7 +97,12 @@ export class AppStore extends BaseAppStore {
       result = await telegramMultipart(token, 'sendDocument', fallback);
       delivery = 'document';
     }
-    if (!result.ok) return { ok:false, error:result.error || 'Не удалось отправить дефект клиенту' };
+    if (!result.ok) return {
+      ok:false,
+      error:result.error || 'Не удалось отправить дефект клиенту',
+      retryable:true,
+      ambiguous:Boolean(result.ambiguous),
+    };
 
     const saved = { at:Date.now(), chat_id:chatId, message_id:Number(result?.data?.message_id || 0), delivery };
     await this.hcState.storage.put(sentKey, saved);
@@ -152,7 +157,7 @@ function cleanId(value) {
 }
 function clean(value,n=500) { return String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,n); }
 function positiveInt(value) { const n=Number(value); return Number.isSafeInteger(n)&&n>0?n:0; }
-function esc(value) { return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c)); }
+function esc(value) { return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]||c)); }
 function json(value,status=200){return new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
 async function telegramJson(token,method,payload) {
   const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
@@ -161,12 +166,32 @@ async function telegramJson(token,method,payload) {
   return x.result;
 }
 async function telegramMultipart(token,method,form) {
+  let r;
   try {
-    const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,{method:'POST',body:form});
-    const x=await r.json().catch(()=>({}));
-    if(!r.ok||!x?.ok) return {ok:false,error:x?.description||`Telegram ${method} failed`};
-    return {ok:true,data:x.result};
+    r=await fetch(`https://api.telegram.org/bot${token}/${method}`,{method:'POST',body:form});
   } catch (error) {
-    return {ok:false,error:clean(error?.message||error,500)||`Telegram ${method} failed`};
+    return {
+      ok:false,
+      ambiguous:true,
+      error:clean(error?.message||error,500)||`Telegram ${method} network failure`,
+    };
   }
+
+  let x;
+  try {
+    x=await r.json();
+  } catch (error) {
+    return {
+      ok:false,
+      ambiguous:true,
+      error:`Telegram ${method} returned an unreadable response`,
+    };
+  }
+
+  if(x?.ok) return {ok:true,data:x.result};
+  return {
+    ok:false,
+    definitive_rejection:true,
+    error:x?.description||`Telegram ${method} failed`,
+  };
 }
