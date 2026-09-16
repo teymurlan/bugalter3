@@ -9,6 +9,24 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    if (url.pathname === '/api/demo-order-media-async' && request.method === 'POST') {
+      const target = new URL(request.url);
+      target.pathname = '/api/demo-order-media';
+      const forwarded = new Request(target.toString(), request);
+      const task = baseWorker.fetch(forwarded, env, ctx).then(async (response) => {
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          console.error('Background order media failed', data?.error || response.status);
+        }
+      }).catch((error) => console.error('Background order media failed', error));
+      if (ctx?.waitUntil) {
+        ctx.waitUntil(task);
+        return json({ ok: true, queued: true }, 202);
+      }
+      await task;
+      return json({ ok: true, queued: true });
+    }
+
     if (url.pathname === '/api/demo-order' && request.method === 'POST') {
       let body = null;
       try { body = await request.clone().json(); } catch {}
