@@ -39,20 +39,19 @@ async function fileToBase64(file) {
   return btoa(binary);
 }
 
-async function sendAlbum(orderNumber, photos) {
+async function encodePhotos(files = []) {
+  return Promise.all(files.map(async (file, index) => ({
+    name: file?.name || `object-${index + 1}.jpg`,
+    type: file?.type || 'image/jpeg',
+    data: await fileToBase64(file),
+  })));
+}
+
+async function sendAlbum(orderNumber, photos, prepared = null) {
   const files = Array.isArray(photos) ? photos.slice(0, 10) : [];
   if (!files.length) return { ok: true, adminNotified: 0, photoNotified: true };
 
-  const encoded = [];
-  for (let index = 0; index < files.length; index += 1) {
-    const file = files[index];
-    encoded.push({
-      name: file?.name || `object-${index + 1}.jpg`,
-      type: file?.type || 'image/jpeg',
-      data: await fileToBase64(file),
-    });
-  }
-
+  const encoded = prepared ? await prepared : await encodePhotos(files);
   const response = await fetch('/api/demo-order-media', {
     method: 'POST',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -72,6 +71,8 @@ async function sendAlbum(orderNumber, photos) {
 }
 
 async function createReleaseOrder(payload, photos = []) {
+  const files = Array.isArray(photos) ? photos.slice(0, 10) : [];
+  const encodedPhotos = files.length ? encodePhotos(files) : Promise.resolve([]);
   const availability = await api.availability(payload.date);
   const remaining = Number(availability?.remainingM2);
   if (Number.isFinite(remaining) && Number(payload.area) > remaining) {
@@ -88,7 +89,6 @@ async function createReleaseOrder(payload, photos = []) {
   const area = Number(payload.area || 0);
   const estimatedPrice = ratePerM2 > 0 && area > 0 ? Math.round(ratePerM2 * area + addonTotal) : 0;
   const telegramUser = tg?.initDataUnsafe?.user || {};
-  const files = Array.isArray(photos) ? photos.slice(0, 10) : [];
 
   const order = {
     id: localId,
@@ -144,7 +144,7 @@ async function createReleaseOrder(payload, photos = []) {
   let media = { ok: true, photoNotified: !files.length, adminNotified: Number(created.adminNotified || 0) };
   if (files.length) {
     try {
-      media = await sendAlbum(order.order_number, files);
+      media = await sendAlbum(order.order_number, files, encodedPhotos);
     } catch (error) {
       console.error('Order album upload failed after successful order creation', error);
       media = { ok: true, photoNotified: false, adminNotified: 0, warning: 'Фото будут проверены менеджером отдельно' };
