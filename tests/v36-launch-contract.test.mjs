@@ -25,6 +25,7 @@ const app = read('public/js/app-release.js');
 const entry = read('public/js/app-release-v2.js');
 const specialEntry = read('public/js/app-release-v3.js');
 const booking = read('public/js/views/booking-v3.js');
+const bookingBase = read('public/js/views/booking-v2.js');
 const ui47 = read('public/js/ui-polish-v47.js');
 const profile = read('public/js/views/concierge-profile-v4.js');
 const reviews = read('public/js/reviews-v2.js');
@@ -109,12 +110,15 @@ test('reviews keep JSON transport, combined photo album and numeric ratings', ()
   assert.match(profile, /Сначала новые/);
 });
 
-test('new address requires photos while any prior order at the same address and unit may skip them', () => {
+test('repeat address is checked before photos and may skip photo upload', () => {
+  assert.match(bookingBase, /'Дополнительно', 'Адрес', 'Фото', 'Дата'/);
+  assert.match(bookingBase, /draft\.step === 4\) return renderAddress/);
+  assert.match(bookingBase, /draft\.step === 5\) return renderPhotos/);
+  assert.match(bookingBase, /state\.draft\.photoRequired === false/);
+  assert.match(bookingBase, /!state\.photos\.length && d\.photoRequired !== false/);
   assert.match(booking, /Boolean\(order\?\.order_number\) && sameAddress/);
-  assert.match(booking, /sameAddress/);
-  assert.match(booking, /photoRequired = !known/);
-  assert.match(booking, /Для нового адреса добавьте минимум одно фото/);
-  assert.match(booking, /state\.draft\.step = 5/);
+  assert.match(booking, /if \(step === 4\) decorateAddressStep/);
+  assert.match(booking, /if \(step === 5\) void decoratePhotoStep/);
   assert.match(booking, /Мы уже обслуживали этот адрес и квартиру/);
 });
 
@@ -145,14 +149,14 @@ test('client navigation and layout protections remain unchanged', () => {
   assert.match(banner, /cc-for-you-section/);
 });
 
-test('client router uses release 47 cache keys for the fixed booking flow', () => {
-  assert.match(index, /house-cleaning-release" content="47/);
-  assert.match(index, /app-release-v3\.js\?v=47/);
+test('client router uses release 48 cache keys for the repeat-address flow', () => {
+  assert.match(index, /house-cleaning-release" content="48/);
+  assert.match(index, /app-release-v3\.js\?v=48/);
   assert.match(index, /ui-polish-v47\.js\?v=47/);
   assert.doesNotMatch(index, /launch-polish-v45/);
   assert.doesNotMatch(index, /repeat-address-date-v46/);
   assert.match(index, /launch-hardening-v37\.js\?v=44/);
-  assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=47'\)/);
+  assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=48'\)/);
   assert.match(specialEntry, /admin-v6\.js\?v=44/);
   assert.match(specialEntry, /staff-v1\.js\?v=44/);
   assert.match(index, /reviews-v2\.js\?v=44/);
@@ -162,8 +166,9 @@ test('client router uses release 47 cache keys for the fixed booking flow', () =
   assert.match(index, /home-subscription-v2\.js\?v=44/);
   assert.match(entry, /api-release-v2\.js\?v=44/);
   assert.match(entry, /state-release-v2\.js\?v=44/);
-  assert.match(entry, /app-release\.js\?v=47/);
-  assert.match(app, /booking-v3\.js\?v=47/);
+  assert.match(entry, /app-release\.js\?v=48/);
+  assert.match(app, /booking-v3\.js\?v=48/);
+  assert.match(booking, /booking-v2\.js\?v=48/);
   assert.match(ui47, /hc-date-shell-v47/);
   assert.doesNotMatch(index, /\/staff\/app\.js/);
 });
