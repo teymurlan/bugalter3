@@ -5,6 +5,11 @@ const PUBLIC_SEQUENCE_KEY = 'system:public-order-sequence:v1';
 export class ConsentStore extends BaseConsentStore {}
 
 export class AppStore extends BaseAppStore {
+  constructor(state, env) {
+    super(state, env);
+    this.hcState = state;
+  }
+
   async fetch(request) {
     const url = new URL(request.url);
 
@@ -88,14 +93,14 @@ export class AppStore extends BaseAppStore {
   }
 
   async ensureSequenceAtLeast(minimum) {
-    await this.state.storage.transaction(async (txn) => {
+    await this.hcState.storage.transaction(async (txn) => {
       const current = Math.max(0, Number(await txn.get(PUBLIC_SEQUENCE_KEY) || 0));
       if (minimum > current) await txn.put(PUBLIC_SEQUENCE_KEY, minimum);
     });
   }
 
   async nextPublicOrderNumber() {
-    return this.state.storage.transaction(async (txn) => {
+    return this.hcState.storage.transaction(async (txn) => {
       const current = Math.max(0, Number(await txn.get(PUBLIC_SEQUENCE_KEY) || 0));
       const next = current + 1;
       await txn.put(PUBLIC_SEQUENCE_KEY, next);
