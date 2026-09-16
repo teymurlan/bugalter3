@@ -130,14 +130,6 @@ function roleKeyboard(env, userId, origin) {
     }]);
   }
 
-  if (canUseKp(env, userId)) {
-    rows.push([{
-      text: 'Коммерческие предложения',
-      web_app: { url: `${origin}/kp` },
-      style: 'success',
-    }]);
-  }
-
   return { inline_keyboard: rows };
 }
 
@@ -164,9 +156,7 @@ function parseIds(values) {
   return [...new Set(values.filter(Boolean).join(',').split(/[;,\s]+/).map((v) => v.trim()).filter((v) => /^-?\d+$/.test(v)))];
 }
 function fullAdminIds(env) { return parseIds([env.ADMIN_TELEGRAM_IDS, env.ADMIN_TELEGRAM_ID, env.ADMIN_ID]); }
-function kpAdminIds(env) { return parseIds([env.KP_ADMIN_TELEGRAM_IDS, env.KP_ADMIN_TELEGRAM_ID]); }
 function isFullAdmin(env, id) { return fullAdminIds(env).includes(String(id)); }
-function canUseKp(env, id) { return isFullAdmin(env, id) || kpAdminIds(env).includes(String(id)); }
 
 async function safeTelegram(env, method, payload) {
   try { return await telegram(env, method, payload); }
