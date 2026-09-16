@@ -1,10 +1,11 @@
-import { renderBooking as renderBaseBooking } from './booking-v2.js?v=40';
+import { renderBooking as renderBaseBooking } from './booking-v2.js?v=47';
 import { state } from '../state.js';
 import { showToast } from '../utils.js';
 
 const MIN_BOOKING_LEAD_MS = 6 * 60 * 60 * 1000;
 let scheduleObserver = null;
 let observedRoot = null;
+let photoCheckToken = 0;
 
 function normalize(value) {
   return String(value || '')
@@ -15,35 +16,56 @@ function normalize(value) {
     .replace(/\s+/g, ' ');
 }
 
+function cityCore(value) {
+  const city = normalize(value);
+  if (!city) return '';
+  if (city === 'спб' || city.includes('санкт петербург')) return 'spb';
+  if (city.includes('ленинград') && city.includes('област')) return 'lo';
+  return city;
+}
+
 function unitFrom(address, apartment) {
   const direct = normalize(apartment);
-  if (direct) return direct;
+  if (direct) return direct.replace(/^0+(?=\d)/, '');
   const match = String(address || '').match(/(?:квартира|кв\.?|офис)\s*([0-9а-яa-z-]+)/i);
-  return normalize(match?.[1] || '');
+  return normalize(match?.[1] || '').replace(/^0+(?=\d)/, '');
 }
 
 function addressCore(value) {
-  return normalize(String(value || '').replace(/(?:квартира|кв\.?|офис)\s*[0-9а-яa-z-]+/ig, ' '))
-    .replace(/\b(улица|ул|проспект|просп|пр кт|переулок|пер|набережная|наб|шоссе)\b/g, ' ')
-    .replace(/\b(дом|д)\b/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const tokens = normalize(String(value || '')
+    .replace(/(?:квартира|кв\.?|офис)\s*[0-9а-яa-z-]+/ig, ' '))
+    .split(' ')
+    .filter(Boolean);
+  const stop = new Set([
+    'россия','рф','город','г','санкт','петербург','спб','ленинградская','область',
+    'улица','ул','проспект','просп','пр','переулок','пер','набережная','наб','шоссе',
+    'дом','д'
+  ]);
+  return tokens.filter((token) => !stop.has(token)).join(' ');
 }
 
 function sameAddress(order, draft) {
-  const city = normalize(order?.city) === normalize(draft?.city);
-  const address = addressCore(order?.address) === addressCore(draft?.address);
-  const apartment = unitFrom(order?.address, order?.apartment) === unitFrom(draft?.address, draft?.apartment);
-  return city && address && apartment;
+  const addressA = addressCore(order?.address);
+  const addressB = addressCore(draft?.address);
+  if (!addressA || !addressB || addressA !== addressB) return false;
+
+  const unitA = unitFrom(order?.address, order?.apartment);
+  const unitB = unitFrom(draft?.address, draft?.apartment);
+  if (unitA !== unitB) return false;
+
+  const cityA = cityCore(order?.city);
+  const cityB = cityCore(draft?.city);
+  return !cityA || !cityB || cityA === cityB;
 }
 
 async function checkKnownAddress() {
+  if (!String(state.draft?.address || '').trim()) return false;
   try {
     const headers = { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || '' };
     const response = await fetch('/api/demo-client-orders', { headers, cache: 'no-store' });
     if (!response.ok) return false;
     const data = await response.json();
-    return (Array.isArray(data?.orders) ? data.orders : []).some((order) => order?.status === 'COMPLETED' && sameAddress(order, state.draft));
+    return (Array.isArray(data?.orders) ? data.orders : []).some((order) => Boolean(order?.order_number) && sameAddress(order, state.draft));
   } catch {
     return false;
   }
@@ -89,7 +111,7 @@ function syncSchedule(root) {
   card.querySelectorAll('[data-time]').forEach((button) => {
     const allowed = bookingTimeAllowed(date, button.dataset.time);
     button.hidden = !allowed;
-    if (!allowed) button.disabled = true;
+    button.disabled = !allowed || button.classList.contains('unavailable');
     if (allowed && !button.classList.contains('unavailable')) visible += 1;
   });
 
@@ -142,16 +164,35 @@ function decorateSchedule(root) {
   scheduleObserver.observe(root, { childList: true, subtree: true });
 }
 
-function decoratePhotoStep(root, navigate) {
+function applyKnownPhotoUi(root) {
+  if (Number(state.draft?.step || 0) !== 4 || !state.draft?.knownAddress) return;
+  const step = root.querySelector('.photo-step');
+  if (!step) return;
+  step.classList.add('hc-repeat-address');
+  const drop = step.querySelector('.photo-drop');
+  if (drop) drop.hidden = true;
+  const count = step.querySelector('.photo-count');
+  if (count) {
+    count.innerHTML = '<span>Фото не требуются</span><span>Адрес и квартира уже есть в истории заказов</span>';
+  }
+  root.querySelectorAll('.hc-known-address-note,.hc-known-address-v46').forEach((node) => node.remove());
+  step.insertAdjacentHTML('beforeend', '<div class="hc-known-address-note">Мы уже обслуживали этот адрес и квартиру. Можно продолжить без повторной загрузки фотографий.</div>');
+}
+
+async function decoratePhotoStep(root, navigate) {
   const title = root.querySelector('.booking-title');
   if (title) title.textContent = 'Фотографии объекта';
   const subtitle = root.querySelector('.booking-title-block .page-subtitle');
-  if (subtitle) subtitle.textContent = 'Для нового адреса фото обязательны. Если мы уже убирали именно этот адрес и квартиру/офис, фото можно пропустить.';
+  if (subtitle) subtitle.textContent = 'Для нового адреса фото обязательны. Для повторного заказа на тот же адрес и квартиру фото повторно не нужны.';
+
+  root.querySelectorAll('.hc-known-address-v46').forEach((node) => node.remove());
+
   const count = root.querySelector('.photo-count');
-  if (count) {
+  if (count && !state.draft?.knownAddress) {
     const spans = count.querySelectorAll('span');
-    if (spans[1]) spans[1].textContent = state.photos.length ? 'Фото сохранены в черновике' : 'Можно продолжить — проверим адрес на следующем шаге';
+    if (spans[1]) spans[1].textContent = state.photos.length ? 'Фото сохранены в черновике' : 'Можно продолжить — адрес проверим на следующем шаге';
   }
+
   const next = root.querySelector('[data-next]');
   if (next) {
     next.disabled = false;
@@ -161,24 +202,38 @@ function decoratePhotoStep(root, navigate) {
       renderBooking(root, navigate);
     };
   }
+
+  if (state.photos.length) return;
+  if (state.draft?.knownAddress) {
+    applyKnownPhotoUi(root);
+    return;
+  }
+  if (!String(state.draft?.address || '').trim()) return;
+
+  const token = ++photoCheckToken;
+  const known = await checkKnownAddress();
+  if (token !== photoCheckToken || Number(state.draft?.step || 0) !== 4) return;
+  state.draft.knownAddress = known;
+  state.draft.photoRequired = !known;
+  state.saveDraft();
+  if (known) applyKnownPhotoUi(root);
 }
 
-function decorateAddressStep(root, navigate) {
+function decorateAddressStep(root) {
   const next = root.querySelector('[data-next]');
   if (!next) return;
   const original = next.onclick;
   next.onclick = async (event) => {
     const clean = String(state.draft.address || '').trim();
-    if (clean.length < 6 || !/\d/.test(clean)) {
-      return original?.call(next, event);
-    }
+    if (clean.length < 6 || !/\d/.test(clean)) return original?.call(next, event);
+
     next.disabled = true;
     const known = await checkKnownAddress();
     state.draft.knownAddress = known;
     state.draft.photoRequired = !known;
     state.saveDraft();
     next.disabled = false;
-    original?.call(next, event);
+    return original?.call(next, event);
   };
 }
 
@@ -195,7 +250,7 @@ function simplifyReview(root, navigate) {
         value.textContent = state.photos.length
           ? `${state.photos.length} шт.`
           : state.draft.knownAddress
-            ? 'Не требуются — адрес уже обслуживали'
+            ? 'Не требуются — повторный адрес'
             : 'Обязательны для нового адреса';
       }
     }
@@ -214,12 +269,18 @@ function simplifyReview(root, navigate) {
   next.disabled = false;
   const original = next.onclick;
   next.onclick = async (event) => {
-    if (state.draft.photoRequired !== false && !state.photos.length) {
-      showToast('Для нового адреса добавьте минимум одно фото объекта', true);
-      state.draft.step = 4;
+    if (!state.photos.length) {
+      const known = state.draft.knownAddress || await checkKnownAddress();
+      state.draft.knownAddress = known;
+      state.draft.photoRequired = !known;
       state.saveDraft();
-      renderBooking(root, navigate);
-      return;
+      if (!known) {
+        showToast('Для нового адреса добавьте минимум одно фото объекта', true);
+        state.draft.step = 4;
+        state.saveDraft();
+        renderBooking(root, navigate);
+        return;
+      }
     }
     return original?.call(next, event);
   };
@@ -228,8 +289,8 @@ function simplifyReview(root, navigate) {
 export function renderBooking(root, navigate) {
   renderBaseBooking(root, navigate);
   const step = Number(state.draft?.step || 0);
-  if (step === 4) decoratePhotoStep(root, navigate);
-  if (step === 5) decorateAddressStep(root, navigate);
+  if (step === 4) void decoratePhotoStep(root, navigate);
+  if (step === 5) decorateAddressStep(root);
   if (step === 6) decorateSchedule(root);
   if (step === 8) simplifyReview(root, navigate);
 }
