@@ -157,7 +157,7 @@ function cleanId(value) {
 }
 function clean(value,n=500) { return String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,n); }
 function positiveInt(value) { const n=Number(value); return Number.isSafeInteger(n)&&n>0?n:0; }
-function esc(value) { return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]||c)); }
+function esc(value) { return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c)); }
 function json(value,status=200){return new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
 async function telegramJson(token,method,payload) {
   const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
