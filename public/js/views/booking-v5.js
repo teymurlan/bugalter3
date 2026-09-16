@@ -68,7 +68,7 @@ function renderVisitType(root, navigate) {
     ${renderProgress(5, 'Заказ')}
     <div class="booking-title-block">
       <h1 class="page-title booking-title">Вы уже заказывали уборку по этому адресу?</h1>
-      <p class="page-subtitle">Выберите один вариант. От этого зависит, обязательны ли фотографии объекта.</p>
+      <p class="page-subtitle">Выберите один вариант. Для повторного заказа фотографии не запрашиваем.</p>
     </div>
     <div class="hc-visit-type-grid" role="radiogroup" aria-label="Первый или повторный заказ">
       <button type="button" class="hc-visit-type-card ${selected === 'first' ? 'selected' : ''}" data-visit-type="first" role="radio" aria-checked="${selected === 'first'}">
@@ -77,10 +77,10 @@ function renderVisitType(root, navigate) {
       </button>
       <button type="button" class="hc-visit-type-card ${selected === 'repeat' ? 'selected' : ''}" data-visit-type="repeat" role="radio" aria-checked="${selected === 'repeat'}">
         <span class="hc-visit-radio" aria-hidden="true"></span>
-        <span class="hc-visit-copy"><strong>Повторный заказ</strong><small>Раньше уже заказывал(а) уборку по этому адресу.</small><em>Фото можно добавить по желанию</em></span>
+        <span class="hc-visit-copy"><strong>Повторный заказ</strong><small>Раньше уже заказывал(а) уборку по этому адресу.</small><em>Сразу к дате и времени</em></span>
       </button>
     </div>
-    <div class="hc-visit-hint">Если после прошлой уборки что-то изменилось, фотографии можно добавить и при повторном заказе.</div>
+    <div class="hc-visit-hint">При повторном заказе после подтверждения сразу откроется выбор даты и времени.</div>
     <div class="wizard-actions">
       <button class="secondary-btn wizard-back" data-back type="button">← <span>Назад</span></button>
       <button class="primary-btn wizard-next" data-next type="button" ${selected ? '' : 'disabled'}>Продолжить</button>
@@ -104,8 +104,10 @@ function renderVisitType(root, navigate) {
     if (!['first', 'repeat'].includes(state.draft.visitType)) {
       return showToast('Выберите: первый или повторный заказ', true);
     }
+    const repeat = state.draft.visitType === 'repeat';
     state.draft.visitTypeConfirmed = true;
-    state.draft.photoRequired = state.draft.visitType === 'first';
+    state.draft.photoRequired = !repeat;
+    state.draft.step = repeat ? 6 : 5;
     state.saveDraft();
     renderBooking(root, navigate);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -167,7 +169,15 @@ function patchAddressStep(root, navigate) {
 }
 
 function patchPhotoStep(root, navigate) {
-  if (!state.draft.visitTypeConfirmed || !['first', 'repeat'].includes(state.draft.visitType)) {
+  if (state.draft.visitType === 'repeat' && state.draft.visitTypeConfirmed) {
+    state.draft.photoRequired = false;
+    state.draft.step = 6;
+    state.saveDraft();
+    renderBooking(root, navigate);
+    return;
+  }
+
+  if (!state.draft.visitTypeConfirmed || state.draft.visitType !== 'first') {
     if (!root.querySelector('.hc-visit-type-grid')) renderVisitType(root, navigate);
     else patchProgress(root, 5, STEP_NAMES[5]);
     return;
@@ -179,15 +189,10 @@ function patchPhotoStep(root, navigate) {
   const title = root.querySelector('.booking-title');
   const subtitle = root.querySelector('.booking-title-block .page-subtitle');
   const status = root.querySelector('.photo-count span:last-child');
-  const repeat = state.draft.visitType === 'repeat';
 
   if (title) title.textContent = 'Фотографии объекта';
-  if (subtitle) subtitle.textContent = repeat
-    ? 'Фотографии необязательны. Добавьте их только если хотите показать изменения или важные детали.'
-    : 'Для первого заказа добавьте минимум одну фотографию объекта для предварительной оценки.';
-  if (status && !state.photos.length) status.textContent = repeat
-    ? 'Необязательно — можно продолжить без фото'
-    : 'Добавьте минимум одно фото';
+  if (subtitle) subtitle.textContent = 'Для первого заказа добавьте минимум одну фотографию объекта для предварительной оценки.';
+  if (status && !state.photos.length) status.textContent = 'Добавьте минимум одно фото';
 
   const back = root.querySelector('[data-back]');
   if (back && back.dataset.hcVisitPatched !== '1') {
@@ -202,13 +207,12 @@ function patchPhotoStep(root, navigate) {
 
   const next = root.querySelector('[data-next]');
   if (next) {
-    const canContinue = repeat || state.photos.length > 0;
-    next.disabled = !canContinue;
+    next.disabled = state.photos.length < 1;
     if (next.dataset.hcVisitPatched !== '1') {
       next.dataset.hcVisitPatched = '1';
       next.onclick = () => {
-        if (state.draft.visitType === 'first' && !state.photos.length) return showToast('Для первого заказа добавьте минимум одно фото', true);
-        state.draft.photoRequired = state.draft.visitType === 'first';
+        if (!state.photos.length) return showToast('Для первого заказа добавьте минимум одно фото', true);
+        state.draft.photoRequired = true;
         state.draft.step = 6;
         state.saveDraft();
         renderBooking(root, navigate);
@@ -218,13 +222,28 @@ function patchPhotoStep(root, navigate) {
   }
 }
 
+function patchScheduleStep(root, navigate) {
+  patchProgress(root, 7, STEP_NAMES[7]);
+  if (state.draft.visitType !== 'repeat' || !state.draft.visitTypeConfirmed) return;
+  const back = root.querySelector('[data-back]');
+  if (!back || back.dataset.hcRepeatBackPatched === '1') return;
+  back.dataset.hcRepeatBackPatched = '1';
+  back.onclick = () => {
+    state.draft.visitTypeConfirmed = false;
+    state.draft.step = 5;
+    state.saveDraft();
+    renderVisitType(root, navigate);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+}
+
 function patchCurrent(root, navigate) {
   if (!root || !document.contains(root)) return;
   const step = Number(state.draft?.step || 0);
   if (step >= 1 && step <= 4) patchProgress(root, step, STEP_NAMES[step]);
   if (step === 4) patchAddressStep(root, navigate);
   if (step === 5) patchPhotoStep(root, navigate);
-  if (step === 6) patchProgress(root, 7, STEP_NAMES[7]);
+  if (step === 6) patchScheduleStep(root, navigate);
   if (step === 7) patchProgress(root, 8, STEP_NAMES[8]);
 }
 
@@ -254,8 +273,14 @@ export function renderBooking(root, navigate) {
     return renderVisitType(root, navigate);
   }
 
+  if (Number(state.draft?.step || 0) === 5 && state.draft.visitType === 'repeat' && state.draft.visitTypeConfirmed) {
+    state.draft.photoRequired = false;
+    state.draft.step = 6;
+    state.saveDraft();
+  }
+
   if (Number(state.draft?.step || 0) === 5) {
-    state.draft.photoRequired = state.draft.visitType === 'first';
+    state.draft.photoRequired = true;
   }
 
   renderBaseBooking(root, navigate);
