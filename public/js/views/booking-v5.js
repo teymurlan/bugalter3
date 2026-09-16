@@ -5,6 +5,7 @@ import { showToast } from '../utils.js';
 let activeRoot = null;
 let activeNavigate = null;
 let observer = null;
+let observedRoot = null;
 let patchQueued = false;
 
 const STEP_NAMES = {
@@ -41,7 +42,6 @@ function saveVisitChoice(type) {
   state.draft.visitType = first ? 'first' : 'repeat';
   state.draft.visitTypeConfirmed = false;
   state.draft.photoRequired = first;
-  // Старое автоопределение больше не используется.
   state.draft.knownAddress = false;
   state.draft.photoAddressKey = '';
   state.saveDraft();
@@ -127,21 +127,24 @@ function patchProgress(root, current, name) {
 
 function patchAddressStep(root, navigate) {
   patchProgress(root, 4, STEP_NAMES[4]);
-  if (root.dataset.hcVisitAddressPatched === '1') return;
-  root.dataset.hcVisitAddressPatched = '1';
+  const next = root.querySelector('[data-next]');
+  if (!next || next.dataset.hcVisitPatched === '1') return;
+  next.dataset.hcVisitPatched = '1';
 
   root.querySelectorAll('[data-field="address"],[data-field="apartment"]').forEach((input) => {
+    if (input.dataset.hcVisitPatched === '1') return;
+    input.dataset.hcVisitPatched = '1';
     input.addEventListener('input', () => {
       if (state.draft.visitType || state.draft.visitTypeConfirmed || state.draft.photoRequired !== null) resetVisitChoice();
     });
   });
 
   root.querySelectorAll('[data-location]').forEach((button) => {
+    if (button.dataset.hcVisitPatched === '1') return;
+    button.dataset.hcVisitPatched = '1';
     button.addEventListener('click', () => resetVisitChoice());
   });
 
-  const next = root.querySelector('[data-next]');
-  if (!next) return;
   next.onclick = (event) => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
@@ -165,10 +168,13 @@ function patchAddressStep(root, navigate) {
 
 function patchPhotoStep(root, navigate) {
   if (!state.draft.visitTypeConfirmed || !['first', 'repeat'].includes(state.draft.visitType)) {
-    renderVisitType(root, navigate);
+    if (!root.querySelector('.hc-visit-type-grid')) renderVisitType(root, navigate);
+    else patchProgress(root, 5, STEP_NAMES[5]);
     return;
   }
 
+  const step = root.querySelector('.photo-step');
+  if (!step) return;
   patchProgress(root, 6, STEP_NAMES[6]);
   const title = root.querySelector('.booking-title');
   const subtitle = root.querySelector('.booking-title-block .page-subtitle');
@@ -184,25 +190,31 @@ function patchPhotoStep(root, navigate) {
     : 'Добавьте минимум одно фото';
 
   const back = root.querySelector('[data-back]');
-  if (back) back.onclick = () => {
-    state.draft.visitTypeConfirmed = false;
-    state.saveDraft();
-    renderVisitType(root, navigate);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  if (back && back.dataset.hcVisitPatched !== '1') {
+    back.dataset.hcVisitPatched = '1';
+    back.onclick = () => {
+      state.draft.visitTypeConfirmed = false;
+      state.saveDraft();
+      renderVisitType(root, navigate);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  }
 
   const next = root.querySelector('[data-next]');
   if (next) {
     const canContinue = repeat || state.photos.length > 0;
     next.disabled = !canContinue;
-    next.onclick = () => {
-      if (!repeat && !state.photos.length) return showToast('Для первого заказа добавьте минимум одно фото', true);
-      state.draft.photoRequired = !repeat;
-      state.draft.step = 6;
-      state.saveDraft();
-      renderBooking(root, navigate);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    if (next.dataset.hcVisitPatched !== '1') {
+      next.dataset.hcVisitPatched = '1';
+      next.onclick = () => {
+        if (state.draft.visitType === 'first' && !state.photos.length) return showToast('Для первого заказа добавьте минимум одно фото', true);
+        state.draft.photoRequired = state.draft.visitType === 'first';
+        state.draft.step = 6;
+        state.saveDraft();
+        renderBooking(root, navigate);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+    }
   }
 }
 
@@ -228,8 +240,9 @@ function queuePatch(root, navigate) {
 function ensureObserver(root, navigate) {
   activeRoot = root;
   activeNavigate = navigate;
-  if (observer && activeRoot === root) return;
+  if (observer && observedRoot === root) return;
   observer?.disconnect?.();
+  observedRoot = root;
   observer = new MutationObserver(() => queuePatch(activeRoot, activeNavigate));
   observer.observe(root, { childList: true, subtree: true });
 }
