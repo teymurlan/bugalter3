@@ -52,7 +52,7 @@ async function sendAlbum(orderNumber, photos, prepared = null) {
   if (!files.length) return { ok: true, adminNotified: 0, photoNotified: true };
 
   const encoded = prepared ? await prepared : await encodePhotos(files);
-  const response = await fetch('/api/demo-order-media', {
+  const response = await fetch('/api/demo-order-media-async', {
     method: 'POST',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ order_number: orderNumber, photos: encoded }),
@@ -63,11 +63,11 @@ async function sendAlbum(orderNumber, photos, prepared = null) {
       ok: true,
       adminNotified: Number(data?.adminNotified || 0),
       photoNotified: false,
-      warning: 'Фото не удалось прикрепить автоматически',
+      warning: 'Фото не удалось поставить в очередь автоматически',
       order: data?.order || null,
     };
   }
-  return { ...data, photoNotified: data?.photoNotified !== false };
+  return { ...data, photoNotified: true };
 }
 
 async function createReleaseOrder(payload, photos = []) {
@@ -146,7 +146,7 @@ async function createReleaseOrder(payload, photos = []) {
     try {
       media = await sendAlbum(order.order_number, files, encodedPhotos);
     } catch (error) {
-      console.error('Order album upload failed after successful order creation', error);
+      console.error('Order album queue failed after successful order creation', error);
       media = { ok: true, photoNotified: false, adminNotified: 0, warning: 'Фото будут проверены менеджером отдельно' };
     }
   }
