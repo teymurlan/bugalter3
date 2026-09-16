@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const worker=fs.readFileSync('src/client-defect-rpc.js','utf8');
 const shared=fs.readFileSync('src/demo-worker-v50-shared-booking.js','utf8');
 const outer=fs.readFileSync('src/demo-worker-v53-client-experience.js','utf8');
+const publicOrder=fs.readFileSync('src/production-public-order.js','utf8');
 const wrangler=fs.readFileSync('wrangler.jsonc','utf8');
 
 test('private AppStore accepts defect delivery through reliable fetch channel',()=>{
@@ -44,8 +45,9 @@ test('ambiguous sendPhoto transport or response failures never trigger duplicate
   assert.doesNotMatch(worker,/if\s*\(\s*!result\.ok\s*\)\s*\{\s*const fallback/);
 });
 
-test('active worker keeps full production chain through release 53, shared booking and defect wrapper',()=>{
-  assert.match(wrangler,/"main"\s*:\s*"src\/demo-worker-v53-client-experience\.js"/);
+test('active worker keeps full production chain through public numbering, release 53, shared booking and defect wrapper',()=>{
+  assert.match(wrangler,/"main"\s*:\s*"src\/production-public-order\.js"/);
+  assert.ok(publicOrder.includes("from './demo-worker-v53-client-experience.js'"));
   assert.ok(outer.includes("from './demo-worker-v50-shared-booking.js'"));
   assert.ok(shared.includes("from './client-defect-rpc.js'"));
   assert.ok(worker.includes("from './demo-worker-v44-production.js'"));

@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const read = (path) => fs.readFileSync(path, 'utf8');
 const index = read('public/index.html');
 const entry = read('public/js/app-release-v3.js');
+const publicOrderBridge = read('public/js/public-order-number-v55.js');
 const admin = read('public/js/views/admin-v6.js');
 const polish = read('public/js/admin-v6-polish.js');
 const staff = read('public/js/views/staff-v1.js');
@@ -22,10 +23,12 @@ const worker44 = read('src/demo-worker-v44-production.js');
 const defectRpc = read('src/client-defect-rpc.js');
 const worker50 = read('src/demo-worker-v50-shared-booking.js');
 const worker53 = read('src/demo-worker-v53-client-experience.js');
+const publicOrderWorker = read('src/production-public-order.js');
 const wrangler = read('wrangler.jsonc');
 
-test('client booking stays isolated while the client bundle uses release 54 cache keys', () => {
+test('client booking stays isolated while release 55 adds only the shared public-number bridge', () => {
   assert.match(index, /app-release-v3\.js\?v=54/);
+  assert.match(index, /public-order-number-v55\.js\?v=55/);
   assert.match(entry, /client-experience-v53\.js\?v=54/);
   assert.match(entry, /app-release-v2\.js\?v=54/);
   assert.doesNotMatch(index, /staff\/staff\.css/);
@@ -42,10 +45,13 @@ test('legacy employee onboarding remains intact', () => {
   assert.match(worker38, /Нельзя назначить сотрудника: обучение ещё не завершено/);
 });
 
-test('HOUSE CLEANING STAFF is an isolated second Mini App', () => {
+test('HOUSE CLEANING STAFF is an isolated second Mini App with the same public order labels', () => {
   assert.match(staffHtml, /HOUSE CLEANING STAFF/);
   assert.match(staffHtml, /\/staff\/staff\.css\?v=1/);
+  assert.match(staffHtml, /public-order-number-v55\.js\?v=55/);
   assert.match(staffHtml, /\/staff\/app\.js\?v=1/);
+  assert.match(publicOrderBridge, /MutationObserver/);
+  assert.match(publicOrderBridge, /technicalPattern/);
   assert.match(staffCss, /--blue:#1476f2/);
   assert.match(staffCss, /--surface:#fff/);
   assert.match(staffCss, /safe-area-inset-bottom/);
@@ -75,8 +81,11 @@ test('server checks Telegram role and supports multi-employee assignment', () =>
   assert.doesNotMatch(staffSystem, /KP_ADMIN_TELEGRAM_IDS/);
 });
 
-test('v44 gate and defect RPC remain intact through release 53 and shared booking wrapper v50', () => {
-  assert.match(wrangler, /src\/demo-worker-v53-client-experience\.js/);
+test('production public numbering preserves the v44 gate through release 53 and shared booking wrapper v50', () => {
+  assert.match(wrangler, /src\/production-public-order\.js/);
+  assert.match(publicOrderWorker, /demo-worker-v53-client-experience\.js/);
+  assert.match(publicOrderWorker, /public_order_number/);
+  assert.match(publicOrderWorker, /display_number/);
   assert.match(worker53, /demo-worker-v50-shared-booking\.js/);
   assert.match(worker50, /client-defect-rpc\.js/);
   assert.match(defectRpc, /demo-worker-v44-production\.js/);
