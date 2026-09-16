@@ -1,4 +1,104 @@
 import { renderConciergeHome as renderBaseHome } from './concierge-home-v3.js?v=34';
+import { api } from '../api.js';
+import { escapeHtml, formatDate, formatTime, money } from '../utils.js';
+
+const ACTIVE = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
+
+function headers() {
+  return { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || '' };
+}
+
+function statusInfo(status) {
+  if (['NEW', 'REVIEW'].includes(status)) return { label: 'На проверке', cls: 'pending' };
+  if (['CONFIRMED', 'CLEANER_ASSIGNED'].includes(status)) return { label: 'Подтверждена', cls: 'confirmed' };
+  if (status === 'IN_PROGRESS') return { label: 'Уборка началась', cls: 'progress' };
+  if (status === 'COMPLETED') return { label: 'Завершена', cls: 'completed' };
+  if (status === 'CANCELLED') return { label: 'Отменена', cls: 'cancelled' };
+  return { label: 'Заявка', cls: 'neutral' };
+}
+
+function shortOrderNumber(order) {
+  const direct = Number(order?.display_number || order?.short_number || order?.id || 0);
+  if (Number.isFinite(direct) && direct > 0) return `#${String(Math.trunc(direct)).padStart(3, '0')}`;
+  const digits = String(order?.order_number || '').replace(/\D/g, '');
+  const fallback = digits.slice(-3);
+  return fallback ? `#${fallback.padStart(3, '0')}` : '#---';
+}
+
+function orderStart(order) {
+  if (!order?.date) return Number.POSITIVE_INFINITY;
+  const time = String(order.time || '00:00').slice(0, 5);
+  const stamp = Date.parse(`${order.date}T${time}:00+03:00`);
+  return Number.isFinite(stamp) ? stamp : Number.POSITIVE_INFINITY;
+}
+
+async function loadOrders() {
+  const local = await api.orders().catch(() => ({ orders: [] }));
+  const localOrders = Array.isArray(local?.orders) ? local.orders : [];
+  let stored = [];
+  try {
+    const response = await fetch('/api/demo-client-orders', { headers: headers(), cache: 'no-store' });
+    if (response.ok) {
+      const data = await response.json();
+      stored = Array.isArray(data?.orders) ? data.orders : [];
+    }
+  } catch {}
+  const map = new Map();
+  for (const item of [...localOrders, ...stored]) {
+    const key = String(item.order_number || item.id || '');
+    if (!key) continue;
+    const previous = map.get(key) || {};
+    map.set(key, { ...previous, ...item, id: previous.id || item.id });
+  }
+  return [...map.values()];
+}
+
+function recentOrders(list) {
+  return [...list].sort((a, b) => {
+    const created = String(b.created_at || b.updated_at || '').localeCompare(String(a.created_at || a.updated_at || ''));
+    if (created) return created;
+    return Number(b.id || 0) - Number(a.id || 0);
+  }).slice(0, 3);
+}
+
+function upcomingSevenDays(list) {
+  const now = Date.now() - 6 * 60 * 60 * 1000;
+  const limit = Date.now() + 7 * 24 * 60 * 60 * 1000;
+  return list
+    .filter((order) => ACTIVE.has(order.status))
+    .filter((order) => {
+      const stamp = orderStart(order);
+      return Number.isFinite(stamp) && stamp >= now && stamp <= limit;
+    })
+    .sort((a, b) => orderStart(a) - orderStart(b));
+}
+
+function compactOrderCard(order, { showPrice = false } = {}) {
+  const status = statusInfo(order.status);
+  const address = [order.city, order.address].filter(Boolean).join(', ');
+  const price = Number(order.estimated_price || 0);
+  return `<button class="hc-home-order-card-v54 status-${status.cls}" type="button" data-home-order="${escapeHtml(order.id)}">
+    <span class="hc-home-order-top-v54"><b>Заказ ${escapeHtml(shortOrderNumber(order))}</b><em class="hc-home-status-v54 ${status.cls}">${escapeHtml(status.label)}</em></span>
+    <strong>${escapeHtml(order.service_name || 'Уборка')}</strong>
+    <span class="hc-home-order-meta-v54">${escapeHtml(formatDate(order.date))} · ${escapeHtml(formatTime(order.time))}${order.area ? ` · ${escapeHtml(String(order.area))} м²` : ''}</span>
+    <span class="hc-home-order-address-v54">${escapeHtml(address || 'Адрес указан в заявке')}</span>
+    ${showPrice && price > 0 ? `<span class="hc-home-order-price-v54">от ${escapeHtml(money(price))}</span>` : ''}
+  </button>`;
+}
+
+function buildHomeOrdersSection(orders) {
+  const recent = recentOrders(orders);
+  const upcoming = upcomingSevenDays(orders);
+  return `<section class="cc-section hc-home-orders-section-v54">
+    <div class="cc-section-head hc-home-section-head-v54"><div><h2>Последние заказы</h2><span>Статус и основные детали</span></div><button type="button" data-all-orders>Все заявки</button></div>
+    <div class="hc-home-order-list-v54">${recent.length ? recent.map((order) => compactOrderCard(order, { showPrice: true })).join('') : '<div class="card hc-home-empty-v54">У вас пока нет оформленных заявок.</div>'}</div>
+  </section>
+  <section class="cc-section hc-home-week-section-v54">
+    <div class="cc-section-head hc-home-section-head-v54"><div><h2>Ближайшие 7 дней</h2><span>${upcoming.length ? `Запланировано: ${upcoming.length}` : 'Запланированных уборок нет'}</span></div></div>
+    <div class="hc-home-week-list-v54">${upcoming.length ? upcoming.slice(0, 4).map((order) => compactOrderCard(order)).join('') : '<div class="card hc-home-empty-v54">На ближайшие 7 дней уборок нет.</div>'}</div>
+    ${upcoming.length > 4 ? `<button class="hc-home-more-v54" type="button" data-all-orders>Ещё ${upcoming.length - 4} в заявках</button>` : ''}
+  </section>`;
+}
 
 export async function renderConciergeHome(root, navigate) {
   await renderBaseHome(root, navigate);
@@ -10,6 +110,24 @@ export async function renderConciergeHome(root, navigate) {
 
   const faq = root.querySelector('[data-tool="faq"]');
   if (faq) faq.onclick = () => navigate('profile', { section: 'faq', from: 'home' });
+
+  let orders = [];
+  try { orders = await loadOrders(); } catch {}
+  if (!root.querySelector('.cc-home')) return;
+
+  const tools = root.querySelector('.cc-for-you-section');
+  if (tools && !root.querySelector('.hc-home-orders-section-v54')) {
+    tools.insertAdjacentHTML('beforebegin', buildHomeOrdersSection(orders));
+    root.querySelectorAll('[data-home-order]').forEach((card) => {
+      card.onclick = () => {
+        const id = Number(card.dataset.homeOrder || 0);
+        if (id) navigate('orders', { orderId: id, from: 'home' });
+      };
+    });
+    root.querySelectorAll('[data-all-orders]').forEach((button) => {
+      button.onclick = () => navigate('orders', { from: 'home' });
+    });
+  }
 
   const contact = root.querySelector('.hc-home-contact');
   if (contact && !root.querySelector('[data-subscription-banner]')) {
