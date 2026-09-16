@@ -31,7 +31,7 @@ jobs:
           sleep 2
 
       - name: Проверить оформление уборки как на iPhone
-        run: node tests/playwright-booking-check.mjs
+        run: node tests/playwright-booking-v52.mjs
 
       - name: Сохранить скриншоты проверки
         if: always()
