@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bugalter3",
-  "main": "src/client-defect-rpc.js",
+  "main": "src/demo-worker-v50-shared-booking.js",
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "preview_urls": true,
