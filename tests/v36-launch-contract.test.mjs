@@ -20,6 +20,7 @@ const worker29 = read('src/demo-worker-v29-automation.js');
 const api = read('public/js/api.js');
 const releaseApi = read('public/js/api-release-v2.js');
 const launchHardening = read('public/js/launch-hardening-v37.js');
+const launchReset = read('public/js/launch-reset-v45.js');
 const state = read('public/js/state.js');
 const app = read('public/js/app-release.js');
 const entry = read('public/js/app-release-v2.js');
@@ -110,16 +111,23 @@ test('reviews keep JSON transport, combined photo album and numeric ratings', ()
   assert.match(profile, /Сначала новые/);
 });
 
-test('repeat address is checked before photos and may skip photo upload', () => {
+test('repeat address is checked before photos and exemption is tied to exact address after reopen', () => {
   assert.match(bookingBase, /'Дополнительно', 'Адрес', 'Фото', 'Дата'/);
   assert.match(bookingBase, /draft\.step === 4\) return renderAddress/);
   assert.match(bookingBase, /draft\.step === 5\) return renderPhotos/);
-  assert.match(bookingBase, /state\.draft\.photoRequired === false/);
-  assert.match(bookingBase, /!state\.photos\.length && d\.photoRequired !== false/);
-  assert.match(booking, /Boolean\(order\?\.order_number\) && sameAddress/);
+  assert.match(booking, /photoDecisionKey/);
+  assert.match(booking, /photoAddressKey/);
+  assert.match(booking, /hasCurrentPhotoExemption/);
+  assert.match(booking, /persistDraftNow/);
   assert.match(booking, /if \(step === 4\) decorateAddressStep/);
   assert.match(booking, /if \(step === 5\) void decoratePhotoStep/);
   assert.match(booking, /Мы уже обслуживали этот адрес и квартиру/);
+});
+
+test('one-time clean launch no longer clears local draft on every reopen', () => {
+  assert.match(launchReset, /current === 'pending'/);
+  assert.match(launchReset, /localStorage\.setItem\(KEY, GENERATION\)/);
+  assert.doesNotMatch(launchReset, /localStorage\.setItem\(KEY, 'pending'\)/);
 });
 
 test('draft resumes from server and app reopens booking at saved step', () => {
@@ -149,14 +157,15 @@ test('client navigation and layout protections remain unchanged', () => {
   assert.match(banner, /cc-for-you-section/);
 });
 
-test('client router uses release 48 cache keys for the repeat-address flow', () => {
-  assert.match(index, /house-cleaning-release" content="48/);
-  assert.match(index, /app-release-v3\.js\?v=48/);
+test('client router uses release 49 cache keys for the reopen-safe booking flow', () => {
+  assert.match(index, /house-cleaning-release" content="49/);
+  assert.match(index, /launch-reset-v45\.js\?v=49/);
+  assert.match(index, /app-release-v3\.js\?v=49/);
   assert.match(index, /ui-polish-v47\.js\?v=47/);
   assert.doesNotMatch(index, /launch-polish-v45/);
   assert.doesNotMatch(index, /repeat-address-date-v46/);
   assert.match(index, /launch-hardening-v37\.js\?v=44/);
-  assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=48'\)/);
+  assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=49'\)/);
   assert.match(specialEntry, /admin-v6\.js\?v=44/);
   assert.match(specialEntry, /staff-v1\.js\?v=44/);
   assert.match(index, /reviews-v2\.js\?v=44/);
@@ -166,9 +175,9 @@ test('client router uses release 48 cache keys for the repeat-address flow', () 
   assert.match(index, /home-subscription-v2\.js\?v=44/);
   assert.match(entry, /api-release-v2\.js\?v=44/);
   assert.match(entry, /state-release-v2\.js\?v=44/);
-  assert.match(entry, /app-release\.js\?v=48/);
-  assert.match(app, /booking-v3\.js\?v=48/);
-  assert.match(booking, /booking-v2\.js\?v=48/);
+  assert.match(entry, /app-release\.js\?v=49/);
+  assert.match(app, /booking-v3\.js\?v=49/);
+  assert.match(booking, /booking-v2\.js\?v=49/);
   assert.match(ui47, /hc-date-shell-v47/);
   assert.doesNotMatch(index, /\/staff\/app\.js/);
 });
