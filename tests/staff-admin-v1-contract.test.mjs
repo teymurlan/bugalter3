@@ -21,9 +21,9 @@ const worker43 = read('src/demo-worker-v43-cache-bust.js');
 const worker44 = read('src/demo-worker-v44-production.js');
 const wrangler = read('wrangler.jsonc');
 
-test('client booking stays isolated while the client bundle uses release 48 cache keys', () => {
-  assert.match(index, /app-release-v3\.js\?v=48/);
-  assert.match(entry, /else\s*\{\s*import\('\.\/app-release-v2\.js\?v=48'\)/s);
+test('client booking stays isolated while the client bundle uses release 49 cache keys', () => {
+  assert.match(index, /app-release-v3\.js\?v=49/);
+  assert.match(entry, /else\s*\{\s*import\('\.\/app-release-v2\.js\?v=49'\)/s);
   assert.doesNotMatch(index, /staff\/staff\.css/);
   assert.doesNotMatch(index, /staff\/app\.js/);
 });
