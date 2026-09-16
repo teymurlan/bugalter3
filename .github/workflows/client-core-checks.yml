@@ -33,3 +33,5 @@ jobs:
         run: node --test tests/admin-entry-hardening.test.mjs
       - name: Run client defect notification contract
         run: node --test tests/client-defect-rpc.test.mjs
+      - name: Run central notification contract
+        run: node --test tests/central-notifications.test.mjs
