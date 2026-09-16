@@ -131,7 +131,7 @@ await run('повторный заказ сразу открывает дату 
   assert.equal(saved.photoRequired, false);
   assert.equal(saved.step, 6, 'Повторный заказ должен сразу переходить на шаг даты и времени');
 
-  await page.locator('[data-back]').click();
+  await page.locator('[data-back]:visible').click();
   await page.getByText('Вы уже заказывали уборку по этому адресу?').waitFor();
   assert.equal(await page.locator('.photo-step').count(), 0, 'Назад из даты не должен вести на фотографии для повторного заказа');
 });
@@ -156,4 +156,4 @@ await run('общая занятость приходит с сервера', dr
 }, { usedM2: 150, remainingM2: 150 });
 
 await browser.close();
-console.log('\n✅ Release 52: первый/повторный заказ и общая занятость проверены');
+console.log('\n✅ Release 54: первый/повторный заказ и общая занятость проверены');
