@@ -2,13 +2,37 @@ import baseWorker, { ConsentStore, AppStore as BaseAppStore } from './demo-worke
 
 export { ConsentStore };
 
-const MAX_DEFECT_BYTES = 12 * 1024 * 1024;
+const MAX_DEFECT_BYTES = 20 * 1024 * 1024;
 
 export class AppStore extends BaseAppStore {
   constructor(state, env) {
     super(state, env);
     this.hcState = state;
     this.hcEnv = env;
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname === '/staff/notify-defect' && request.method === 'POST') {
+      try {
+        const form = await request.formData();
+        const photo = form.get('photo');
+        if (!(photo instanceof File)) return json({ ok:false, error:'Фото дефекта не передано' }, 400);
+        const bytes = await photo.arrayBuffer();
+        const result = await this.notifyClientDefect({
+          order_number: form.get('order_number'),
+          defect_id: form.get('defect_id'),
+          note: form.get('note'),
+          mime_type: photo.type || form.get('mime_type'),
+          bytes,
+        });
+        return json(result, result?.ok ? 200 : result?.skipped ? 409 : 502);
+      } catch (error) {
+        console.error('Client defect fetch delivery failed', error);
+        return json({ ok:false, error:clean(error?.message || error, 500) || 'Не удалось обработать дефект' }, 500);
+      }
+    }
+    return super.fetch(request);
   }
 
   async notifyClientDefect(payload = {}) {
@@ -31,8 +55,11 @@ export class AppStore extends BaseAppStore {
     const order = orders.find((row) => String(row?.order_number || '') === orderNumber);
     if (!order) return { ok:false, error:'Заказ клиента не найден' };
 
-    const chatId = positiveInt(order.client_telegram_id || order.telegram_id || order.client_id);
-    if (!chatId) return { ok:false, skipped:true, reason:'У заказа нет Telegram ID клиента' };
+    const chatId = orderTelegramId(order);
+    if (!chatId) {
+      console.warn('Defect client id missing', orderNumber, Object.keys(order || {}));
+      return { ok:false, skipped:true, retryable:true, reason:'У заказа нет Telegram ID клиента' };
+    }
     const token = String(this.hcEnv?.TELEGRAM_BOT_TOKEN || '');
     if (!token) return { ok:false, error:'Клиентский бот не настроен' };
 
@@ -51,15 +78,28 @@ export class AppStore extends BaseAppStore {
       await this.hcState.storage.put(introKey, { at:Date.now(), chat_id:chatId });
     }
 
-    const form = new FormData();
-    form.append('chat_id', String(chatId));
-    form.append('photo', new Blob([bytes], { type:mime }), `defect-${defectId}.jpg`);
-    form.append('caption', note ? `⚠️ Дефект до уборки\n${note}` : '⚠️ Дефект до уборки');
-    const response = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method:'POST', body:form });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result?.ok) return { ok:false, error:result?.description || 'Не удалось отправить дефект клиенту' };
+    const caption = note ? `⚠️ Дефект до уборки\n${note}` : '⚠️ Дефект до уборки';
+    const upload = () => {
+      const form = new FormData();
+      form.append('chat_id', String(chatId));
+      form.append('photo', new Blob([bytes], { type:mime }), `defect-${defectId}.${extensionForMime(mime)}`);
+      form.append('caption', caption);
+      return form;
+    };
 
-    const saved = { at:Date.now(), chat_id:chatId, message_id:Number(result?.result?.message_id || 0) };
+    let result = await telegramMultipart(token, 'sendPhoto', upload());
+    let delivery = 'photo';
+    if (!result.ok) {
+      const fallback = new FormData();
+      fallback.append('chat_id', String(chatId));
+      fallback.append('document', new Blob([bytes], { type:mime }), `defect-${defectId}.${extensionForMime(mime)}`);
+      fallback.append('caption', caption);
+      result = await telegramMultipart(token, 'sendDocument', fallback);
+      delivery = 'document';
+    }
+    if (!result.ok) return { ok:false, error:result.error || 'Не удалось отправить дефект клиенту' };
+
+    const saved = { at:Date.now(), chat_id:chatId, message_id:Number(result?.data?.message_id || 0), delivery };
     await this.hcState.storage.put(sentKey, saved);
     return { ok:true, ...saved };
   }
@@ -67,6 +107,31 @@ export class AppStore extends BaseAppStore {
 
 export default baseWorker;
 
+function orderTelegramId(order) {
+  const candidates = [
+    order?.client_telegram_id,
+    order?.telegram_id,
+    order?.user_id,
+    order?.userId,
+    order?.client_id,
+    order?.customer_telegram_id,
+    order?.customerTelegramId,
+    order?.telegramUserId,
+    order?.tg_id,
+    order?.tgId,
+    order?.client?.telegram_id,
+    order?.client?.telegramId,
+    order?.client?.id,
+    order?.user?.telegram_id,
+    order?.user?.telegramId,
+    order?.user?.id,
+  ];
+  for (const value of candidates) {
+    const id = positiveInt(value);
+    if (id) return id;
+  }
+  return 0;
+}
 function toBytes(value) {
   if (value instanceof ArrayBuffer) return value;
   if (ArrayBuffer.isView(value)) return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
@@ -76,6 +141,7 @@ function imageMime(value) {
   const v=String(value||'').toLowerCase();
   return ['image/jpeg','image/png','image/webp'].includes(v) ? v : 'image/jpeg';
 }
+function extensionForMime(mime) { return mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg'; }
 function cleanOrderNumber(value) {
   const raw=String(value||'').trim();
   return /^[A-Za-z0-9._-]{3,120}$/.test(raw) ? raw : '';
@@ -87,9 +153,20 @@ function cleanId(value) {
 function clean(value,n=500) { return String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,n); }
 function positiveInt(value) { const n=Number(value); return Number.isSafeInteger(n)&&n>0?n:0; }
 function esc(value) { return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c)); }
+function json(value,status=200){return new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
 async function telegramJson(token,method,payload) {
   const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
   const x=await r.json().catch(()=>({}));
   if(!r.ok||!x?.ok) throw new Error(x?.description||`Telegram ${method} failed`);
   return x.result;
+}
+async function telegramMultipart(token,method,form) {
+  try {
+    const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,{method:'POST',body:form});
+    const x=await r.json().catch(()=>({}));
+    if(!r.ok||!x?.ok) return {ok:false,error:x?.description||`Telegram ${method} failed`};
+    return {ok:true,data:x.result};
+  } catch (error) {
+    return {ok:false,error:clean(error?.message||error,500)||`Telegram ${method} failed`};
+  }
 }
