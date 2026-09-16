@@ -23,6 +23,8 @@ const entry = read('public/js/app-release-v2.js');
 const specialEntry = read('public/js/app-release-v3.js');
 const clientExperience = read('public/js/client-experience-v53.js');
 const clientUi = read('public/client-ui-v53.css');
+const clientOrders = read('public/js/views/concierge-orders-v4.js');
+const clientHome = read('public/js/views/concierge-home-v4.js');
 const bookingV5 = read('public/js/views/booking-v5.js');
 const bookingBase = read('public/js/views/booking-v2.js');
 const index = read('public/index.html');
@@ -109,6 +111,21 @@ test('order detail back remembers whether client came from home or orders', () =
   assert.match(clientExperience, /cc-detail-head/);
 });
 
+test('release 54 shows compact client order cards with simple numbers and useful home summaries', () => {
+  assert.match(clientOrders, /let currentFilter = 'active'/);
+  assert.match(clientOrders, /function shortOrderNumber/);
+  assert.match(clientOrders, /Заказ \$\{escapeHtml\(shortOrderNumber\(order\)\)\}/);
+  assert.match(clientOrders, /\['history', 'История'\]/);
+  assert.match(clientOrders, /hc-order-card-v54/);
+  assert.match(clientOrders, /<h1>Заказ \$\{escapeHtml\(shortOrderNumber\(order\)\)\}<\/h1>/);
+  assert.match(clientHome, /Последние заказы/);
+  assert.match(clientHome, /Ближайшие 7 дней/);
+  assert.match(clientHome, /upcomingSevenDays/);
+  assert.match(clientHome, /hc-home-order-card-v54/);
+  assert.match(clientUi, /hc-order-card-v54/);
+  assert.match(clientUi, /hc-home-order-card-v54/);
+});
+
 test('launch hardening keeps minimum six hour lead time', () => {
   assert.match(launchHardening, /MIN_LEAD_MS = 6 \* 60 \* 60 \* 1000/);
   assert.match(worker42, /ensureCompleted/);
@@ -138,17 +155,19 @@ test('one-time clean launch no longer clears draft on every reopen', () => {
   assert.doesNotMatch(launchReset, /localStorage\.setItem\(KEY, 'pending'\)/);
 });
 
-test('release 53 uses fresh client entry and UI cache keys', () => {
-  assert.match(index, /house-cleaning-release" content="53/);
-  assert.match(index, /client-ui-v53\.css\?v=53/);
-  assert.match(index, /app-release-v3\.js\?v=53/);
-  assert.match(specialEntry, /client-experience-v53\.js\?v=53/);
-  assert.match(specialEntry, /app-release-v2\.js\?v=53/);
-  assert.match(entry, /api-release-v2\.js\?v=53/);
-  assert.match(entry, /api-shared-v50\.js\?v=53/);
-  assert.match(entry, /state-release-v2\.js\?v=53/);
-  assert.match(entry, /app-release\.js\?v=53/);
+test('release 54 uses fresh client entry and UI cache keys', () => {
+  assert.match(index, /house-cleaning-release" content="54/);
+  assert.match(index, /client-ui-v53\.css\?v=54/);
+  assert.match(index, /app-release-v3\.js\?v=54/);
+  assert.match(specialEntry, /client-experience-v53\.js\?v=54/);
+  assert.match(specialEntry, /app-release-v2\.js\?v=54/);
+  assert.match(entry, /api-release-v2\.js\?v=54/);
+  assert.match(entry, /api-shared-v50\.js\?v=54/);
+  assert.match(entry, /state-release-v2\.js\?v=54/);
+  assert.match(entry, /app-release\.js\?v=54/);
   assert.match(app, /booking-v5\.js\?v=52/);
+  assert.match(app, /concierge-home-v4\.js\?v=54/);
+  assert.match(app, /concierge-orders-v4\.js\?v=54/);
   assert.match(bookingV5, /booking-v2\.js\?v=52/);
   assert.match(clientUi, /hc-resume-card-v53/);
   assert.match(clientUi, /height:64px!important/);
