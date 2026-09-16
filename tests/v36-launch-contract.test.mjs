@@ -44,25 +44,28 @@ test('all devices use shared server availability', () => {
   assert.match(worker50, /На эту дату осталось только/);
 });
 
-test('first or repeat visit is an explicit client choice before photos', () => {
+test('first or repeat visit is an explicit client choice after address', () => {
   assert.match(state, /visitType: ''/);
   assert.match(state, /visitTypeConfirmed: false/);
   assert.match(bookingV5, /Первый заказ/);
   assert.match(bookingV5, /Повторный заказ/);
   assert.match(bookingV5, /Фото объекта обязательно/);
-  assert.match(bookingV5, /Фото можно добавить по желанию/);
-  assert.match(bookingV5, /state\.draft\.photoRequired = state\.draft\.visitType === 'first'/);
+  assert.match(bookingV5, /Сразу к дате и времени/);
+  assert.match(bookingV5, /state\.draft\.step = repeat \? 6 : 5/);
+  assert.match(bookingV5, /state\.draft\.photoRequired = !repeat/);
   assert.match(bookingV5, /renderVisitType/);
   assert.doesNotMatch(bookingV5, /sharedKnownAddress/);
   assert.doesNotMatch(entry, /photo-repeat-fix-v51/);
 });
 
-test('first visit requires photo while repeat visit can continue without one', () => {
+test('first visit requires photo while repeat visit skips the photo screen', () => {
   assert.match(bookingBase, /const photosRequired = d\.photoRequired !== false/);
   assert.match(bookingBase, /nextDisabled: state\.photos\.length < 1 && photosRequired/);
   assert.match(bookingBase, /if \(!state\.photos\.length && d\.photoRequired !== false\)/);
-  assert.match(bookingV5, /const repeat = state\.draft\.visitType === 'repeat'/);
-  assert.match(bookingV5, /next\.disabled = !canContinue/);
+  assert.match(bookingV5, /state\.draft\.visitType === 'repeat' && state\.draft\.visitTypeConfirmed/);
+  assert.match(bookingV5, /state\.draft\.photoRequired = false/);
+  assert.match(bookingV5, /state\.draft\.step = 6/);
+  assert.match(bookingV5, /function patchScheduleStep/);
 });
 
 test('launch hardening keeps minimum six hour lead time', () => {
