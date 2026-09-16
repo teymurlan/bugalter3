@@ -21,6 +21,8 @@ function defaultDraft() {
     entrance: '',
     floor: '',
     addressComment: '',
+    visitType: '',
+    visitTypeConfirmed: false,
     date: '',
     time: '',
     customerName: '',
