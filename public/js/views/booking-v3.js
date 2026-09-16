@@ -1,4 +1,4 @@
-import { renderBooking as renderBaseBooking } from './booking-v2.js?v=48';
+import { renderBooking as renderBaseBooking } from './booking-v2.js?v=49';
 import { state } from '../state.js';
 import { showToast } from '../utils.js';
 
@@ -56,6 +56,58 @@ function sameAddress(order, draft) {
   const cityA = cityCore(order?.city);
   const cityB = cityCore(draft?.city);
   return !cityA || !cityB || cityA === cityB;
+}
+
+function photoDecisionKey(draft = state.draft) {
+  const address = addressCore(draft?.address);
+  if (!address) return '';
+  return [cityCore(draft?.city), address, unitFrom(draft?.address, draft?.apartment)].join('|');
+}
+
+function hasCurrentPhotoExemption() {
+  const key = photoDecisionKey();
+  return Boolean(
+    key &&
+    state.draft?.photoAddressKey === key &&
+    state.draft?.knownAddress === true &&
+    state.draft?.photoRequired === false
+  );
+}
+
+function hasCurrentPhotoRequirement() {
+  const key = photoDecisionKey();
+  return Boolean(key && state.draft?.photoAddressKey === key && state.draft?.photoRequired === true);
+}
+
+function setPhotoDecision(known) {
+  state.draft.knownAddress = Boolean(known);
+  state.draft.photoRequired = !known;
+  state.draft.photoAddressKey = photoDecisionKey();
+}
+
+function invalidatePhotoDecision() {
+  state.draft.knownAddress = false;
+  state.draft.photoRequired = null;
+  state.draft.photoAddressKey = '';
+}
+
+async function persistDraftNow() {
+  state.saveDraft();
+  const initData = window.Telegram?.WebApp?.initData || '';
+  if (!initData) return;
+  try {
+    await fetch('/api/client-draft', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Telegram-Init-Data': initData,
+      },
+      body: JSON.stringify({ draft: state.draft }),
+      cache: 'no-store',
+    });
+  } catch (error) {
+    console.warn('Immediate draft sync skipped', error);
+  }
 }
 
 async function checkKnownAddress() {
@@ -165,7 +217,7 @@ function decorateSchedule(root) {
 }
 
 function applyKnownPhotoUi(root) {
-  if (Number(state.draft?.step || 0) !== 5 || !state.draft?.knownAddress) return;
+  if (Number(state.draft?.step || 0) !== 5 || !hasCurrentPhotoExemption()) return;
   const step = root.querySelector('.photo-step');
   if (!step) return;
   step.classList.add('hc-repeat-address');
@@ -183,39 +235,66 @@ async function decoratePhotoStep(root, navigate) {
   const subtitle = root.querySelector('.booking-title-block .page-subtitle');
   if (subtitle) subtitle.textContent = 'Для нового адреса фото обязательны. Для повторного заказа на тот же адрес и квартиру фото повторно не нужны.';
 
+  const currentKey = photoDecisionKey();
+  if (!currentKey || state.draft?.photoAddressKey !== currentKey) {
+    invalidatePhotoDecision();
+    state.saveDraft();
+  }
+
   const next = root.querySelector('[data-next]');
+  const syncNext = () => {
+    if (!next) return;
+    const exempt = hasCurrentPhotoExemption();
+    next.disabled = state.photos.length < 1 && !exempt;
+  };
+
   if (next) {
-    next.disabled = state.photos.length < 1 && state.draft.photoRequired !== false;
     next.onclick = () => {
-      if (!state.photos.length && state.draft.photoRequired !== false) return showToast('Добавьте минимум одно фото', true);
+      if (!state.photos.length && !hasCurrentPhotoExemption()) return showToast('Добавьте минимум одно фото', true);
       state.draft.step = 6;
       state.saveDraft();
       renderBooking(root, navigate);
     };
   }
 
-  if (state.photos.length) return;
-  if (state.draft?.knownAddress || state.draft?.photoRequired === false) {
-    state.draft.knownAddress = true;
-    state.draft.photoRequired = false;
-    state.saveDraft();
+  if (state.photos.length) {
+    syncNext();
+    return;
+  }
+
+  if (hasCurrentPhotoExemption()) {
+    syncNext();
     applyKnownPhotoUi(root);
+    return;
+  }
+
+  if (hasCurrentPhotoRequirement()) {
+    syncNext();
     return;
   }
 
   const token = ++photoCheckToken;
   const known = await checkKnownAddress();
   if (token !== photoCheckToken || Number(state.draft?.step || 0) !== 5) return;
-  state.draft.knownAddress = known;
-  state.draft.photoRequired = !known;
-  state.saveDraft();
-  if (known) {
-    if (next) next.disabled = false;
-    applyKnownPhotoUi(root);
-  }
+  setPhotoDecision(known);
+  await persistDraftNow();
+  syncNext();
+  if (known) applyKnownPhotoUi(root);
 }
 
 function decorateAddressStep(root) {
+  const resetIfAddressChanged = () => {
+    const currentKey = photoDecisionKey();
+    if (state.draft?.photoAddressKey && state.draft.photoAddressKey !== currentKey) {
+      invalidatePhotoDecision();
+      state.saveDraft();
+    }
+  };
+
+  root.querySelectorAll('[data-field="address"],[data-field="apartment"]').forEach((input) => {
+    input.addEventListener('input', resetIfAddressChanged);
+  });
+
   const next = root.querySelector('[data-next]');
   if (!next) return;
   const original = next.onclick;
@@ -225,11 +304,12 @@ function decorateAddressStep(root) {
 
     next.disabled = true;
     const known = await checkKnownAddress();
-    state.draft.knownAddress = known;
-    state.draft.photoRequired = !known;
-    state.saveDraft();
+    setPhotoDecision(known);
+    await persistDraftNow();
     next.disabled = false;
-    return original?.call(next, event);
+    const result = original?.call(next, event);
+    void persistDraftNow();
+    return result;
   };
 }
 
@@ -245,7 +325,7 @@ function simplifyReview(root, navigate) {
       if (value) {
         value.textContent = state.photos.length
           ? `${state.photos.length} шт.`
-          : state.draft.knownAddress
+          : hasCurrentPhotoExemption()
             ? 'Не требуются — повторный адрес'
             : 'Обязательны для нового адреса';
       }
@@ -262,18 +342,17 @@ function simplifyReview(root, navigate) {
 
   const next = root.querySelector('[data-next]');
   if (!next) return;
-  next.disabled = state.photos.length < 1 && state.draft.photoRequired !== false;
+  next.disabled = state.photos.length < 1 && !hasCurrentPhotoExemption();
   const original = next.onclick;
   next.onclick = async (event) => {
-    if (!state.photos.length && state.draft.photoRequired !== false) {
+    if (!state.photos.length && !hasCurrentPhotoExemption()) {
       const known = await checkKnownAddress();
-      state.draft.knownAddress = known;
-      state.draft.photoRequired = !known;
-      state.saveDraft();
+      setPhotoDecision(known);
+      await persistDraftNow();
       if (!known) {
         showToast('Для нового адреса добавьте минимум одно фото объекта', true);
         state.draft.step = 5;
-        state.saveDraft();
+        await persistDraftNow();
         renderBooking(root, navigate);
         return;
       }
