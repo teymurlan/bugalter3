@@ -82,8 +82,8 @@ async function createApp({ draft = makeDraft(), completedOrders = [] } = {}) {
 
   await context.addInitScript(({ key, value }) => {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
-      localStorage.setItem('hc-demo-orders-v3', '[]');
+      if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value));
+      if (!localStorage.getItem('hc-demo-orders-v3')) localStorage.setItem('hc-demo-orders-v3', '[]');
     } catch {}
   }, { key: DRAFT_KEY, value: draft });
 
@@ -227,8 +227,7 @@ await run('Календарь, прошлое время и правило 6 ч�
       }
     }
 
-    await page.locator('[data-next]').click();
-    await page.locator('.booking-title').filter({ hasText: 'Выберите дату и время' }).waitFor();
+    assert.equal(await page.locator('[data-next]').isDisabled(), true, 'Без допустимого времени кнопка «Продолжить» должна быть выключена');
 
     const future = moscowDate(2);
     await page.locator('[data-date]').fill(future);
@@ -236,6 +235,10 @@ await run('Календарь, прошлое время и правило 6 ч�
     const available = page.locator('[data-time]:not([hidden]):not([disabled])').first();
     await available.waitFor({ state: 'visible' });
     await available.click();
+    await page.waitForFunction(() => {
+      const button = document.querySelector('[data-next]');
+      return button && !button.disabled;
+    });
     await page.locator('[data-next]').click();
     await page.locator('.booking-title').filter({ hasText: 'Контакты и подтверждение' }).waitFor();
 
