@@ -31,6 +31,7 @@ const specialEntry = read('public/js/app-release-v3.js');
 const booking = read('public/js/views/booking-v3.js');
 const bookingV4 = read('public/js/views/booking-v4.js');
 const bookingBase = read('public/js/views/booking-v2.js');
+const repeatPhotoFix = read('public/js/photo-repeat-fix-v51.js');
 const ui47 = read('public/js/ui-polish-v47.js');
 const profile = read('public/js/views/concierge-profile-v4.js');
 const reviews = read('public/js/reviews-v2.js');
@@ -88,6 +89,15 @@ test('repeat address is checked before photos against shared server history', ()
   assert.match(worker50, /кв\\\.\?\\s\*\\\/\?\\s\*офис/);
 });
 
+test('repeat-address UI is upgraded immediately on the first photo render', () => {
+  assert.match(entry, /photo-repeat-fix-v51\.js\?v=51/);
+  assert.match(repeatPhotoFix, /knownAddress !== true/);
+  assert.match(repeatPhotoFix, /photoRequired !== false/);
+  assert.match(repeatPhotoFix, /Фото не требуются/);
+  assert.match(repeatPhotoFix, /Мы уже обслуживали этот адрес и квартиру/);
+  assert.match(repeatPhotoFix, /MutationObserver/);
+});
+
 test('launch hardening enforces lead time and completed status persistence', () => {
   assert.match(worker42, /MIN_BOOKING_LEAD_MS = 6 \* 60 \* 60 \* 1000/);
   assert.match(worker42, /\/api\/demo-order-status/);
@@ -116,6 +126,6 @@ test('profile still hides loyalty levels and keeps reviews subscriptions and fin
 
 test('client navigation and layout protections remain unchanged', () => { assert.doesNotMatch(index, /nav-active-indicator/); assert.match(css, /\[data-call\]\{display:none!important\}/); assert.match(css, /bottom-nav \.nav-item\.active/); assert.match(css2, /hc-review-flow #app/); assert.match(css2, /hc-subscription-banner-v2/); assert.match(css3, /calendar-strip/); assert.match(css3, /wizard-actions\{position:relative!important/); assert.match(banner, /hc-subscription-visual/); assert.match(banner, /cc-for-you-section/); });
 
-test('client router uses release 50 cache keys for shared booking state', () => {
-  assert.match(index, /house-cleaning-release" content="50/); assert.match(index, /launch-reset-v45\.js\?v=50/); assert.match(index, /app-release-v3\.js\?v=50/); assert.match(index, /ui-polish-v47\.js\?v=47/); assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=50'\)/); assert.match(entry, /api-release-v2\.js\?v=50/); assert.match(entry, /api-shared-v50\.js\?v=50/); assert.match(entry, /state-release-v2\.js\?v=50/); assert.match(entry, /app-release\.js\?v=50/); assert.match(app, /booking-v4\.js\?v=50/); assert.match(bookingV4, /booking-v3\.js\?v=50/); assert.match(ui47, /hc-date-shell-v47/); assert.doesNotMatch(index, /\/staff\/app\.js/);
+test('client router uses release 51 cache keys for repeat-address first-render fix', () => {
+  assert.match(index, /house-cleaning-release" content="51/); assert.match(index, /launch-reset-v45\.js\?v=51/); assert.match(index, /app-release-v3\.js\?v=51/); assert.match(index, /ui-polish-v47\.js\?v=47/); assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=51'\)/); assert.match(entry, /api-release-v2\.js\?v=51/); assert.match(entry, /api-shared-v50\.js\?v=51/); assert.match(entry, /state-release-v2\.js\?v=51/); assert.match(entry, /app-release\.js\?v=51/); assert.match(entry, /photo-repeat-fix-v51\.js\?v=51/); assert.match(app, /booking-v4\.js\?v=50/); assert.match(bookingV4, /booking-v3\.js\?v=50/); assert.match(ui47, /hc-date-shell-v47/); assert.doesNotMatch(index, /\/staff\/app\.js/);
 });
