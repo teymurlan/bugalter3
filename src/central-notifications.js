@@ -23,6 +23,22 @@ function orderAddress(order) {
   ].filter(Boolean).join(', ');
 }
 
+export async function notificationEventFromRequest(request) {
+  if (!request || request.method !== 'POST') return null;
+
+  const url = new URL(request.url);
+  if (url.pathname !== '/api/demo-order') return null;
+
+  try {
+    const body = await request.clone().json();
+    const event = String(body?.event || 'created');
+    if (event !== 'created' && event !== 'cancelled') return null;
+    return { event };
+  } catch {
+    return null;
+  }
+}
+
 export function buildCentralNotificationPayload(event, order = {}) {
   const normalizedEvent = event === 'cancelled' ? 'cancelled' : 'created';
   const created = normalizedEvent === 'created';
