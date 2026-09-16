@@ -112,6 +112,11 @@ export class AppStore extends BaseAppStore {
 
 export default {
   async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    if (request.method === 'GET' && url.pathname === '/api/central-notification-health') {
+      return centralNotificationHealth(env);
+    }
+
     const candidate = await notificationEventFromRequest(request);
     const response = await baseWorker.fetch(request, env, ctx);
 
@@ -141,6 +146,49 @@ export default {
     if (typeof baseWorker.scheduled === 'function') return baseWorker.scheduled(controller, env, ctx);
   },
 };
+
+async function centralNotificationHealth(env) {
+  const baseUrl = String(env?.HC_NOTIFY_URL || '').trim().replace(/\/+$/, '');
+  const secret = String(env?.HC_NOTIFY_SECRET || '').trim();
+  const result = {
+    ok: false,
+    urlConfigured: Boolean(baseUrl),
+    secretConfigured: Boolean(secret),
+    targetHost: null,
+    remoteStatus: null,
+    remote: null,
+  };
+
+  if (baseUrl) {
+    try { result.targetHost = new URL(baseUrl).host; }
+    catch { return json({ ...result, stage: 'invalid_url' }, 200); }
+  }
+
+  if (!baseUrl || !secret) {
+    return json({ ...result, stage: 'local_config' }, 200);
+  }
+
+  try {
+    const response = await fetch(`${baseUrl}/diagnostics`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${secret}`,
+        'content-type': 'application/json',
+      },
+    });
+    const data = await response.json().catch(() => null);
+    result.remoteStatus = response.status;
+    result.remote = data;
+    result.ok = response.ok && data?.ok === true;
+    return json({ ...result, stage: result.ok ? 'ready' : 'remote' }, 200);
+  } catch (error) {
+    return json({
+      ...result,
+      stage: 'network',
+      error: String(error?.message || error || 'Connection failed').slice(0, 500),
+    }, 200);
+  }
+}
 
 function publicNumber(order) {
   const value = Number(order?.public_order_number || order?.display_number || 0);
