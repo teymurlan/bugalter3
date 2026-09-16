@@ -46,6 +46,7 @@ async function createApp(initialDraft, availability = { usedM2: 0, remainingM2: 
   const context = await browser.newContext({ ...iphone, locale: 'ru-RU', timezoneId: 'Europe/Moscow' });
   let knownAddressCalls = 0;
   await context.addInitScript(({ key, value }) => {
+    localStorage.setItem('hc-clean-start-generation', 'v45-clean-launch');
     localStorage.setItem(key, JSON.stringify(value));
     localStorage.setItem('hc-demo-orders-v3', '[]');
   }, { key: DRAFT_KEY, value: initialDraft });
