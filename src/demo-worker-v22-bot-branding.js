@@ -4,6 +4,7 @@ export { ConsentStore, AppStore };
 
 const CONSENT_VERSION = '2026-09-09-v1';
 const OPERATOR = 'ИП Царегородцева Евгения Андреевна';
+const CLIENT_RELEASE = '40';
 
 export default {
   async fetch(request, env, ctx) {
@@ -118,14 +119,14 @@ function consentKeyboard(origin) {
 function roleKeyboard(env, userId, origin) {
   const rows = [[{
     text: 'Открыть HOUSE CLEANING',
-    web_app: { url: `${origin}/?demo=1` },
+    web_app: { url: `${origin}/?demo=1&release=${CLIENT_RELEASE}` },
     style: 'primary',
   }]];
 
   if (isFullAdmin(env, userId)) {
     rows.push([{
       text: 'Панель администратора',
-      web_app: { url: `${origin}/?demo=1&admin=1` },
+      web_app: { url: `${origin}/?demo=1&admin=1&release=${CLIENT_RELEASE}` },
       style: 'danger',
     }]);
   }
