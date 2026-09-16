@@ -1,6 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildCentralNotificationPayload, sendCentralNotification } from '../src/central-notifications.js';
+import {
+  buildCentralNotificationPayload,
+  notificationEventFromRequest,
+  sendCentralNotification,
+} from '../src/central-notifications.js';
+
+test('detects normal client order request without silent header', async () => {
+  const request = new Request('https://example.com/api/demo-order', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ event: 'created', order: { order_number: 'HC-1' } }),
+  });
+
+  const candidate = await notificationEventFromRequest(request);
+  assert.deepEqual(candidate, { event: 'created' });
+});
+
+test('detects cancellation request without silent header', async () => {
+  const request = new Request('https://example.com/api/demo-order', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ event: 'cancelled', order: { order_number: 'HC-1' } }),
+  });
+
+  const candidate = await notificationEventFromRequest(request);
+  assert.deepEqual(candidate, { event: 'cancelled' });
+});
+
+test('ignores unrelated requests', async () => {
+  const request = new Request('https://example.com/api/demo-config', { method: 'GET' });
+  assert.equal(await notificationEventFromRequest(request), null);
+});
 
 test('builds new order payload for notification center', () => {
   const payload = buildCentralNotificationPayload('created', {
