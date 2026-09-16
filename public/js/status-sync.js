@@ -1,13 +1,15 @@
-const ORDERS_KEY = 'hc-demo-orders-v2';
+const ORDERS_KEYS = ['hc-demo-orders-v3', 'hc-demo-orders-v2'];
 const VALID = new Set(['NEW','REVIEW','CONFIRMED','CLEANER_ASSIGNED','IN_PROGRESS','COMPLETED','CANCELLED']);
 
-function readOrders() {
-  try { return JSON.parse(localStorage.getItem(ORDERS_KEY) || '[]'); }
-  catch { return []; }
+function readOrders(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch { return []; }
 }
 
-function writeOrders(orders) {
-  localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+function writeOrders(key, orders) {
+  try { localStorage.setItem(key, JSON.stringify(orders)); } catch {}
 }
 
 function applyStatusSync() {
@@ -16,15 +18,18 @@ function applyStatusSync() {
   const status = params.get('sync_status') || '';
   if (!number || !VALID.has(status)) return false;
 
-  const orders = readOrders();
-  const index = orders.findIndex((order) => String(order.order_number || '') === number);
-  if (index >= 0) {
+  let found = false;
+  for (const key of ORDERS_KEYS) {
+    const orders = readOrders(key);
+    const index = orders.findIndex((order) => String(order.order_number || '') === number);
+    if (index < 0) continue;
     orders[index] = { ...orders[index], status, updated_at: new Date().toISOString() };
-    writeOrders(orders);
+    writeOrders(key, orders);
+    found = true;
   }
 
-  sessionStorage.setItem('hc-last-status-sync', JSON.stringify({ number, status, at: Date.now(), found: index >= 0 }));
-  return index >= 0;
+  sessionStorage.setItem('hc-last-status-sync', JSON.stringify({ number, status, at: Date.now(), found }));
+  return found;
 }
 
 function navigateAfterSync() {
@@ -46,8 +51,5 @@ function navigateAfterSync() {
   }, 120);
 }
 
-const synced = applyStatusSync();
-if (synced) {
-  window.addEventListener('storage', () => {});
-}
+applyStatusSync();
 navigateAfterSync();
