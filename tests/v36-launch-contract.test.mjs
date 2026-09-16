@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const wrangler = read('wrangler.jsonc');
+const worker50 = read('src/demo-worker-v50-shared-booking.js');
 const defectRpc = read('src/client-defect-rpc.js');
 const worker44 = read('src/demo-worker-v44-production.js');
 const worker43 = read('src/demo-worker-v43-cache-bust.js');
@@ -19,6 +20,7 @@ const worker34 = read('src/demo-worker-v34-launch.js');
 const worker33 = read('src/demo-worker-v33-raw-order-photos.js');
 const worker29 = read('src/demo-worker-v29-automation.js');
 const api = read('public/js/api.js');
+const sharedApi = read('public/js/api-shared-v50.js');
 const releaseApi = read('public/js/api-release-v2.js');
 const launchHardening = read('public/js/launch-hardening-v37.js');
 const launchReset = read('public/js/launch-reset-v45.js');
@@ -27,6 +29,7 @@ const app = read('public/js/app-release.js');
 const entry = read('public/js/app-release-v2.js');
 const specialEntry = read('public/js/app-release-v3.js');
 const booking = read('public/js/views/booking-v3.js');
+const bookingV4 = read('public/js/views/booking-v4.js');
 const bookingBase = read('public/js/views/booking-v2.js');
 const ui47 = read('public/js/ui-polish-v47.js');
 const profile = read('public/js/views/concierge-profile-v4.js');
@@ -38,8 +41,12 @@ const css2 = read('public/release-v2.css');
 const css3 = read('public/release-v3.css');
 const banner = read('public/js/home-subscription-v2.js');
 
-test('v44 production gate remains active through private defect RPC wrapper', () => {
-  assert.match(wrangler, /"main"\s*:\s*"src\/client-defect-rpc\.js"/);
+test('shared booking worker v50 preserves defect RPC and production worker chain', () => {
+  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v50-shared-booking\.js"/);
+  assert.match(worker50, /client-defect-rpc\.js/);
+  assert.match(worker50, /\/api\/demo-availability/);
+  assert.match(worker50, /\/api\/demo-known-address/);
+  assert.match(worker50, /DAILY_CAPACITY_M2 = 300/);
   assert.match(defectRpc, /demo-worker-v44-production\.js/);
   assert.match(wrangler, /"crons"\s*:\s*\["\*\/10 \* \* \* \*"\]/);
   assert.match(worker44, /demo-worker-v43-cache-bust\.js/);
@@ -58,6 +65,27 @@ test('v44 production gate remains active through private defect RPC wrapper', ()
   assert.match(worker35, /demo-worker-v34-launch\.js/);
   assert.match(worker34, /demo-worker-v33-raw-order-photos\.js/);
   assert.match(worker29, /Напоминание об уборке/);
+});
+
+test('all devices use server-wide availability and server guards overbooking', () => {
+  assert.match(sharedApi, /api\.availability = sharedAvailability/);
+  assert.match(sharedApi, /\/api\/demo-availability/);
+  assert.match(worker50, /source: 'server'/);
+  assert.match(worker50, /ACTIVE_STATUSES/);
+  assert.match(worker50, /Время \$\{time\} уже занято/);
+  assert.match(worker50, /На эту дату осталось только/);
+});
+
+test('repeat address is checked before photos against shared server history', () => {
+  assert.match(bookingBase, /'Дополнительно', 'Адрес', 'Фото', 'Дата'/);
+  assert.match(bookingBase, /draft\.step === 4\) return renderAddress/);
+  assert.match(bookingBase, /draft\.step === 5\) return renderPhotos/);
+  assert.match(booking, /photoDecisionKey/);
+  assert.match(bookingV4, /sharedKnownAddress/);
+  assert.match(bookingV4, /photoAddressKey/);
+  assert.match(bookingV4, /state\.draft\.step = 5/);
+  assert.match(worker50, /sameAddress/);
+  assert.match(worker50, /кв\\\.\?\\s\*\\\/\?\\s\*офис/);
 });
 
 test('launch hardening enforces lead time and completed status persistence', () => {
@@ -80,8 +108,6 @@ test('photo orders still use one album and failed photo delivery cannot invalida
 
 test('reviews keep JSON transport, combined photo album and numeric ratings', () => { assert.match(reviews, /\/api\/demo-review-v2/); assert.match(reviews, /data-review-score/); assert.match(reviews, /toFixed\(1\)/); assert.match(worker34, /reviewCaption/); assert.match(worker34, /sendAlbumRaw/); assert.match(profile, /\/api\/public-reviews/); assert.match(profile, /Сначала новые/); });
 
-test('repeat address is checked before photos and exemption is tied to exact address after reopen', () => { assert.match(bookingBase, /'Дополнительно', 'Адрес', 'Фото', 'Дата'/); assert.match(bookingBase, /draft\.step === 4\) return renderAddress/); assert.match(bookingBase, /draft\.step === 5\) return renderPhotos/); assert.match(booking, /photoDecisionKey/); assert.match(booking, /photoAddressKey/); assert.match(booking, /hasCurrentPhotoExemption/); assert.match(booking, /persistDraftNow/); assert.match(booking, /if \(step === 4\) decorateAddressStep/); assert.match(booking, /if \(step === 5\) void decoratePhotoStep/); assert.match(booking, /Мы уже обслуживали этот адрес и квартиру/); });
-
 test('one-time clean launch no longer clears local draft on every reopen', () => { assert.match(launchReset, /current === 'pending'/); assert.match(launchReset, /localStorage\.setItem\(KEY, GENERATION\)/); assert.doesNotMatch(launchReset, /localStorage\.setItem\(KEY, 'pending'\)/); });
 
 test('draft resumes from server and app reopens booking at saved step', () => { assert.match(state, /\/api\/client-draft/); assert.match(state, /hydrateRemoteDraft/); assert.match(app, /state\.hydrateRemoteDraft\(\)/); assert.match(app, /Number\(state\.draft\?\.step \|\| 0\) > 0 \? 'booking' : 'home'/); });
@@ -90,6 +116,6 @@ test('profile still hides loyalty levels and keeps reviews subscriptions and fin
 
 test('client navigation and layout protections remain unchanged', () => { assert.doesNotMatch(index, /nav-active-indicator/); assert.match(css, /\[data-call\]\{display:none!important\}/); assert.match(css, /bottom-nav \.nav-item\.active/); assert.match(css2, /hc-review-flow #app/); assert.match(css2, /hc-subscription-banner-v2/); assert.match(css3, /calendar-strip/); assert.match(css3, /wizard-actions\{position:relative!important/); assert.match(banner, /hc-subscription-visual/); assert.match(banner, /cc-for-you-section/); });
 
-test('client router uses release 49 cache keys for the reopen-safe booking flow', () => {
-  assert.match(index, /house-cleaning-release" content="49/); assert.match(index, /launch-reset-v45\.js\?v=49/); assert.match(index, /app-release-v3\.js\?v=49/); assert.match(index, /ui-polish-v47\.js\?v=47/); assert.doesNotMatch(index, /launch-polish-v45/); assert.doesNotMatch(index, /repeat-address-date-v46/); assert.match(index, /launch-hardening-v37\.js\?v=44/); assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=49'\)/); assert.match(specialEntry, /admin-v6\.js\?v=44/); assert.match(specialEntry, /staff-v1\.js\?v=44/); assert.match(index, /reviews-v2\.js\?v=44/); assert.match(index, /release-v2\.css\?v=44/); assert.match(index, /release-v3\.css\?v=44/); assert.match(index, /release-layout-v2\.js\?v=44/); assert.match(index, /home-subscription-v2\.js\?v=44/); assert.match(entry, /api-release-v2\.js\?v=44/); assert.match(entry, /state-release-v2\.js\?v=44/); assert.match(entry, /app-release\.js\?v=49/); assert.match(app, /booking-v3\.js\?v=49/); assert.match(booking, /booking-v2\.js\?v=49/); assert.match(ui47, /hc-date-shell-v47/); assert.doesNotMatch(index, /\/staff\/app\.js/);
+test('client router uses release 50 cache keys for shared booking state', () => {
+  assert.match(index, /house-cleaning-release" content="50/); assert.match(index, /launch-reset-v45\.js\?v=50/); assert.match(index, /app-release-v3\.js\?v=50/); assert.match(index, /ui-polish-v47\.js\?v=47/); assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=50'\)/); assert.match(entry, /api-release-v2\.js\?v=50/); assert.match(entry, /api-shared-v50\.js\?v=50/); assert.match(entry, /state-release-v2\.js\?v=50/); assert.match(entry, /app-release\.js\?v=50/); assert.match(app, /booking-v4\.js\?v=50/); assert.match(bookingV4, /booking-v3\.js\?v=50/); assert.match(ui47, /hc-date-shell-v47/); assert.doesNotMatch(index, /\/staff\/app\.js/);
 });
