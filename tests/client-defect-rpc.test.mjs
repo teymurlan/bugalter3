@@ -29,10 +29,19 @@ test('defect notification is idempotent and resolves customer from old and new o
   assert.ok(worker.includes('this.hcState.storage.put(sentKey'));
 });
 
-test('large image has delivery fallback instead of silently disappearing',()=>{
+test('sendDocument fallback is used only after a definitive Telegram rejection',()=>{
   assert.ok(worker.includes("telegramMultipart(token, 'sendPhoto'"));
+  assert.ok(worker.includes("if (!result.ok && result.definitive_rejection)"));
   assert.ok(worker.includes("telegramMultipart(token, 'sendDocument'"));
   assert.ok(worker.includes("delivery = 'document'"));
+});
+
+test('ambiguous sendPhoto transport or response failures never trigger duplicate fallback',()=>{
+  assert.ok(worker.includes('ambiguous:true'));
+  assert.ok(worker.includes('returned an unreadable response'));
+  assert.ok(worker.includes('definitive_rejection:true'));
+  assert.ok(worker.includes('ambiguous:Boolean(result.ambiguous)'));
+  assert.doesNotMatch(worker,/if\s*\(\s*!result\.ok\s*\)\s*\{\s*const fallback/);
 });
 
 test('active worker keeps full production chain through release 53, shared booking and defect wrapper',()=>{
