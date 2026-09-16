@@ -1,11 +1,11 @@
 import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v3.js?v=34';
-import { renderConciergeHome } from './views/concierge-home-v4.js?v=34';
-import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=34';
-import { renderConciergeProfile } from './views/concierge-profile-v4.js?v=34';
-import { renderAdmin } from './views/admin-v5.js?v=34';
+import { renderBooking } from './views/booking-v3.js?v=40';
+import { renderConciergeHome } from './views/concierge-home-v4.js?v=40';
+import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=40';
+import { renderConciergeProfile } from './views/concierge-profile-v4.js?v=40';
+import { renderAdmin } from './views/admin-v5.js?v=40';
 
 const tg = window.Telegram?.WebApp;
 const root = document.querySelector('#app');
@@ -124,7 +124,7 @@ async function hydrateClientProfile() {
   if (cached && typeof cached === 'object') state.bootstrap.user = { ...(state.bootstrap?.user || {}), ...cached };
   if (!tg?.initData) return;
   try {
-    const response = await fetch('/api/client-profile', { headers: { 'X-Telegram-Init-Data': tg.initData } });
+    const response = await fetch('/api/client-profile', { headers: { 'X-Telegram-Init-Data': tg.initData }, cache: 'no-store' });
     if (!response.ok) return;
     const data = await response.json();
     if (!data?.profile) return;
@@ -139,7 +139,7 @@ async function syncOwnDemoOrders() {
   try { local = JSON.parse(localStorage.getItem(DEMO_ORDERS_KEY) || '[]'); } catch {}
   if (!Array.isArray(local)) local = [];
   try {
-    const response = await fetch('/api/demo-client-orders', { headers: { 'X-Telegram-Init-Data': tg.initData } });
+    const response = await fetch('/api/demo-client-orders', { headers: { 'X-Telegram-Init-Data': tg.initData }, cache: 'no-store' });
     if (!response.ok) return;
     const data = await response.json();
     const stored = Array.isArray(data?.orders) ? data.orders : [];
