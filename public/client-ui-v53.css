@@ -153,12 +153,145 @@
   font-weight:760;
 }
 
+/* Release 54: compact order cards and home order summaries */
+.hc-orders-head-v54{margin-bottom:12px!important}
+.hc-client-search-v54{margin-bottom:10px!important}
+.hc-orders-tabs-v54{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:7px!important;
+  overflow:visible!important;
+  padding:0!important;
+  margin-bottom:12px!important;
+}
+.hc-orders-tabs-v54 .cc-filter{
+  min-width:0!important;
+  min-height:42px!important;
+  padding:8px 7px!important;
+  border-radius:15px!important;
+  font-size:12px!important;
+  white-space:nowrap;
+}
+.hc-orders-tabs-v54 .cc-filter b{font-size:10px!important;min-width:19px;height:19px;line-height:19px}
+.hc-order-list-v54{gap:10px!important}
+.hc-order-card-v54{
+  position:relative;
+  display:grid;
+  gap:11px;
+  padding:14px!important;
+  border-radius:21px!important;
+  border:1px solid rgba(255,255,255,.085)!important;
+  border-left:3px solid rgba(232,193,103,.70)!important;
+  background:linear-gradient(150deg,rgba(17,25,30,.96),rgba(9,14,17,.98))!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.20)!important;
+  overflow:hidden;
+}
+.hc-order-card-v54.status-confirmed{border-left-color:rgba(79,194,122,.8)!important}
+.hc-order-card-v54.status-progress{border-left-color:rgba(75,146,255,.88)!important}
+.hc-order-card-v54.status-completed{border-left-color:rgba(122,137,148,.55)!important}
+.hc-order-card-v54.status-cancelled{border-left-color:rgba(197,91,91,.68)!important}
+.hc-order-card-head-v54{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.hc-order-card-head-v54>div{min-width:0;display:grid;gap:3px}
+.hc-order-number-v54{
+  font-size:10px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:rgba(224,229,232,.58);
+}
+.hc-order-card-head-v54 strong{
+  font-size:16px!important;
+  line-height:1.2!important;
+  color:#f4d37f!important;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.hc-order-card-head-v54 .hc-status{flex:0 0 auto;padding:6px 9px!important;border-radius:12px!important;font-size:10px!important;line-height:1!important}
+.hc-order-meta-v54{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(70px,.6fr);gap:9px}
+.hc-order-meta-v54>div{
+  min-width:0;
+  padding:8px 9px;
+  border-radius:13px;
+  background:rgba(255,255,255,.028);
+  border:1px solid rgba(255,255,255,.045);
+}
+.hc-order-meta-v54 .wide{grid-column:1/-1}
+.hc-order-meta-v54 small{display:block;margin-bottom:3px;font-size:9px;color:rgba(223,230,234,.47)}
+.hc-order-meta-v54 b{display:block;font-size:12px;line-height:1.3;color:rgba(246,247,245,.88);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hc-order-card-foot-v54{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:1px}
+.hc-order-card-foot-v54>span{font-size:14px;font-weight:800;color:#f0cf7a}
+.hc-order-more-v54{
+  min-height:34px;
+  padding:7px 10px 7px 12px;
+  border:1px solid rgba(96,157,246,.25);
+  border-radius:12px;
+  color:#9dc6ff;
+  background:rgba(63,133,232,.08);
+  font:inherit;
+  font-size:11px;
+  font-weight:750;
+}
+.hc-order-more-v54 i{font-style:normal;font-size:16px;line-height:0;vertical-align:-1px;margin-left:4px}
+
+.hc-home-orders-section-v54,.hc-home-week-section-v54{display:grid;gap:9px!important}
+.hc-home-section-head-v54{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:10px!important}
+.hc-home-section-head-v54>div{min-width:0}
+.hc-home-section-head-v54 h2{margin:0!important}
+.hc-home-section-head-v54 span{display:block;margin-top:3px;font-size:10px;color:rgba(231,235,237,.48)}
+.hc-home-section-head-v54>button{
+  flex:0 0 auto;
+  min-height:32px;
+  padding:6px 9px;
+  border:1px solid rgba(235,197,108,.16);
+  border-radius:11px;
+  color:#dfc16f;
+  background:rgba(235,197,108,.055);
+  font:inherit;
+  font-size:10px;
+  font-weight:750;
+}
+.hc-home-order-list-v54,.hc-home-week-list-v54{display:grid;gap:8px}
+.hc-home-order-card-v54{
+  width:100%;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:4px 9px;
+  padding:11px 12px;
+  text-align:left;
+  border:1px solid rgba(255,255,255,.065);
+  border-radius:17px;
+  color:inherit;
+  background:linear-gradient(145deg,rgba(255,255,255,.038),rgba(255,255,255,.016));
+  box-shadow:0 7px 18px rgba(0,0,0,.13);
+  font:inherit;
+}
+.hc-home-order-card-v54:active{transform:scale(.985)}
+.hc-home-order-top-v54{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hc-home-order-top-v54>b{font-size:10px;letter-spacing:.05em;color:rgba(227,232,234,.52)}
+.hc-home-status-v54{padding:4px 7px;border-radius:10px;font-size:9px;font-style:normal;font-weight:800;background:rgba(236,194,89,.10);color:#e9c96f}
+.hc-home-status-v54.confirmed{background:rgba(70,182,111,.10);color:#77d59a}
+.hc-home-status-v54.progress{background:rgba(67,131,235,.12);color:#86b7ff}
+.hc-home-status-v54.completed{background:rgba(140,151,158,.10);color:#aeb8bd}
+.hc-home-status-v54.cancelled{background:rgba(199,84,84,.10);color:#e59a9a}
+.hc-home-order-card-v54>strong{grid-column:1/-1;font-size:13px;color:#f1d078;line-height:1.2}
+.hc-home-order-meta-v54,.hc-home-order-address-v54{grid-column:1/-1;font-size:10px;line-height:1.35;color:rgba(231,235,237,.60);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hc-home-order-address-v54{color:rgba(231,235,237,.46)}
+.hc-home-order-price-v54{grid-column:1/-1;margin-top:2px;font-size:11px;font-weight:800;color:#f0cf7a}
+.hc-home-empty-v54{padding:13px!important;border-radius:17px!important;font-size:11px;color:rgba(235,238,239,.55)}
+.hc-home-more-v54{min-height:36px;border:1px solid rgba(255,255,255,.065);border-radius:13px;color:rgba(244,244,240,.68);background:rgba(255,255,255,.025);font:inherit;font-size:11px;font-weight:700}
+
 @media(max-width:390px){
   .bottom-nav{left:10px!important;right:10px!important;height:61px!important;padding:4px 6px!important;border-radius:23px!important}
   .bottom-nav .nav-item{min-height:49px!important;font-size:9px!important}
   .bottom-nav .nav-icon,.bottom-nav .nav-icon svg{width:20px!important;height:20px!important}
   #app{padding-bottom:calc(103px + var(--safe-bottom))!important}
   .wizard-actions{bottom:calc(85px + var(--safe-bottom))!important}
+  .hc-order-card-v54{padding:12px!important;gap:9px}
+  .hc-order-card-head-v54 strong{font-size:15px!important}
+  .hc-order-meta-v54{gap:7px}
+  .hc-order-meta-v54>div{padding:7px 8px}
 }
 
 @media(prefers-reduced-motion:reduce){
