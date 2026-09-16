@@ -20,7 +20,7 @@ let currentNavigate = null;
 
 function progress(step) {
   const current = Math.max(1, Math.min(7, step));
-  const names = ['Услуга', 'Объект', 'Дополнительно', 'Фото', 'Адрес', 'Дата', 'Контакты'];
+  const names = ['Услуга', 'Объект', 'Дополнительно', 'Адрес', 'Фото', 'Дата', 'Контакты'];
   return `<div class="booking-top"><div><div class="progress-label">Шаг ${current} из 7 · ${names[current - 1] || 'Проверка'}</div><div class="progress-bars">${Array.from({ length: 7 }, (_, i) => `<i class="${i < current ? 'done' : ''}"></i>`).join('')}</div></div></div>`;
 }
 
@@ -44,8 +44,8 @@ export function renderBooking(root, navigate) {
   if (draft.step === 1) return renderService(root, navigate);
   if (draft.step === 2) return renderObject(root, navigate);
   if (draft.step === 3) return renderAddons(root, navigate);
-  if (draft.step === 4) return renderPhotos(root, navigate);
-  if (draft.step === 5) return renderAddress(root, navigate);
+  if (draft.step === 4) return renderAddress(root, navigate);
+  if (draft.step === 5) return renderPhotos(root, navigate);
   if (draft.step === 6) return renderSchedule(root, navigate);
   if (draft.step === 7) return renderContacts(root, navigate);
   if (draft.step === 8) return renderReview(root, navigate);
@@ -140,8 +140,9 @@ function renderAddons(root, navigate) {
 }
 
 function renderPhotos(root, navigate) {
+  const canSkip = state.draft.photoRequired === false;
   root.innerHTML = shell('Покажите объект', 'Фото нужны только для предварительной оценки объёма уборки.', `
-    <div class="photo-step"><label class="photo-drop" for="photo-input"><div class="photo-plus">＋</div><div><strong>Добавить фотографии</strong><small>Камера или галерея · от 1 до 10 фото</small></div></label><input id="photo-input" type="file" accept="image/*" multiple class="hidden"><div class="photo-grid">${state.photos.map((item, index) => `<div class="photo-thumb"><img src="${item.url}" alt="Фото объекта ${index + 1}"><button type="button" data-remove-photo="${index}">×</button></div>`).join('')}</div><div class="photo-count"><span>${state.photos.length} из 10</span><span>${state.photos.length ? 'Фото сохранены в черновике' : 'Добавьте минимум одно фото'}</span></div></div>`, actions({ nextDisabled: state.photos.length < 1 }));
+    <div class="photo-step"><label class="photo-drop" for="photo-input"><div class="photo-plus">＋</div><div><strong>Добавить фотографии</strong><small>Камера или галерея · от 1 до 10 фото</small></div></label><input id="photo-input" type="file" accept="image/*" multiple class="hidden"><div class="photo-grid">${state.photos.map((item, index) => `<div class="photo-thumb"><img src="${item.url}" alt="Фото объекта ${index + 1}"><button type="button" data-remove-photo="${index}">×</button></div>`).join('')}</div><div class="photo-count"><span>${state.photos.length} из 10</span><span>${state.photos.length ? 'Фото сохранены в черновике' : canSkip ? 'Повторный адрес — фото не нужны' : 'Добавьте минимум одно фото'}</span></div></div>`, actions({ nextDisabled: state.photos.length < 1 && !canSkip }));
   const input = root.querySelector('#photo-input');
   input.onchange = async () => {
     const files = [...input.files].slice(0, Math.max(0, 10 - state.photos.length));
@@ -151,7 +152,7 @@ function renderPhotos(root, navigate) {
     catch (error) { showToast(error.message || 'Не удалось обработать фото', true); input.disabled = false; }
   };
   root.querySelectorAll('[data-remove-photo]').forEach((button) => button.onclick = () => { const index = Number(button.dataset.removePhoto); URL.revokeObjectURL(state.photos[index].url); state.photos.splice(index, 1); state.persistPhotos(); renderPhotos(root, navigate); });
-  bindNav(root, 3, () => state.photos.length ? go(root, navigate, 5) : showToast('Добавьте минимум одно фото', true));
+  bindNav(root, 4, () => (state.photos.length || state.draft.photoRequired === false) ? go(root, navigate, 6) : showToast('Добавьте минимум одно фото', true));
 }
 
 function addressLooksValid(value) {
@@ -185,11 +186,13 @@ function renderAddress(root, navigate) {
   root.querySelectorAll('[data-location]').forEach((button) => button.onclick = () => {
     d.serviceArea = button.dataset.location === 'lo' ? 'lo' : 'spb';
     d.city = d.serviceArea === 'lo' ? 'Ленинградская область' : 'Санкт-Петербург';
+    d.knownAddress = false;
+    d.photoRequired = null;
     state.saveDraft();
     renderAddress(root, navigate);
   });
   bindFields(root);
-  bindNav(root, 4, () => {
+  bindNav(root, 3, () => {
     const addressInput = root.querySelector('[data-field="address"]');
     const clean = String(d.address || '').trim().replace(/\s+/g, ' ');
     if (!addressLooksValid(clean)) {
@@ -199,7 +202,7 @@ function renderAddress(root, navigate) {
     }
     d.address = clean;
     state.saveDraft();
-    go(root, navigate, 6);
+    go(root, navigate, 5);
   });
 }
 
@@ -210,7 +213,15 @@ function textareaField(label, name, value, placeholder = '') {
   return `<div class="field floating"><textarea class="textarea" data-field="${name}" data-label="${escapeHtml(label)}" placeholder=" " autocomplete="off">${escapeHtml(value)}</textarea><label>${escapeHtml(label)}</label>${placeholder ? `<small class="field-hint">Например: ${escapeHtml(placeholder)}</small>` : ''}</div>`;
 }
 function bindFields(root) {
-  root.querySelectorAll('[data-field]').forEach((input) => input.oninput = () => { input.classList.remove('input-error'); state.draft[input.dataset.field] = input.value; state.saveDraft(); });
+  root.querySelectorAll('[data-field]').forEach((input) => input.oninput = () => {
+    input.classList.remove('input-error');
+    state.draft[input.dataset.field] = input.value;
+    if (input.dataset.field === 'address' || input.dataset.field === 'apartment') {
+      state.draft.knownAddress = false;
+      state.draft.photoRequired = null;
+    }
+    state.saveDraft();
+  });
 }
 
 function localIso(date) {
@@ -325,9 +336,10 @@ function renderReview(root, navigate) {
   const addons = services.filter((item) => d.addonIds.includes(item.id));
   const estimate = Math.round((primary?.price_per_m2 || 0) * d.area + addons.reduce((sum, item) => sum + (item.fixed_price || 0), 0));
   const propertyLabel = PROPERTY_TYPES.find(([value]) => value === d.propertyType)?.[1] || 'Объект';
-  root.innerHTML = `<div class="review-head"><span class="eyebrow">Финальный шаг</span><h1 class="page-title booking-title">Проверьте заявку</h1><p class="page-subtitle">Проверьте данные перед оформлением.</p></div><div class="card pad review-card">${summary('Уборка', primary?.name || '—')}${summary('Объект', `${propertyLabel}, ${d.area} м²`)}${summary('Адрес', `${d.city}, ${d.address}${d.apartment ? `, ${d.apartment}` : ''}`)}${summary('Дата', formatDate(d.date))}${summary('Время', d.time)}${summary('Комнаты / санузлы', `${d.rooms} / ${d.bathrooms}`)}${summary('Доп. услуги', addons.length ? addons.map((item) => item.name).join(', ') : 'Нет')}${summary('Фото для оценки', `${state.photos.length} шт.`)}${summary('Контакт', `${d.customerName}, ${d.phone}`)}${summary('Подтвердить через', contactMethodLabel(d.contactMethod))}</div><div class="card pad price-card"><span class="profile-meta">Предварительная стоимость</span><div class="price">${estimate > 0 ? money(estimate) : 'Уточнит менеджер'}</div></div>${actions({ next: 'Оформить заявку', nextDisabled: state.photos.length < 1 })}`;
+  const photosRequired = d.photoRequired !== false;
+  root.innerHTML = `<div class="review-head"><span class="eyebrow">Финальный шаг</span><h1 class="page-title booking-title">Проверьте заявку</h1><p class="page-subtitle">Проверьте данные перед оформлением.</p></div><div class="card pad review-card">${summary('Уборка', primary?.name || '—')}${summary('Объект', `${propertyLabel}, ${d.area} м²`)}${summary('Адрес', `${d.city}, ${d.address}${d.apartment ? `, ${d.apartment}` : ''}`)}${summary('Дата', formatDate(d.date))}${summary('Время', d.time)}${summary('Комнаты / санузлы', `${d.rooms} / ${d.bathrooms}`)}${summary('Доп. услуги', addons.length ? addons.map((item) => item.name).join(', ') : 'Нет')}${summary('Фото для оценки', state.photos.length ? `${state.photos.length} шт.` : photosRequired ? 'Не добавлены' : 'Не требуются')}${summary('Контакт', `${d.customerName}, ${d.phone}`)}${summary('Подтвердить через', contactMethodLabel(d.contactMethod))}</div><div class="card pad price-card"><span class="profile-meta">Предварительная стоимость</span><div class="price">${estimate > 0 ? money(estimate) : 'Уточнит менеджер'}</div></div>${actions({ next: 'Оформить заявку', nextDisabled: state.photos.length < 1 && photosRequired })}`;
   bindNav(root, 7, async () => {
-    if (!state.photos.length) return showToast('Добавьте фотографии объекта', true);
+    if (!state.photos.length && d.photoRequired !== false) return showToast('Добавьте фотографии объекта', true);
     const button = root.querySelector('[data-next]'); button.disabled = true; button.textContent = 'Оформляем...';
     try {
       const result = await api.createOrder({ ...d, contact_method: d.contactMethod }, state.photos.map((item) => item.file));
