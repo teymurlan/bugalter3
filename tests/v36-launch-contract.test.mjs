@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const wrangler = read('wrangler.jsonc');
+const worker44 = read('src/demo-worker-v44-production.js');
 const worker43 = read('src/demo-worker-v43-cache-bust.js');
 const worker42 = read('src/demo-worker-v42-launch-hardening.js');
 const worker41 = read('src/demo-worker-v41-house-cleaning-staff.js');
@@ -33,11 +34,15 @@ const css2 = read('public/release-v2.css');
 const css3 = read('public/release-v3.css');
 const banner = read('public/js/home-subscription-v2.js');
 
-test('v43 cache wrapper is active and preserves the full client release chain', () => {
-  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v43-cache-bust\.js"/);
+test('v44 production gate is active and preserves the full client release chain', () => {
+  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v44-production\.js"/);
   assert.match(wrangler, /"crons"\s*:\s*\["\*\/10 \* \* \* \*"\]/);
+  assert.match(worker44, /demo-worker-v43-cache-bust\.js/);
+  assert.match(worker44, /\/api\/release-version/);
+  assert.match(worker44, /RELEASE = '44'/);
+  assert.match(worker44, /isKpPath/);
+  assert.match(worker44, /kp_disabled/);
   assert.match(worker43, /demo-worker-v42-launch-hardening\.js/);
-  assert.match(worker43, /x-house-cleaning-release/);
   assert.match(worker42, /demo-worker-v41-house-cleaning-staff\.js/);
   assert.match(worker41, /demo-worker-v40-admin-diagnostic\.js/);
   assert.match(worker40, /demo-worker-v39-admin-menu\.js/);
@@ -137,19 +142,20 @@ test('client navigation and layout protections remain unchanged', () => {
   assert.match(banner, /cc-for-you-section/);
 });
 
-test('client router uses release 40 cache keys through the nested bundle', () => {
-  assert.match(index, /app-release-v3\.js\?v=40/);
-  assert.match(index, /launch-hardening-v37\.js\?v=40/);
-  assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=40'\)/);
-  assert.match(specialEntry, /admin-v6\.js\?v=40/);
-  assert.match(specialEntry, /staff-v1\.js\?v=40/);
-  assert.match(index, /reviews-v2\.js\?v=40/);
-  assert.match(index, /release-v2\.css\?v=40/);
-  assert.match(index, /release-v3\.css\?v=40/);
-  assert.match(index, /release-layout-v2\.js\?v=40/);
-  assert.match(index, /home-subscription-v2\.js\?v=40/);
-  assert.match(entry, /api-release-v2\.js\?v=40/);
-  assert.match(entry, /state-release-v2\.js\?v=40/);
-  assert.match(app, /booking-v3\.js\?v=40/);
+test('client router uses release 44 cache keys through the nested bundle', () => {
+  assert.match(index, /house-cleaning-release" content="44/);
+  assert.match(index, /app-release-v3\.js\?v=44/);
+  assert.match(index, /launch-hardening-v37\.js\?v=44/);
+  assert.match(specialEntry, /import\('\.\/app-release-v2\.js\?v=44'\)/);
+  assert.match(specialEntry, /admin-v6\.js\?v=44/);
+  assert.match(specialEntry, /staff-v1\.js\?v=44/);
+  assert.match(index, /reviews-v2\.js\?v=44/);
+  assert.match(index, /release-v2\.css\?v=44/);
+  assert.match(index, /release-v3\.css\?v=44/);
+  assert.match(index, /release-layout-v2\.js\?v=44/);
+  assert.match(index, /home-subscription-v2\.js\?v=44/);
+  assert.match(entry, /api-release-v2\.js\?v=44/);
+  assert.match(entry, /state-release-v2\.js\?v=44/);
+  assert.match(app, /booking-v3\.js\?v=44/);
   assert.doesNotMatch(index, /\/staff\/app\.js/);
 });
