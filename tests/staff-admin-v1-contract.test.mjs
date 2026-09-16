@@ -23,9 +23,9 @@ const defectRpc = read('src/client-defect-rpc.js');
 const worker50 = read('src/demo-worker-v50-shared-booking.js');
 const wrangler = read('wrangler.jsonc');
 
-test('client booking stays isolated while the client bundle uses release 50 cache keys', () => {
-  assert.match(index, /app-release-v3\.js\?v=50/);
-  assert.match(entry, /else\s*\{\s*import\('\.\/app-release-v2\.js\?v=50'\)/s);
+test('client booking stays isolated while the client bundle uses release 51 cache keys', () => {
+  assert.match(index, /app-release-v3\.js\?v=51/);
+  assert.match(entry, /else\s*\{\s*import\('\.\/app-release-v2\.js\?v=51'\)/s);
   assert.doesNotMatch(index, /staff\/staff\.css/);
   assert.doesNotMatch(index, /staff\/app\.js/);
 });
