@@ -115,22 +115,25 @@ await run('первый заказ требует фото', draft(), async (pag
   assert.equal(knownCalls(), 0);
 });
 
-await run('повторный заказ разрешает фото по желанию', draft(), async (page, knownCalls) => {
+await run('повторный заказ сразу открывает дату и время', draft(), async (page, knownCalls) => {
   await page.locator('[data-next]').click();
   await page.getByText('Вы уже заказывали уборку по этому адресу?').waitFor();
   await page.locator('[data-visit-type="repeat"]').click();
   await page.locator('[data-next]').click();
-  await page.locator('.booking-title').filter({ hasText: 'Фотографии объекта' }).waitFor();
 
-  assert.match(await page.locator('.booking-title-block .page-subtitle').textContent(), /необязательны/i);
-  assert.equal(await page.locator('[data-next]').isDisabled(), false, 'Для повторного заказа можно продолжить без фото');
+  await page.locator('.hc-calendar-v2').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('.photo-step').count(), 0, 'Для повторного заказа экран фотографий не должен открываться');
   assert.equal(knownCalls(), 0, 'История адресов не должна проверяться автоматически');
 
-  await page.locator('[data-next]').click();
-  await page.locator('.hc-calendar-v2').waitFor({ state: 'visible' });
   const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || '{}'), DRAFT_KEY);
   assert.equal(saved.visitType, 'repeat');
+  assert.equal(saved.visitTypeConfirmed, true);
   assert.equal(saved.photoRequired, false);
+  assert.equal(saved.step, 6, 'Повторный заказ должен сразу переходить на шаг даты и времени');
+
+  await page.locator('[data-back]').click();
+  await page.getByText('Вы уже заказывали уборку по этому адресу?').waitFor();
+  assert.equal(await page.locator('.photo-step').count(), 0, 'Назад из даты не должен вести на фотографии для повторного заказа');
 });
 
 await run('общая занятость приходит с сервера', draft({
