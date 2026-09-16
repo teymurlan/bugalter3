@@ -19,7 +19,8 @@ function installStyles() {
     .hc-date-shell-v47:focus-within{border-color:#efbd4b!important;box-shadow:0 0 0 3px rgba(239,189,75,.12)!important}
     .hc-known-address-note{margin-top:14px!important;padding:14px 16px!important;border:1px solid rgba(75,210,130,.26)!important;border-radius:16px!important;background:rgba(75,210,130,.09)!important;color:#91eab5!important;font-size:14px!important;line-height:1.45!important}
     .photo-step.hc-repeat-address .photo-drop{display:none!important}
-    .hc-confetti-v47{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:99999!important;pointer-events:none!important}
+    .hc-confetti-canvas,.hc-confetti-v45{display:none!important}
+    .hc-confetti-v47{display:block!important;position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:99999!important;pointer-events:none!important}
   `;
   document.head.appendChild(style);
 }
