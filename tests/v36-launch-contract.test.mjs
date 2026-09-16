@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const wrangler = read('wrangler.jsonc');
+const publicOrderWorker = read('src/production-public-order.js');
 const worker53 = read('src/demo-worker-v53-client-experience.js');
 const worker50 = read('src/demo-worker-v50-shared-booking.js');
 const defectRpc = read('src/client-defect-rpc.js');
@@ -22,15 +23,18 @@ const app = read('public/js/app-release.js');
 const entry = read('public/js/app-release-v2.js');
 const specialEntry = read('public/js/app-release-v3.js');
 const clientExperience = read('public/js/client-experience-v53.js');
+const publicOrderBridge = read('public/js/public-order-number-v55.js');
 const clientUi = read('public/client-ui-v53.css');
 const clientOrders = read('public/js/views/concierge-orders-v4.js');
 const clientHome = read('public/js/views/concierge-home-v4.js');
 const bookingV5 = read('public/js/views/booking-v5.js');
 const bookingBase = read('public/js/views/booking-v2.js');
 const index = read('public/index.html');
+const staffIndex = read('public/staff/index.html');
 
-test('release 53 wraps shared booking worker while production chain stays intact', () => {
-  assert.match(wrangler, /"main"\s*:\s*"src\/demo-worker-v53-client-experience\.js"/);
+test('release 55 wraps release 53 with stable public order numbering while production chain stays intact', () => {
+  assert.match(wrangler, /"main"\s*:\s*"src\/production-public-order\.js"/);
+  assert.match(publicOrderWorker, /demo-worker-v53-client-experience\.js/);
   assert.match(worker53, /demo-worker-v50-shared-booking\.js/);
   assert.match(worker50, /client-defect-rpc\.js/);
   assert.match(defectRpc, /demo-worker-v44-production\.js/);
@@ -40,6 +44,19 @@ test('release 53 wraps shared booking worker while production chain stays intact
   assert.match(worker43, /demo-worker-v42-launch-hardening\.js/);
   assert.match(worker42, /MIN_BOOKING_LEAD_MS = 6 \* 60 \* 60 \* 1000/);
   assert.match(worker29, /Напоминание об уборке/);
+});
+
+test('public order numbers are server-owned, sequential and do not count test orders', () => {
+  assert.match(publicOrderWorker, /PUBLIC_SEQUENCE_KEY = 'system:public-order-sequence:v1'/);
+  assert.match(publicOrderWorker, /public_order_number: number, display_number: number/);
+  assert.match(publicOrderWorker, /filter\(\(order\) => !order\?\.is_test\)/);
+  assert.match(publicOrderWorker, /this\.state\.storage\.transaction/);
+  assert.match(publicOrderWorker, /nextPublicOrderNumber/);
+  assert.match(publicOrderWorker, /ensurePublicOrderNumbers/);
+  assert.match(publicOrderWorker, /created_at/);
+  assert.match(publicOrderBridge, /public_order_number \|\| value\.display_number/);
+  assert.match(publicOrderBridge, /labels\.set\(technical, formatNumber\(number\)\)/);
+  assert.match(staffIndex, /public-order-number-v55\.js\?v=55/);
 });
 
 test('all devices still use shared server availability', () => {
@@ -114,6 +131,7 @@ test('order detail back remembers whether client came from home or orders', () =
 test('release 54 shows compact client order cards with simple numbers and useful home summaries', () => {
   assert.match(clientOrders, /let currentFilter = 'active'/);
   assert.match(clientOrders, /function shortOrderNumber/);
+  assert.match(clientOrders, /display_number/);
   assert.match(clientOrders, /Заказ \$\{escapeHtml\(shortOrderNumber\(order\)\)\}/);
   assert.match(clientOrders, /\['history', 'История'\]/);
   assert.match(clientOrders, /hc-order-card-v54/);
@@ -155,8 +173,9 @@ test('one-time clean launch no longer clears draft on every reopen', () => {
   assert.doesNotMatch(launchReset, /localStorage\.setItem\(KEY, 'pending'\)/);
 });
 
-test('release 54 uses fresh client entry and UI cache keys', () => {
-  assert.match(index, /house-cleaning-release" content="54/);
+test('release 55 loads public numbering without invalidating the release 54 client bundle', () => {
+  assert.match(index, /house-cleaning-release" content="55/);
+  assert.match(index, /public-order-number-v55\.js\?v=55/);
   assert.match(index, /client-ui-v53\.css\?v=54/);
   assert.match(index, /app-release-v3\.js\?v=54/);
   assert.match(specialEntry, /client-experience-v53\.js\?v=54/);

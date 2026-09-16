@@ -12,6 +12,7 @@ const menuWorker = readFileSync('src/demo-worker-v39-admin-menu.js', 'utf8');
 const diagnosticWorker = readFileSync('src/demo-worker-v40-admin-diagnostic.js', 'utf8');
 const staffEntry = readFileSync('src/demo-worker-v41-house-cleaning-staff.js', 'utf8');
 const defectRpc = readFileSync('src/client-defect-rpc.js', 'utf8');
+const publicOrderWorker = readFileSync('src/production-public-order.js', 'utf8');
 const wrangler = readFileSync('wrangler.jsonc', 'utf8');
 
 for (const label of ['Данные', 'Услуги', 'Условия', 'Проверка']) assert.ok(flow.includes(label), `flow must contain step ${label}`);
@@ -41,7 +42,8 @@ assert.ok(releaseWorker.includes("./demo-worker-v37-booking-resilience.js"), 'st
 assert.ok(menuWorker.includes("./demo-worker-v38-staff.js"), 'admin menu wrapper must preserve staff/release chain');
 assert.ok(diagnosticWorker.includes("./demo-worker-v39-admin-menu.js"), 'diagnostic wrapper must preserve admin menu chain');
 assert.ok(staffEntry.includes("./demo-worker-v40-admin-diagnostic.js"), 'HOUSE CLEANING STAFF wrapper must preserve diagnostic chain');
-assert.ok(wrangler.includes('src/client-defect-rpc.js'), 'wrangler must point to the narrow defect RPC wrapper');
+assert.ok(wrangler.includes('src/production-public-order.js'), 'wrangler must point to the public order production wrapper');
+assert.ok(publicOrderWorker.includes("./demo-worker-v53-client-experience.js"), 'public order wrapper must preserve release 53 as its base');
 assert.ok(defectRpc.includes("./demo-worker-v44-production.js"), 'defect RPC wrapper must preserve the complete client/KP production chain');
 assert.ok(!css.includes('visualViewport'), 'flow CSS must not depend on visualViewport');
 assert.ok(!/\b(?:html|body)\s*\{[^}]*overflow\s*:\s*hidden/i.test(css), 'flow CSS must not lock page scrolling');
