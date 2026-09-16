@@ -1,0 +1,166 @@
+/* HOUSE CLEANING · Client experience release 53 */
+
+/* Compact premium bottom navigation */
+.bottom-nav{
+  left:14px!important;
+  right:14px!important;
+  bottom:calc(8px + var(--safe-bottom))!important;
+  height:64px!important;
+  padding:5px 7px!important;
+  border-radius:25px!important;
+  border:1px solid rgba(233,194,105,.34)!important;
+  background:linear-gradient(180deg,rgba(18,19,18,.97),rgba(7,9,10,.985))!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,235,188,.09)!important;
+  backdrop-filter:blur(22px) saturate(130%)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(130%)!important;
+}
+.bottom-nav::before{left:16%!important;right:16%!important;opacity:.7}
+.nav-active-indicator{display:none!important}
+.bottom-nav .nav-item{
+  min-height:52px!important;
+  padding:4px 5px!important;
+  gap:3px!important;
+  border-radius:19px!important;
+  font-size:10px!important;
+  font-weight:680!important;
+  color:rgba(245,245,241,.62)!important;
+  transition:transform .16s ease,background .2s ease,color .2s ease,border-color .2s ease!important;
+}
+.bottom-nav .nav-item.active{
+  color:#f3d58e!important;
+  background:linear-gradient(180deg,rgba(238,198,109,.13),rgba(238,198,109,.055))!important;
+  border:1px solid rgba(238,198,109,.18)!important;
+  text-shadow:none!important;
+}
+.bottom-nav .nav-item:active{transform:scale(.96)!important}
+.bottom-nav .nav-icon,
+.bottom-nav .nav-icon svg{width:21px!important;height:21px!important}
+.bottom-nav .nav-icon svg{stroke-width:1.8!important;filter:none!important}
+#app{padding-bottom:calc(108px + var(--safe-bottom))!important}
+.wizard-actions{bottom:calc(89px + var(--safe-bottom))!important}
+.home-fixed-cta{bottom:calc(93px + var(--safe-bottom))!important}
+.toast{bottom:calc(96px + var(--safe-bottom))!important}
+
+/* Home: calmer hierarchy and more polished cards */
+.cc-home{gap:16px!important}
+.cc-greeting-row{
+  position:relative;
+  padding:18px!important;
+  border:1px solid rgba(232,194,108,.16);
+  border-radius:25px;
+  background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(232,194,108,.025) 58%,rgba(255,255,255,.018));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  overflow:hidden;
+}
+.cc-greeting-row::after{
+  content:"";
+  position:absolute;
+  width:110px;
+  height:110px;
+  right:-48px;
+  top:-52px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(232,194,108,.13),transparent 68%);
+  pointer-events:none;
+}
+.cc-greeting{letter-spacing:-.035em!important}
+.cc-greeting-sub{max-width:290px;line-height:1.45!important}
+.cc-monogram{
+  border:1px solid rgba(238,201,119,.30)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 8px 22px rgba(0,0,0,.24)!important;
+}
+.cc-next-card,.cc-empty-next,.cc-personal-tip,.hc-home-contact{
+  border-color:rgba(255,255,255,.075)!important;
+  box-shadow:0 12px 28px rgba(0,0,0,.18)!important;
+}
+.cc-tool-card{
+  border-color:rgba(255,255,255,.07)!important;
+  transition:transform .16s ease,border-color .18s ease,background .18s ease!important;
+}
+.cc-tool-card:active{transform:scale(.975)!important}
+
+/* Resume booking card */
+.hc-resume-card-v53{
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr);
+  gap:12px 13px;
+  padding:16px!important;
+  margin:0!important;
+  border:1px solid rgba(240,200,108,.32)!important;
+  border-radius:24px!important;
+  background:linear-gradient(145deg,rgba(240,198,102,.115),rgba(255,255,255,.035) 48%,rgba(8,10,11,.22))!important;
+  box-shadow:0 14px 35px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,237,194,.07)!important;
+}
+.hc-resume-icon-v53{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:15px;
+  color:#f3d58e;
+  font-size:21px;
+  border:1px solid rgba(240,201,112,.25);
+  background:rgba(240,201,112,.09);
+}
+.hc-resume-copy-v53{min-width:0}
+.hc-resume-copy-v53>span{display:block;margin-bottom:3px;font-size:9px;font-weight:800;letter-spacing:.13em;color:#d8b866}
+.hc-resume-copy-v53 strong{display:block;font-size:17px;line-height:1.2;color:#fff}
+.hc-resume-copy-v53 p{margin:5px 0 0;font-size:12px;line-height:1.4;color:rgba(244,244,240,.62)}
+.hc-resume-main-v53,.hc-resume-new-v53{
+  min-height:44px;
+  border-radius:15px;
+  font:inherit;
+  font-size:12px;
+  font-weight:750;
+}
+.hc-resume-main-v53{
+  grid-column:1/-1;
+  border:1px solid #e7c477;
+  color:#0c0d0e;
+  background:linear-gradient(180deg,#f2d48c,#d9b45e);
+  box-shadow:0 8px 20px rgba(220,177,79,.18);
+}
+.hc-resume-new-v53{
+  grid-column:1/-1;
+  margin-top:-6px;
+  border:1px solid rgba(255,255,255,.08);
+  color:rgba(255,255,255,.68);
+  background:rgba(255,255,255,.035);
+}
+
+/* Hard limit for large objects */
+.hc-area-manager-v53{
+  display:flex!important;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:6px;
+  margin-top:14px!important;
+  padding:14px!important;
+  border-radius:18px!important;
+}
+.hc-area-manager-v53 strong{font-size:14px;color:#fff}
+.hc-area-manager-v53 span{font-size:12px;line-height:1.45;color:rgba(255,255,255,.68)}
+.hc-area-manager-v53 button{
+  width:100%;
+  min-height:44px;
+  margin-top:5px;
+  border:1px solid rgba(239,201,114,.36);
+  border-radius:14px;
+  color:#f2d084;
+  background:rgba(238,197,103,.08);
+  font:inherit;
+  font-size:13px;
+  font-weight:760;
+}
+
+@media(max-width:390px){
+  .bottom-nav{left:10px!important;right:10px!important;height:61px!important;padding:4px 6px!important;border-radius:23px!important}
+  .bottom-nav .nav-item{min-height:49px!important;font-size:9px!important}
+  .bottom-nav .nav-icon,.bottom-nav .nav-icon svg{width:20px!important;height:20px!important}
+  #app{padding-bottom:calc(103px + var(--safe-bottom))!important}
+  .wizard-actions{bottom:calc(85px + var(--safe-bottom))!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .bottom-nav .nav-item,.cc-tool-card{transition:none!important}
+}
