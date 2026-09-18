@@ -179,6 +179,7 @@ test('client release 61 removes late mutation layers that caused page jumps', ()
   assert.doesNotMatch(clientExperience, /new MutationObserver\(/);
   assert.match(app, /hc:route-rendered/);
   assert.match(read('public/js/views/booking-v5.js'), /hc:booking-rendered/);
+  assert.match(read('public/js/views/booking-v2.js'), /hc:booking-rendered/);
 });
 
 test('release 61 themes own booking borders controls and back button colors', () => {
