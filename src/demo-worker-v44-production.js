@@ -1,6 +1,6 @@
 import baseWorker, { ConsentStore as BaseConsentStore, AppStore as BaseAppStore } from './demo-worker-v43-cache-bust.js';
 
-const RELEASE = '44';
+const RELEASE = '62';
 const CONSENT_VERSION = '2026-09-09-v1';
 const APP_STORE_NAME = 'house-cleaning-app-v1';
 const CLEAN_START_MARKER = 'system:clean-start:v45';
