@@ -36,7 +36,7 @@ export default {
         await safeTelegram(env, 'editMessageText', {
           chat_id: chatId,
           message_id: messageId,
-          text: mainText(env),
+          text: mainText(),
           parse_mode: 'HTML',
           reply_markup: roleKeyboard(env, queryUserId, url.origin),
         });
@@ -56,7 +56,7 @@ async function refreshMenuAfterCommand(env, userId, origin) {
     await safeTelegram(env, 'editMessageText', {
       chat_id: userId,
       message_id: menuId,
-      text: mainText(env),
+      text: mainText(),
       parse_mode: 'HTML',
       reply_markup: roleKeyboard(env, userId, origin),
     });
@@ -67,18 +67,18 @@ async function refreshMenuAfterCommand(env, userId, origin) {
     await safeTelegram(env, 'editMessageText', {
       chat_id: userId,
       message_id: menuId,
-      text: consentText(env),
+      text: consentText(),
       parse_mode: 'HTML',
       reply_markup: consentKeyboard(origin),
     });
   }
 }
 
-function consentText(env) {
+function consentText() {
   return [
-    `${animatedEmoji(env, 'HC_EMOJI_HOME_ID', '🏠')} <b>HOUSE CLEANING</b>`,
+    '🏠 <b>HOUSE CLEANING</b>',
     '',
-    `Чистота начинается с хорошего сервиса ${animatedEmoji(env, 'HC_EMOJI_SPARK_ID', '✨')}`,
+    'Чистота начинается с хорошего сервиса ✨',
     '',
     'Оформляйте уборку, выбирайте удобное время и отправляйте фото объекта прямо в Telegram.',
     '',
@@ -92,23 +92,18 @@ function consentText(env) {
   ].join('\n');
 }
 
-function mainText(env) {
+function mainText() {
   return [
-    `${animatedEmoji(env, 'HC_EMOJI_HOME_ID', '🏠')} <b>HOUSE CLEANING</b>`,
+    '🏠 <b>HOUSE CLEANING</b>',
     '',
     'Управляйте уборкой прямо в Telegram.',
     '',
     'Запись, статус заявки, история уборок и помощь менеджера — всё в одном месте.',
     '',
-    `${animatedEmoji(env, 'HC_EMOJI_SPARK_ID', '✨')} Быстро, удобно и без лишних звонков.`,
+    '✨ Быстро, удобно и без лишних звонков.',
     '',
     'Выберите нужный раздел ниже.',
   ].join('\n');
-}
-
-function animatedEmoji(env, key, fallback) {
-  const id = String(env?.[key] || '').trim();
-  return /^\d{6,30}$/.test(id) ? `<tg-emoji emoji-id="${id}">${fallback}</tg-emoji>` : fallback;
 }
 
 function consentKeyboard(origin) {
