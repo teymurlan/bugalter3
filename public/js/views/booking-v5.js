@@ -4,9 +4,6 @@ import { showToast } from '../utils.js';
 
 let activeRoot = null;
 let activeNavigate = null;
-let observer = null;
-let observedRoot = null;
-let patchQueued = false;
 
 const STEP_NAMES = {
   1: 'Услуга',
@@ -97,7 +94,7 @@ function renderVisitType(root, navigate) {
     state.draft.step = 4;
     state.saveDraft();
     renderBooking(root, navigate);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   root.querySelector('[data-next]').onclick = () => {
@@ -110,7 +107,7 @@ function renderVisitType(root, navigate) {
     state.draft.step = repeat ? 6 : 5;
     state.saveDraft();
     renderBooking(root, navigate);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 }
 
@@ -164,7 +161,7 @@ function patchAddressStep(root, navigate) {
     state.draft.step = 5;
     state.saveDraft();
     renderVisitType(root, navigate);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 }
 
@@ -201,7 +198,7 @@ function patchPhotoStep(root, navigate) {
       state.draft.visitTypeConfirmed = false;
       state.saveDraft();
       renderVisitType(root, navigate);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     };
   }
 
@@ -216,7 +213,7 @@ function patchPhotoStep(root, navigate) {
         state.draft.step = 6;
         state.saveDraft();
         renderBooking(root, navigate);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'instant' });
       };
     }
   }
@@ -233,7 +230,7 @@ function patchScheduleStep(root, navigate) {
     state.draft.step = 5;
     state.saveDraft();
     renderVisitType(root, navigate);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 }
 
@@ -247,30 +244,37 @@ function patchCurrent(root, navigate) {
   if (step === 7) patchProgress(root, 8, STEP_NAMES[8]);
 }
 
-function queuePatch(root, navigate) {
-  if (patchQueued) return;
-  patchQueued = true;
-  requestAnimationFrame(() => {
-    patchQueued = false;
-    patchCurrent(root, navigate);
-  });
-}
-
-function ensureObserver(root, navigate) {
-  activeRoot = root;
-  activeNavigate = navigate;
-  if (observer && observedRoot === root) return;
-  observer?.disconnect?.();
-  observedRoot = root;
-  observer = new MutationObserver(() => queuePatch(activeRoot, activeNavigate));
-  observer.observe(root, { childList: true, subtree: true });
+function syncGlobalBack(root) {
+  const original = root.querySelector('.wizard-actions [data-back]');
+  const existing = root.querySelector('[data-global-booking-back]');
+  if (!original) {
+    existing?.remove();
+    return;
+  }
+  original.classList.add('hc-original-back-hidden');
+  if (existing) {
+    existing.onclick = () => original.click();
+    return;
+  }
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.globalBookingBack = '1';
+  button.className = 'cc-back hc-booking-back hc-fixed-back';
+  button.textContent = '← Назад';
+  button.onclick = () => original.click();
+  const top = root.querySelector('.booking-top');
+  if (top) top.insertAdjacentElement('afterend', button);
+  else root.prepend(button);
 }
 
 export function renderBooking(root, navigate) {
-  ensureObserver(root, navigate);
+  activeRoot = root;
+  activeNavigate = navigate;
 
   if (Number(state.draft?.step || 0) === 5 && !state.draft.visitTypeConfirmed) {
-    return renderVisitType(root, navigate);
+    renderVisitType(root, navigate);
+    syncGlobalBack(root);
+    return;
   }
 
   if (Number(state.draft?.step || 0) === 5 && state.draft.visitType === 'repeat' && state.draft.visitTypeConfirmed) {
@@ -279,10 +283,9 @@ export function renderBooking(root, navigate) {
     state.saveDraft();
   }
 
-  if (Number(state.draft?.step || 0) === 5) {
-    state.draft.photoRequired = true;
-  }
+  if (Number(state.draft?.step || 0) === 5) state.draft.photoRequired = true;
 
   renderBaseBooking(root, navigate);
-  queuePatch(root, navigate);
+  patchCurrent(root, navigate);
+  syncGlobalBack(root);
 }
