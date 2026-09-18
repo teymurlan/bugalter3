@@ -1,5 +1,6 @@
-import { renderConciergeHome as renderBaseHome } from './concierge-home-v3.js?v=34';
+import { renderConciergeHome as renderBaseHome } from './concierge-home-v3.js?v=57';
 import { api } from '../api.js';
+import { state } from '../state.js';
 import { escapeHtml, formatDate, formatTime, money } from '../utils.js';
 
 const ACTIVE = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
@@ -86,10 +87,43 @@ function compactOrderCard(order, { showPrice = false } = {}) {
   </button>`;
 }
 
+function cleaningSummary(list) {
+  const completed = list.filter((order) => order.status === 'COMPLETED').sort((a,b) => orderStart(b) - orderStart(a));
+  const upcoming = list.filter((order) => ACTIVE.has(order.status) && orderStart(order) >= Date.now() - 6 * 60 * 60 * 1000).sort((a,b) => orderStart(a) - orderStart(b));
+  const profile = state.bootstrap?.user || {};
+  const planRemaining = Number(profile.cleanings_remaining ?? profile.remaining_cleanings ?? profile.subscription_remaining ?? 0);
+  const last = completed[0] || null;
+  const next = upcoming[0] || null;
+  return {
+    completed: completed.length,
+    remaining: Number.isFinite(planRemaining) && planRemaining > 0 ? planRemaining : upcoming.length,
+    remainingLabel: planRemaining > 0 ? 'По вашему графику' : 'Запланировано сейчас',
+    last,
+    next,
+  };
+}
+
+function summarySection(list) {
+  const summary = cleaningSummary(list);
+  const lastText = summary.last ? `${formatDate(summary.last.date)} · ${formatTime(summary.last.time)}` : 'Ещё не было';
+  const nextText = summary.next ? `${formatDate(summary.next.date)} · ${formatTime(summary.next.time)}` : 'Пока не запланирована';
+  const nextMeta = summary.next ? [summary.next.service_name, summary.next.address].filter(Boolean).join(' · ') : 'Оформите новую уборку за пару минут';
+  return `<section class="u7-summary">
+    <div class="u7-summary-head"><h2>Мои уборки</h2><span>Всё важное сразу</span></div>
+    <div class="u7-summary-grid">
+      <div class="u7-summary-card"><small>Выполнено</small><strong>${summary.completed}</strong><span>завершённых уборок</span></div>
+      <div class="u7-summary-card"><small>Осталось</small><strong>${summary.remaining}</strong><span>${escapeHtml(summary.remainingLabel)}</span></div>
+      <div class="u7-summary-card"><small>Последняя</small><strong style="font-size:16px">${escapeHtml(lastText)}</strong><span>${summary.last ? escapeHtml(summary.last.service_name || 'Уборка') : 'История появится здесь'}</span></div>
+      <div class="u7-summary-card"><small>Активные</small><strong>${summary.next ? '1+' : '0'}</strong><span>ближайшие заявки</span></div>
+      <button class="u7-summary-card next" type="button" data-summary-next><small>Следующая уборка</small><strong>${escapeHtml(nextText)}</strong><span>${escapeHtml(nextMeta)}</span></button>
+    </div>
+  </section>`;
+}
+
 function buildHomeOrdersSection(orders) {
   const recent = recentOrders(orders);
   const upcoming = upcomingSevenDays(orders);
-  return `<section class="cc-section hc-home-orders-section-v54">
+  return `${summarySection(orders)}<section class="cc-section hc-home-orders-section-v54">
     <div class="cc-section-head hc-home-section-head-v54"><div><h2>Последние заказы</h2><span>Статус и основные детали</span></div><button type="button" data-all-orders>Все заявки</button></div>
     <div class="hc-home-order-list-v54">${recent.length ? recent.map((order) => compactOrderCard(order, { showPrice: true })).join('') : '<div class="card hc-home-empty-v54">У вас пока нет оформленных заявок.</div>'}</div>
   </section>
@@ -126,6 +160,11 @@ export async function renderConciergeHome(root, navigate) {
     });
     root.querySelectorAll('[data-all-orders]').forEach((button) => {
       button.onclick = () => navigate('orders', { from: 'home' });
+    });
+    root.querySelector('[data-summary-next]')?.addEventListener('click', () => {
+      const next = cleaningSummary(orders).next;
+      if (next?.id) navigate('orders', { orderId: Number(next.id), from: 'home' });
+      else navigate('booking');
     });
   }
 

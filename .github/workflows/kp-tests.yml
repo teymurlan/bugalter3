@@ -34,6 +34,7 @@ on:
       - 'src/demo-worker-v18-client.js'
       - 'src/demo-worker-v19-kp-flow.js'
       - 'src/demo-worker-v20-mobile-fixes.js'
+      - 'src/production-public-order.js'
       - 'public/kp/**'
       - 'tests/kp-math.test.mjs'
       - 'tests/kp-flow-contract.test.mjs'

@@ -4,6 +4,7 @@ export { ConsentStore };
 
 const APP_STORE_NAME = 'house-cleaning-app-v1';
 const REF_PERCENT = 15;
+const REFERRALS_ENABLED = false;
 const MANAGER_PHONE = '+79992107977';
 const ACTIVE_REMINDER_STATUSES = new Set(['CONFIRMED', 'CLEANER_ASSIGNED']);
 const RELEASED_STATUSES = new Set(['CANCELLED']);
@@ -191,9 +192,9 @@ export class AppStore extends BaseAppStore {
     const rewardCount = Math.max(0, Number(await this.state.storage.get(`ref:reward-count:${userId}`) || 0));
     const rewardUsed = Math.max(0, Number(await this.state.storage.get(`ref:reward-used:${userId}`) || 0));
     const rawAvailable = Math.max(0, rewardCount - rewardUsed);
-    const availableRewards = Math.max(0, rawAvailable - activeRewardReservations);
-    const friendDiscount = friendReferral && completed === 0 && !activeFriendReservation ? REF_PERCENT : 0;
-    const rewardArmed = Boolean(await this.state.storage.get(`ref:reward-armed:${userId}`)) && availableRewards > 0;
+    const availableRewards = REFERRALS_ENABLED ? Math.max(0, rawAvailable - activeRewardReservations) : 0;
+    const friendDiscount = REFERRALS_ENABLED && friendReferral && completed === 0 && !activeFriendReservation ? REF_PERCENT : 0;
+    const rewardArmed = REFERRALS_ENABLED && Boolean(await this.state.storage.get(`ref:reward-armed:${userId}`)) && availableRewards > 0;
     const referral = friendDiscount || (rewardArmed ? REF_PERCENT : 0);
     const selected = Math.max(loyalty, referral);
     const selectedType = selected === 0
@@ -302,7 +303,7 @@ export default {
       const message = update?.message || update?.edited_message;
       const text = String(message?.text || '').trim();
       const friendId = positiveInt(message?.from?.id);
-      const referralStart = /^\/start(?:@\w+)?\s+ref_(HC[A-Z0-9]+)$/i.exec(text);
+      const referralStart = REFERRALS_ENABLED ? /^\/start(?:@\w+)?\s+ref_(HC[A-Z0-9]+)$/i.exec(text) : null;
       if (referralStart && friendId) {
         await markReferralStage(env, friendId, 'started', message.from);
         const consent = await getConsent(env, friendId);
@@ -312,7 +313,7 @@ export default {
       }
 
       const query = update?.callback_query;
-      const consentMatch = /^pd:accept:(.+)$/.exec(String(query?.data || ''));
+      const consentMatch = REFERRALS_ENABLED ? /^pd:accept:(.+)$/.exec(String(query?.data || '')) : null;
       if (query && consentMatch && consentMatch[1] === CONSENT_VERSION && query.from?.id) {
         await markReferralStage(env, positiveInt(query.from.id), 'accepted', query.from);
       }
@@ -335,12 +336,21 @@ async function completeFromWeb(request, env, ctx, body, origin) {
   if (!clientId || !orderNumber) return json({ ok: false, error: 'Недостаточно данных' }, 400);
   const stored = await appOrder(env, clientId, orderNumber);
   const order = { ...(stored || {}), ...(body.order || {}), client_telegram_id: clientId, order_number: orderNumber };
-  const sent = await sendCompletionMessage(env, clientId, order, origin);
-  if (!sent) return json({ ok: false, error: 'Telegram не доставил уведомление клиенту' }, 502);
+  const notificationAllowedNow = await ultraNotificationAllowed(env, clientId, 'completed');
+  const reviewAllowedNow = await ultraNotificationAllowed(env, clientId, 'review');
+  const sent = notificationAllowedNow ? await sendCompletionMessage(env, clientId, order, origin, { reviewAllowed: reviewAllowedNow }) : false;
+  if (notificationAllowedNow && !sent) return json({ ok: false, error: 'Telegram не доставил уведомление клиенту' }, 502);
   await appUpdateStatus(env, clientId, orderNumber, 'COMPLETED');
-  await completeReferral(env, clientId, orderNumber);
-  await notifyReferralReward(env, clientId, orderNumber, origin);
-  return json({ ok: true, status: 'COMPLETED', clientNotified: true });
+  if (REFERRALS_ENABLED) {
+    await completeReferral(env, clientId, orderNumber);
+    await notifyReferralReward(env, clientId, orderNumber, origin);
+  }
+  return json({
+    ok: true,
+    status: 'COMPLETED',
+    clientNotified: Boolean(sent),
+    notificationSuppressed: !notificationAllowedNow,
+  });
 }
 
 async function completeFromCallback(query, env, origin) {
@@ -358,14 +368,18 @@ async function completeFromCallback(query, env, origin) {
     await safeTelegram(env, 'answerCallbackQuery', { callback_query_id: query.id, text: 'Заявка не найдена', show_alert: true });
     return new Response('OK');
   }
-  const sent = await sendCompletionMessage(env, clientId, order, origin);
-  if (!sent) {
+  const notificationAllowedNow = await ultraNotificationAllowed(env, clientId, 'completed');
+  const reviewAllowedNow = await ultraNotificationAllowed(env, clientId, 'review');
+  const sent = notificationAllowedNow ? await sendCompletionMessage(env, clientId, order, origin, { reviewAllowed: reviewAllowedNow }) : false;
+  if (notificationAllowedNow && !sent) {
     await safeTelegram(env, 'answerCallbackQuery', { callback_query_id: query.id, text: 'Не удалось уведомить клиента', show_alert: true });
     return new Response('OK');
   }
   await appUpdateStatus(env, clientId, orderNumber, 'COMPLETED');
-  await completeReferral(env, clientId, orderNumber);
-  await notifyReferralReward(env, clientId, orderNumber, origin);
+  if (REFERRALS_ENABLED) {
+    await completeReferral(env, clientId, orderNumber);
+    await notifyReferralReward(env, clientId, orderNumber, origin);
+  }
   await safeTelegram(env, 'answerCallbackQuery', { callback_query_id: query.id, text: 'Уборка завершена' });
   if (query.message?.chat?.id && query.message?.message_id) {
     const base = stripTrailingStatus(query.message.text || '');
@@ -385,7 +399,7 @@ async function completeFromCallback(query, env, origin) {
   return new Response('OK');
 }
 
-async function sendCompletionMessage(env, clientId, order, origin) {
+async function sendCompletionMessage(env, clientId, order, origin, { reviewAllowed = true } = {}) {
   const lines = [
     '✨ <b>Уборка завершена</b>', '',
     `<b>${escapeHtml(order.order_number || '')}</b>`,
@@ -404,7 +418,7 @@ async function sendCompletionMessage(env, clientId, order, origin) {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Открыть заявку', web_app: { url: syncClientUrl(origin, order.order_number) }, style: 'primary' }],
-        [{ text: '⭐ Оставить отзыв', web_app: { url: `${origin}/?demo=1&review=${encodeURIComponent(order.order_number)}` }, style: 'success' }],
+        ...(reviewAllowed ? [[{ text: '⭐ Оставить отзыв', web_app: { url: `${origin}/?demo=1&review=${encodeURIComponent(order.order_number)}` }, style: 'success' }]] : []),
       ],
     },
   });
@@ -468,6 +482,15 @@ async function sendDueReminders(env) {
     const clientId = positiveInt(order.client_telegram_id);
     const orderNumber = cleanOrderNumber(order.order_number);
     if (!clientId || !orderNumber) continue;
+    const reminderAllowed = await ultraNotificationAllowed(env, clientId, 'reminder');
+    if (!reminderAllowed) {
+      await stub.fetch('https://app.internal/reminder/mark', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_telegram_id: clientId, order_number: orderNumber }),
+      });
+      continue;
+    }
     const lines = [
       '⏰ <b>Напоминание об уборке</b>', '',
       `Завтра, <b>${formatDate(order.date)}</b> в <b>${formatTime(order.time)}</b>.`,
@@ -507,6 +530,19 @@ async function appUpdateStatus(env, clientId, orderNumber, status) {
 function appStub(env) {
   if (!env.APP_STORE) return null;
   return env.APP_STORE.get(env.APP_STORE.idFromName(APP_STORE_NAME));
+}
+
+async function ultraNotificationAllowed(env, userId, type) {
+  try {
+    const stub = appStub(env);
+    if (!stub || !positiveInt(userId)) return true;
+    const response = await stub.fetch(`https://app.internal/ultra7/notification-allowed?user=${encodeURIComponent(userId)}&type=${encodeURIComponent(type)}`);
+    if (!response.ok) return true;
+    const data = await response.json().catch(() => ({}));
+    return data?.allowed !== false;
+  } catch {
+    return true;
+  }
 }
 
 async function getConsent(env, userId) {

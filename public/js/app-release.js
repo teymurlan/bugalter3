@@ -1,10 +1,10 @@
 import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v5.js?v=52';
-import { renderConciergeHome } from './views/concierge-home-v4.js?v=54';
-import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=54';
-import { renderConciergeProfile } from './views/concierge-profile-v4.js?v=44';
+import { renderBooking } from './views/booking-v5.js?v=57';
+import { renderConciergeHome } from './views/concierge-home-v4.js?v=57';
+import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=57';
+import { renderConciergeProfile } from './views/concierge-profile-v4.js?v=57';
 import { renderAdmin } from './views/admin-v5.js?v=44';
 
 const tg = window.Telegram?.WebApp;
@@ -14,20 +14,22 @@ const focusContext = document.querySelector('#focus-context');
 const query = new URLSearchParams(window.location.search);
 const adminMode = query.get('admin') === '1';
 const reviewOrderParam = String(query.get('review') || '').trim();
-const openParam = String(query.get('open') || '').trim().toLowerCase();
 const DEMO_ORDERS_KEY = 'hc-demo-orders-v3';
 const PROFILE_CACHE_KEY = 'hc-client-profile-v1';
 let lastNavRoute = '';
 let lastNavAt = 0;
+let currentLocation = null;
+const backStack = [];
 
 function configureTelegram() {
   if (!tg) return;
   tg.ready();
   tg.expand();
-  tg.setHeaderColor?.('#05090c');
-  tg.setBackgroundColor?.('#05090c');
-  tg.setBottomBarColor?.('#070c10');
   tg.disableVerticalSwipes?.();
+  try {
+    const current = window.HCUltraTheme?.get?.();
+    if (current) window.HCUltraTheme?.set?.(current);
+  } catch {}
 }
 
 function configureAdminMode() {
@@ -107,14 +109,35 @@ function haptic() { try { tg?.HapticFeedback?.selectionChanged?.(); } catch {} }
 function configureClientNav() {
   if (adminMode || !nav) return;
   nav.classList.remove('hidden');
-  const buttonFromEvent = (event) => { const target = event.target instanceof Element ? event.target.closest('[data-route]') : null; return target && nav.contains(target) ? target : null; };
+  const buttonFromEvent = (event) => {
+    const target = event.target instanceof Element ? event.target.closest('[data-route]') : null;
+    return target && nav.contains(target) ? target : null;
+  };
   const go = (button, event) => {
     const route = String(button?.dataset?.route || '');
     if (!['home', 'orders', 'profile'].includes(route)) return false;
-    event?.preventDefault?.(); event?.stopPropagation?.(); releaseFocus(); lastNavRoute = route; lastNavAt = Date.now(); haptic(); navigate(route); return true;
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    releaseFocus();
+    lastNavRoute = route;
+    lastNavAt = Date.now();
+    haptic();
+    navigate(route, {}, { tab: true });
+    return true;
   };
-  nav.addEventListener('pointerup', (event) => { const button = buttonFromEvent(event); if (button) go(button, event); }, true);
-  nav.addEventListener('click', (event) => { const button = buttonFromEvent(event); if (!button) return; const route = String(button.dataset.route || ''); event.preventDefault(); event.stopPropagation(); if (route === lastNavRoute && Date.now() - lastNavAt < 650) return; go(button, event); }, true);
+  nav.addEventListener('pointerup', (event) => {
+    const button = buttonFromEvent(event);
+    if (button) go(button, event);
+  }, true);
+  nav.addEventListener('click', (event) => {
+    const button = buttonFromEvent(event);
+    if (!button) return;
+    const route = String(button.dataset.route || '');
+    event.preventDefault();
+    event.stopPropagation();
+    if (route === lastNavRoute && Date.now() - lastNavAt < 650) return;
+    go(button, event);
+  }, true);
 }
 
 async function hydrateClientProfile() {
@@ -150,53 +173,135 @@ async function syncOwnDemoOrders() {
       if (!number) continue;
       const existing = byNumber.get(number);
       if (existing) Object.assign(existing, server, { id: existing.id });
-      else { const item = { ...server, id: Number(server.id || 0) || nextId++ }; local.push(item); byNumber.set(number, item); }
+      else {
+        const item = { ...server, id: Number(server.id || 0) || nextId++ };
+        local.push(item);
+        byNumber.set(number, item);
+      }
     }
     local.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
     localStorage.setItem(DEMO_ORDERS_KEY, JSON.stringify(local));
   } catch (error) { console.warn('Own order sync skipped', error); }
 }
 
-export function navigate(route, params = {}) {
-  if (adminMode && route !== 'admin') route = 'admin';
-  if (route !== 'booking') releaseFocus();
-  state.route = route;
-  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+function cleanParams(params = {}) {
+  const next = { ...params };
+  delete next.__back;
+  delete next.__replace;
+  return next;
+}
+
+function sameLocation(a, b) {
+  if (!a || !b || a.route !== b.route) return false;
+  try { return JSON.stringify(a.params || {}) === JSON.stringify(b.params || {}); }
+  catch { return false; }
+}
+
+function rememberCurrent() {
+  if (!currentLocation) return;
+  currentLocation.scrollY = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+}
+
+function restoreScroll(value) {
+  const y = Math.max(0, Number(value || 0));
+  requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: y, left: 0, behavior: 'instant' })));
+}
+
+function renderRoute(route, params) {
   if (route === 'admin') return renderAdmin(root, navigate);
-  if (route === 'home') { document.body.classList.remove('booking-flow'); setActiveNav('home'); return renderConciergeHome(root, navigate); }
-  if (route === 'booking') { setActiveNav('home'); if (!Number(state.draft?.step || 0)) { state.draft.step = 1; state.saveDraft(); } return renderBooking(root, navigate); }
+  if (route === 'home') {
+    document.body.classList.remove('booking-flow');
+    setActiveNav('home');
+    return renderConciergeHome(root, navigate);
+  }
+  if (route === 'booking') {
+    setActiveNav('home');
+    if (!Number(state.draft?.step || 0)) {
+      state.draft.step = 1;
+      state.saveDraft();
+    }
+    return renderBooking(root, navigate);
+  }
   document.body.classList.remove('booking-flow');
   setActiveNav(route);
   if (route === 'orders') return renderConciergeOrders(root, navigate, params);
   if (route === 'profile') return renderConciergeProfile(root, navigate, params);
-  return navigate('home');
+  return renderRoute('home', {});
 }
 
+export function navigate(route, params = {}, options = {}) {
+  if (adminMode && route !== 'admin') route = 'admin';
+  if (route !== 'booking') releaseFocus();
+
+  const next = { route, params: cleanParams(params), scrollY: 0 };
+  const goingBack = Boolean(options.back);
+  const tab = Boolean(options.tab);
+  const replace = Boolean(options.replace);
+
+  if (tab) {
+    backStack.length = 0;
+  } else if (!goingBack && !replace && currentLocation && !sameLocation(currentLocation, next)) {
+    rememberCurrent();
+    backStack.push({ ...currentLocation, params: { ...(currentLocation.params || {}) } });
+    if (backStack.length > 30) backStack.shift();
+  }
+
+  currentLocation = next;
+  state.route = route;
+  if (!goingBack) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+  const result = renderRoute(route, next.params);
+  return Promise.resolve(result).finally(() => {
+    if (goingBack) restoreScroll(options.restoreY);
+  });
+}
+
+export function goBack(fallbackRoute = 'home') {
+  releaseFocus();
+  const previous = backStack.pop();
+  if (!previous) return navigate(fallbackRoute, {}, { replace: true });
+  return navigate(previous.route, previous.params || {}, { back: true, replace: true, restoreY: previous.scrollY });
+}
+
+window.HCNavigation = {
+  navigate,
+  back: goBack,
+  current: () => currentLocation ? { ...currentLocation, params: { ...(currentLocation.params || {}) } } : null,
+  depth: () => backStack.length,
+};
+
 async function start() {
-  configureTelegram(); configureFocusContext(); configureAdminMode(); configureNavSync();
+  configureTelegram();
+  configureFocusContext();
+  configureAdminMode();
+  configureNavSync();
   root.innerHTML = `<div class="loading"><div><div class="spinner"></div>Загружаем HOUSE CLEANING...</div></div>`;
+
   if (!tg?.initData && !isDemoMode) {
     root.innerHTML = `<section class="hero"><div class="brand"><div class="brand-mark">HC</div><div><div class="brand-title">HOUSE CLEANING</div><div class="brand-sub">Уборка квартир и домов</div></div></div><div class="hero-copy"><h1>Откройте в Telegram</h1><p>Приложение использует безопасную авторизацию Telegram Mini App.</p></div></section>`;
     return;
   }
+
   try {
     state.bootstrap = await api.bootstrap();
     await state.hydrateRemoteDraft();
     await Promise.all([hydrateClientProfile(), syncOwnDemoOrders(), state.restorePhotos()]);
     configureClientNav();
-    if (!adminMode && openParam === 'referral') return navigate('profile', { section: 'referral' });
+
     if (!adminMode && reviewOrderParam) {
       const data = await api.orders();
       const order = (data?.orders || []).find((item) => String(item.order_number || '') === reviewOrderParam);
-      if (order?.id) return navigate('orders', { orderId: Number(order.id) });
+      if (order?.id) return navigate('orders', { orderId: Number(order.id) }, { replace: true });
     }
+
     const startParam = tg?.initDataUnsafe?.start_param || '';
     if (!adminMode && !isDemoMode && startParam.startsWith('order_')) {
       const orderId = Number(startParam.slice(6));
-      if (Number.isInteger(orderId)) return navigate('orders', { orderId });
+      if (Number.isInteger(orderId)) return navigate('orders', { orderId }, { replace: true });
     }
+
     const initialRoute = adminMode ? 'admin' : Number(state.draft?.step || 0) > 0 ? 'booking' : 'home';
-    navigate(initialRoute);
+    navigate(initialRoute, {}, { replace: true });
     if (!adminMode) requestAnimationFrame(() => requestAnimationFrame(() => setActiveNav(initialRoute)));
   } catch (error) {
     root.innerHTML = `<div class="card pad" style="margin-top:60px"><h2>Не удалось открыть приложение</h2><p class="page-subtitle">${escapeHtml(error.message || 'Попробуйте ещё раз')}</p><button class="primary-btn" onclick="location.reload()">Попробовать снова</button></div>`;

@@ -33,7 +33,8 @@ export default {
       const completed = String(body?.status || '') === 'COMPLETED' && clientId && orderNumber;
       if (!completed) return profileWorker.fetch(request, env, ctx);
 
-      const reserved = await reserveInvite(env, clientId, orderNumber);
+      const reviewAllowed = await ultraNotificationAllowed(env, clientId, 'review');
+      const reserved = reviewAllowed ? await reserveInvite(env, clientId, orderNumber) : false;
       const response = await legacyWorker.fetch(request, env, ctx);
       if (response.ok && reserved) {
         const sent = await sendInvite(env, clientId, orderNumber, url.origin);
@@ -54,7 +55,8 @@ export default {
       catch { orderNumber = cleanOrderNumber(match[2]); }
       if (!clientId || !orderNumber) return profileWorker.fetch(request, env, ctx);
 
-      const reserved = await reserveInvite(env, clientId, orderNumber);
+      const reviewAllowed = await ultraNotificationAllowed(env, clientId, 'review');
+      const reserved = reviewAllowed ? await reserveInvite(env, clientId, orderNumber) : false;
       const response = await legacyWorker.fetch(request, env, ctx);
       if (response.ok && reserved) {
         const sent = await sendInvite(env, clientId, orderNumber, url.origin);
@@ -117,6 +119,19 @@ async function sendInvite(env, clientId, orderNumber, origin) {
 function appStub(env) {
   if (!env.APP_STORE) return null;
   return env.APP_STORE.get(env.APP_STORE.idFromName(APP_STORE_NAME));
+}
+
+async function ultraNotificationAllowed(env, userId, type) {
+  try {
+    const stub = appStub(env);
+    if (!stub || !positiveInt(userId)) return true;
+    const response = await stub.fetch(`https://app.internal/ultra7/notification-allowed?user=${encodeURIComponent(userId)}&type=${encodeURIComponent(type)}`);
+    if (!response.ok) return true;
+    const data = await response.json().catch(() => ({}));
+    return data?.allowed !== false;
+  } catch {
+    return true;
+  }
 }
 
 async function telegram(env, method, payload) {
