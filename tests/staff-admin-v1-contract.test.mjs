@@ -26,9 +26,9 @@ const publicOrderWorker = read('src/production-public-order.js');
 const wrangler = read('wrangler.jsonc');
 
 test('client booking stays isolated while the client bundle uses Ultra 7 cache keys', () => {
-  assert.match(index, /app-release-v3\.js\?v=57/);
-  assert.match(entry, /client-experience-v53\.js\?v=57/);
-  assert.match(entry, /app-release-v2\.js\?v=57/);
+  assert.match(index, /app-release-v3\.js\?v=58/);
+  assert.match(entry, /client-experience-v53\.js\?v=58/);
+  assert.match(entry, /app-release-v2\.js\?v=58/);
   assert.doesNotMatch(index, /staff\/staff\.css/);
   assert.doesNotMatch(index, /staff\/app\.js/);
 });
