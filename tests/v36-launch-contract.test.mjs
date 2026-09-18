@@ -130,15 +130,16 @@ test('order detail back remembers whether client came from home or orders', () =
   assert.match(clientExperience, /cc-detail-head/);
 });
 
-test('release 58 keeps compact cards and clearer Ultra 7 home', () => {
+test('release 59 applies handwritten home and orders revisions', () => {
   assert.match(clientOrders, /let currentFilter = 'active'/);
   assert.match(clientOrders, /function shortOrderNumber/);
   assert.match(clientOrders, /display_number/);
   assert.match(clientOrders, /Заказ \$\{escapeHtml\(shortOrderNumber\(order\)\)\}/);
   assert.match(clientOrders, /\['history', 'История'\]/);
-  assert.match(clientOrders, /hc-order-card-v54/);
+  assert.match(clientOrders, /u7-order-card-v3/);
   assert.match(clientOrders, /<h1>Заказ \$\{escapeHtml\(shortOrderNumber\(order\)\)\}<\/h1>/);
-  assert.match(clientHome, /Последние заявки/);
+  assert.doesNotMatch(clientHome, /Последние заявки/);
+  assert.match(clientHome, /Повторить последнюю уборку/);
   assert.match(clientHome, /Ближайшие 7 дней/);
     assert.match(clientHome, /hc-home-order-card-v54/);
   assert.match(clientUi, /hc-order-card-v54/);
@@ -174,20 +175,20 @@ test('one-time clean launch no longer clears draft on every reopen', () => {
   assert.doesNotMatch(launchReset, /localStorage\.setItem\(KEY, 'pending'\)/);
 });
 
-test('release 58 loads Ultra 7 UX fixes without invalidating stable production layers', () => {
-  assert.match(index, /house-cleaning-release" content="58/);
+test('release 59 loads Ultra 7.2 UX fixes without invalidating stable production layers', () => {
+  assert.match(index, /house-cleaning-release" content="59/);
   assert.match(index, /public-order-number-v55\.js\?v=55/);
   assert.match(index, /client-ui-v53\.css\?v=54/);
-  assert.match(index, /app-release-v3\.js\?v=58/);
-  assert.match(specialEntry, /client-experience-v53\.js\?v=58/);
-  assert.match(specialEntry, /app-release-v2\.js\?v=58/);
-  assert.match(entry, /api-release-v2\.js\?v=58/);
-  assert.match(entry, /api-shared-v50\.js\?v=58/);
-  assert.match(entry, /state-release-v2\.js\?v=58/);
-  assert.match(entry, /app-release\.js\?v=58/);
-  assert.match(app, /booking-v5\.js\?v=58/);
-  assert.match(app, /concierge-home-v4\.js\?v=58/);
-  assert.match(app, /concierge-orders-v4\.js\?v=58/);
+  assert.match(index, /app-release-v3\.js\?v=59/);
+  assert.match(specialEntry, /client-experience-v53\.js\?v=59/);
+  assert.match(specialEntry, /app-release-v2\.js\?v=59/);
+  assert.match(entry, /api-release-v2\.js\?v=59/);
+  assert.match(entry, /api-shared-v50\.js\?v=59/);
+  assert.match(entry, /state-release-v2\.js\?v=59/);
+  assert.match(entry, /app-release\.js\?v=59/);
+  assert.match(app, /booking-v5\.js\?v=59/);
+  assert.match(app, /concierge-home-v4\.js\?v=59/);
+  assert.match(app, /concierge-orders-v4\.js\?v=59/);
   assert.match(bookingV5, /booking-v2\.js\?v=52/);
   assert.match(clientUi, /hc-resume-card-v53/);
   assert.match(clientUi, /height:64px!important/);
