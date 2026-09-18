@@ -29,8 +29,8 @@
 
   function typeLabel() {
     if (benefits?.selected_type === 'loyalty') return 'Скидка по программе лояльности';
-    if (benefits?.selected_type === 'referral_friend') return 'Скидка по приглашению друга';
-    if (benefits?.selected_type === 'referral_reward') return 'Реферальная скидка';
+    if (benefits?.selected_type === 'referral_friend') return 'Персональная скидка';
+    if (benefits?.selected_type === 'referral_reward') return 'Персональная скидка';
     return 'Скидка';
   }
 
@@ -112,7 +112,7 @@
       const after = Number(order.estimated_price || 0);
       if (!percent || !before || !after) return;
       const amount = Number(order.discount_amount || Math.max(0, before - after));
-      const label = order.discount_type === 'loyalty' ? 'Лояльность' : order.discount_type === 'referral_friend' ? 'По приглашению друга' : 'Реферальная скидка';
+      const label = order.discount_type === 'loyalty' ? 'Лояльность' : 'Персональная скидка';
       const card = document.createElement('div');
       card.dataset.orderBenefit = '1';
       card.className = 'card hc-order-benefit';
