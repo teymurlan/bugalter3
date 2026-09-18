@@ -10,6 +10,14 @@ let staff = [];
 let selectedStaffId = null;
 let orderFilter = 'all';
 let orderSearch = '';
+let clientSearch = '';
+let ultra = {
+  settings: {},
+  clients: [],
+  counts: {},
+  broadcasts: [],
+  notification_center: { configured:false },
+};
 
 const tg = window.Telegram?.WebApp;
 const headers = (extra = {}) => ({ 'X-Telegram-Init-Data': tg?.initData || '', ...extra });
@@ -65,13 +73,38 @@ export async function renderAdmin(root, navigate) {
   paint(root);
 }
 async function reload() {
-  const [o, s] = await Promise.allSettled([api.adminOrders(), getJson('/api/admin-staff')]);
+  const [o, s, u] = await Promise.allSettled([
+    api.adminOrders(),
+    getJson('/api/admin-staff'),
+    getJson('/api/admin-ultra7'),
+  ]);
   if (o.status === 'fulfilled') orders = Array.isArray(o.value?.orders) ? o.value.orders : [];
   else throw o.reason;
   staff = s.status === 'fulfilled' && Array.isArray(s.value?.staff) ? s.value.staff : [];
+  if (u.status === 'fulfilled') {
+    ultra = {
+      settings: u.value?.settings || {},
+      clients: Array.isArray(u.value?.clients) ? u.value.clients : [],
+      counts: u.value?.counts || {},
+      broadcasts: Array.isArray(u.value?.broadcasts) ? u.value.broadcasts : [],
+      notification_center: u.value?.notification_center || { configured:false },
+    };
+  }
 }
 function paint(root) {
-  const body = selectedStaffId ? staffProfile() : section === 'orders' ? ordersView() : section === 'home' ? homeView() : section === 'more' ? moreView() : staffView();
+  const body = selectedStaffId
+    ? staffProfile()
+    : section === 'orders'
+      ? ordersView()
+      : section === 'home'
+        ? homeView()
+        : section === 'clients'
+          ? clientsView()
+          : section === 'notifications'
+            ? notificationsView()
+            : section === 'more'
+              ? moreView()
+              : staffView();
   root.innerHTML = `<div class="hc-mobile-shell">${body}${selectedStaffId ? '' : bottomNav()}</div>`;
   bind(root);
 }
@@ -151,8 +184,153 @@ function orderCard(o) {
   return `<article class="hc-order-card"><div class="hc-order-time"><b>${escapeHtml(formatTime(o.time)||'—')}</b><small>${o.date===moscowIso(0)?'Сегодня':escapeHtml(formatDate(o.date))}</small></div><div class="hc-order-main"><div class="hc-order-line"><h3>${escapeHtml(o.customer_name||'Клиент')}</h3><span class="hc-order-status ${statusClass(o.status)}"><i></i>${escapeHtml(statusLabel(o.status))}</span></div><p>${escapeHtml(o.service_name||'Уборка')} · ${Number(o.area||0)} м²</p><p class="addr">⌖ ${escapeHtml(o.address||'Адрес не указан')}</p><div class="hc-order-bottom"><b>${Number(o.estimated_price||0)?money(o.estimated_price):'Цена уточняется'}</b><span>${assigned?`👤 ${escapeHtml(assigned.name)}`:'Не назначен'}</span></div></div><div class="hc-card-actions four"><button data-assign-order="${escapeHtml(o.order_number||'')}">Назначить</button><button data-contact-order="${escapeHtml(o.order_number||'')}">Связаться</button><button data-reschedule="${escapeHtml(o.order_number||'')}">Перенести</button><button data-order-detail="${escapeHtml(o.order_number||'')}">Подробнее</button></div></article>`;
 }
 function moreView() {
-  return `${top('Ещё','Настройки управления')}
-    <section class="hc-block hc-menu-list"><button data-sec="home"><span>⌂</span><div><b>Обзор дня</b><small>Загрузка и важные события</small></div>›</button><button data-sec="orders"><span>▤</span><div><b>Все заявки</b><small>Поиск, статусы и назначения</small></div>›</button><button data-sec="staff"><span>👥</span><div><b>Сотрудники</b><small>Команда и обучение</small></div>›</button><button data-refresh><span>↻</span><div><b>Обновить данные</b><small>Получить актуальную информацию</small></div>›</button></section>`;
+  return `${top('Ещё','Клиенты, уведомления и настройки Ultra 7')}
+    <section class="hc-block hc-menu-list">
+      <button data-sec="clients"><span>◎</span><div><b>Клиенты и графики</b><small>Последняя, следующая и оставшиеся уборки</small></div>›</button>
+      <button data-sec="notifications"><span>◉</span><div><b>Уведомления и рассылки</b><small>Настройки сообщений и отправка клиентам</small></div>›</button>
+      <button data-admin-theme><span>◐</span><div><b>Внешний вид</b><small>Светлая, тёмная или синяя тема</small></div>›</button>
+      <button data-sec="home"><span>⌂</span><div><b>Обзор дня</b><small>Загрузка и важные события</small></div>›</button>
+      <button data-refresh><span>↻</span><div><b>Обновить данные</b><small>Получить актуальную информацию</small></div>›</button>
+    </section>`;
+}
+
+function clientsView() {
+  const q = clientSearch.trim().toLocaleLowerCase('ru-RU');
+  const clients = ultra.clients.filter((client) => {
+    if (!q) return true;
+    return [client.name, client.phone, client.telegram_id, client.next_address, client.subscription_name]
+      .some((value) => String(value || '').toLocaleLowerCase('ru-RU').includes(q));
+  });
+  return `${top('Клиенты','График уборок и история по каждому заказчику')}
+    <section class="hc-m-toolbar"><label class="hc-m-search">${icon('search')}<input data-client-search value="${escapeHtml(clientSearch)}" placeholder="Имя, телефон, адрес"></label></section>
+    <section class="hc-m-kpis">
+      <div><span>Клиентов</span><b>${Number(ultra.counts.all || ultra.clients.length)}</b></div>
+      <div><span>С активными</span><b>${Number(ultra.counts.active || 0)}</b></div>
+      <div><span>По графику</span><b>${Number(ultra.counts.subscription || 0)}</b></div>
+    </section>
+    <section class="u7-client-list">
+      ${clients.length ? clients.map(clientCard).join('') : '<div class="hc-empty"><h3>Клиенты не найдены</h3><p>Измените строку поиска.</p></div>'}
+    </section>`;
+}
+
+function clientCard(client) {
+  const last = client.last_cleaning_at || 'Ещё не было';
+  const next = client.next_cleaning_at || 'Не запланирована';
+  return `<article class="u7-client-card">
+    <div class="u7-client-card-head"><div><strong>${escapeHtml(client.name || `ID ${client.telegram_id}`)}</strong><small>${escapeHtml(client.phone || `Telegram ID ${client.telegram_id}`)}</small></div><button class="hc-m-filter" type="button" data-edit-client-schedule="${escapeHtml(String(client.telegram_id))}">•••</button></div>
+    <div class="u7-client-stats">
+      <div><small>Уборок</small><b>${Number(client.completed_count || 0)}</b></div>
+      <div><small>Осталось</small><b>${Number(client.cleanings_remaining || 0)}</b></div>
+      <div><small>Активных</small><b>${Number(client.active_count || 0)}</b></div>
+    </div>
+    <div class="u7-client-next"><b>Последняя:</b> ${escapeHtml(last)}<br><b>Следующая:</b> ${escapeHtml(next)}${client.next_address ? `<br><span>${escapeHtml(client.next_address)}</span>` : ''}</div>
+    <div class="hc-card-actions"><button data-contact-client="${escapeHtml(String(client.telegram_id))}">Связаться</button><button data-edit-client-schedule="${escapeHtml(String(client.telegram_id))}">График</button></div>
+  </article>`;
+}
+
+function notificationsView() {
+  const x = ultra.settings || {};
+  const toggles = [
+    ['central_new_order','Новые заявки','Отправлять новые заявки в центр уведомлений.'],
+    ['central_cancellation','Отмены','Отправлять отмены в центр уведомлений.'],
+    ['client_confirmed','Подтверждение клиенту','Telegram после подтверждения заявки.'],
+    ['client_reminder','Напоминание за 24 часа','Автоматическое напоминание перед уборкой.'],
+    ['client_completed','Завершение уборки','Итоговое сообщение после выполнения.'],
+    ['client_review','Просьба об отзыве','Приглашение оставить оценку после уборки.'],
+    ['marketing_enabled','Рассылки','Разрешить ручные информационные рассылки.'],
+  ];
+  const history = ultra.broadcasts.slice(0,6);
+  return `${top('Уведомления','Управление сообщениями и рассылками')}
+    <div class="u7-admin-notify">
+      <section class="hc-block">
+        <div class="hc-block-head"><h2>Системные уведомления</h2><span>${ultra.notification_center?.configured ? 'Центр подключён' : 'Telegram'}</span></div>
+        <div class="u7-settings-list">${toggles.map(([id,title,subtitle]) => `<label class="u7-toggle-row"><span class="u7-toggle-copy"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(subtitle)}</small></span><span class="u7-switch"><input type="checkbox" data-admin-notify="${id}" ${x[id] !== false ? 'checked' : ''}><span></span></span></label>`).join('')}</div>
+        <button class="hc-primary" type="button" data-save-ultra-settings>Сохранить настройки</button>
+      </section>
+      <section class="hc-block">
+        <div class="hc-block-head"><h2>Рассылка клиентам</h2><span>Только главный админ</span></div>
+        <form class="u7-broadcast-form" data-broadcast-form>
+          <label>Кому<select name="segment"><option value="all">Все клиенты</option><option value="active">С активной уборкой</option><option value="completed">Уже заказывали</option><option value="subscription">Есть уборки по графику</option></select></label>
+          <div class="u7-audience"><span>Доступно получателей</span><b data-audience-count>${Number(ultra.counts.marketing || 0)}</b></div>
+          <label>Заголовок<input name="title" maxlength="160" placeholder="Например: Важная информация"></label>
+          <label>Сообщение<textarea name="message" maxlength="3500" placeholder="Введите текст для клиентов" required></textarea></label>
+          <label>Текст кнопки — необязательно<input name="button_text" maxlength="60" placeholder="Открыть сайт"></label>
+          <label>Ссылка кнопки — необязательно<input name="button_url" maxlength="1000" placeholder="https://..."></label>
+          <button class="hc-primary" type="submit">Проверить и отправить</button>
+        </form>
+      </section>
+      <section class="hc-block">
+        <div class="hc-block-head"><h2>Последние рассылки</h2><span>${history.length}</span></div>
+        <div class="u7-broadcast-history">${history.length ? history.map((item) => `<article><strong>${escapeHtml(item.title || 'Без заголовка')} · отправлено ${Number(item.sent || 0)}</strong><small>${escapeHtml(item.segment || 'all')} · ${escapeHtml(formatUltraDate(item.created_at))}${Number(item.failed||0) ? ` · ошибок ${Number(item.failed)}` : ''}</small></article>`).join('') : '<p class="hc-muted">Рассылок пока не было.</p>'}</div>
+      </section>
+    </div>`;
+}
+
+function formatUltraDate(value) {
+  const date = new Date(value || '');
+  if (!Number.isFinite(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('ru-RU',{ day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit' }).format(date);
+}
+
+function contactClient(client) {
+  if (!client) return;
+  const tel = String(client.phone || '').replace(/[^+\d]/g,'');
+  const user = String(client.telegram_id || '').replace(/\D/g,'');
+  const el = sheet(`<div class="hc-sheet-head"><h2>Связаться с клиентом</h2><button data-close>×</button></div><p class="hc-sheet-sub">${escapeHtml(client.name || 'Клиент')}</p><div class="hc-contact-grid">${tel ? `<a href="tel:${escapeHtml(tel)}">☎︎<b>Позвонить</b></a>` : ''}${user ? `<a href="tg://user?id=${escapeHtml(user)}">💬<b>Telegram</b></a>` : ''}</div>`);
+  el.querySelector('[data-close]').onclick = () => el.remove();
+}
+
+function clientScheduleEditor(root, client) {
+  if (!client) return;
+  const el = sheet(`<div class="hc-sheet-head"><h2>График клиента</h2><button data-close>×</button></div><p class="hc-sheet-sub">${escapeHtml(client.name || `ID ${client.telegram_id}`)}</p>
+    <form class="hc-form" data-client-schedule-form>
+      <label>Название графика / абонемента<input name="subscription_name" value="${escapeHtml(client.subscription_name || '')}" placeholder="Например: Еженедельно"></label>
+      <label>Всего уборок<input type="number" min="0" name="cleanings_total" value="${Number(client.cleanings_total || 0)}"></label>
+      <label>Осталось уборок<input type="number" min="0" name="cleanings_remaining" value="${Number(client.cleanings_remaining || 0)}"></label>
+      <label>Последняя уборка<input name="last_cleaning_at" value="${escapeHtml(client.last_cleaning_at || '')}" placeholder="2026-09-10 12:00"></label>
+      <label>Следующая уборка<input name="next_cleaning_at" value="${escapeHtml(client.next_cleaning_at || '')}" placeholder="2026-09-24 12:00"></label>
+      <label>Заметка<textarea name="schedule_note" rows="3" placeholder="График, пожелания, особенности">${escapeHtml(client.schedule_note || '')}</textarea></label>
+      <button class="hc-primary" type="submit">Сохранить график</button>
+    </form>`);
+  el.querySelector('[data-close]').onclick = () => el.remove();
+  el.querySelector('form').onsubmit = async (event) => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector('button[type=submit]');
+    button.disabled = true;
+    const f = new FormData(event.currentTarget);
+    try {
+      await postJson('/api/admin-ultra7/client-schedule', {
+        telegram_id: client.telegram_id,
+        subscription_name:f.get('subscription_name'),
+        cleanings_total:Number(f.get('cleanings_total') || 0),
+        cleanings_remaining:Number(f.get('cleanings_remaining') || 0),
+        last_cleaning_at:f.get('last_cleaning_at'),
+        next_cleaning_at:f.get('next_cleaning_at'),
+        schedule_note:f.get('schedule_note'),
+      });
+      await reload();
+      showToast('График клиента сохранён');
+      el.remove();
+      paint(root);
+    } catch (error) {
+      showToast(error.message || 'Не удалось сохранить график', true);
+      button.disabled = false;
+    }
+  };
+}
+
+function adminThemeSheet() {
+  const options = window.HCUltraTheme?.options || [{id:'light',label:'Светлая'},{id:'dark',label:'Тёмная'},{id:'blue',label:'Синяя'}];
+  const current = window.HCUltraTheme?.get?.() || 'light';
+  const el = sheet(`<div class="hc-sheet-head"><h2>Внешний вид</h2><button data-close>×</button></div><p class="hc-sheet-sub">Тема меняется только для вашего админ-приложения.</p><div class="u7-theme-grid">${options.map((item)=>`<button class="u7-theme-choice ${current===item.id?'active':''}" type="button" data-admin-theme-choice="${item.id}"><i></i><span>${escapeHtml(item.label)}</span></button>`).join('')}</div>`);
+  el.querySelector('[data-close]').onclick = () => el.remove();
+  el.querySelectorAll('[data-admin-theme-choice]').forEach((button) => {
+    button.onclick = () => {
+      window.HCUltraTheme?.set?.(button.dataset.adminThemeChoice);
+      el.querySelectorAll('[data-admin-theme-choice]').forEach((item)=>item.classList.toggle('active',item===button));
+      haptic();
+    };
+  });
 }
 
 function bind(root) {
@@ -169,6 +347,56 @@ function bind(root) {
   root.querySelectorAll('[data-reschedule]').forEach(b=>b.onclick=()=>reschedule(root,orders.find(x=>String(x.order_number)===String(b.dataset.reschedule))));
   root.querySelectorAll('[data-order-detail]').forEach(b=>b.onclick=()=>orderDetails(root,orders.find(x=>String(x.order_number)===String(b.dataset.orderDetail))));
   root.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{orderFilter=b.dataset.filter;paint(root);});
+  root.querySelectorAll('[data-admin-theme]').forEach((b)=>b.onclick=adminThemeSheet);
+  root.querySelectorAll('[data-edit-client-schedule]').forEach((b)=>b.onclick=()=>clientScheduleEditor(root, ultra.clients.find((client)=>String(client.telegram_id)===String(b.dataset.editClientSchedule))));
+  root.querySelectorAll('[data-contact-client]').forEach((b)=>b.onclick=()=>contactClient(ultra.clients.find((client)=>String(client.telegram_id)===String(b.dataset.contactClient))));
+  root.querySelector('[data-save-ultra-settings]')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    const payload = {};
+    root.querySelectorAll('[data-admin-notify]').forEach((input)=>{ payload[input.dataset.adminNotify] = Boolean(input.checked); });
+    button.disabled = true;
+    try {
+      await postJson('/api/admin-ultra7/settings', payload);
+      ultra.settings = { ...ultra.settings, ...payload };
+      showToast('Настройки уведомлений сохранены');
+    } catch (error) {
+      showToast(error.message || 'Не удалось сохранить настройки', true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+  const broadcast = root.querySelector('[data-broadcast-form]');
+  if (broadcast) {
+    const segment = broadcast.querySelector('[name=segment]');
+    const count = root.querySelector('[data-audience-count]');
+    const refreshAudience = () => {
+      const id = segment.value;
+      const value = id === 'active' ? ultra.counts.active : id === 'completed' ? ultra.counts.completed : id === 'subscription' ? ultra.counts.subscription : ultra.counts.marketing;
+      if (count) count.textContent = String(Number(value || 0));
+    };
+    segment.onchange = refreshAudience;
+    refreshAudience();
+    broadcast.onsubmit = async (event) => {
+      event.preventDefault();
+      const form = new FormData(broadcast);
+      const audience = Number(count?.textContent || 0);
+      if (!audience) return showToast('В выбранном сегменте нет получателей', true);
+      const approved = confirm(`Отправить сообщение ${audience} клиентам?`);
+      if (!approved) return;
+      const button = broadcast.querySelector('button[type=submit]');
+      button.disabled = true;
+      try {
+        const result = await postJson('/api/admin-ultra7/broadcast', Object.fromEntries(form.entries()));
+        showToast(`Отправлено: ${Number(result.sent || 0)}${Number(result.failed || 0) ? `, ошибок: ${Number(result.failed)}` : ''}`);
+        await reload();
+        paint(root);
+      } catch (error) {
+        showToast(error.message || 'Рассылка не отправлена', true);
+        button.disabled = false;
+      }
+    };
+  }
+  const cs = root.querySelector('[data-client-search]'); if(cs) cs.oninput=()=>{clientSearch=cs.value; clearTimeout(cs._t); cs._t=setTimeout(()=>paint(root),180);};
   const os = root.querySelector('[data-order-search]'); if(os) os.oninput=()=>{orderSearch=os.value; clearTimeout(os._t); os._t=setTimeout(()=>paint(root),180);};
 }
 function sheet(html) {
