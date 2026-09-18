@@ -177,7 +177,7 @@ function renderList(root, navigate, list) {
 }
 
 export async function renderConciergeOrders(root, navigate, params = {}) {
-  if (params.orderId) return renderOrderDetails(root, navigate, params.orderId);
+  if (params.orderId) return renderOrderDetails(root, navigate, params.orderId, params);
   root.innerHTML = `<section class="cc-orders-head"><span class="cc-kicker">HOUSE CLEANING</span><h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Загружаем заявки...</p></section><div class="loading"><div><div class="spinner"></div>Проверяем данные...</div></div>`;
   try {
     const [local, stored] = await Promise.all([api.orders(), fetchStoredOrders()]);
@@ -194,7 +194,7 @@ function timeline(status) {
   return `<div class="cc-status-timeline hc-timeline state-${statusInfo(status).cls}"><div class="cc-timeline-line"><i style="width:${index ? Math.round(index / 3 * 100) : 0}%"></i></div>${steps.map((label, step) => `<div class="cc-timeline-step ${step <= index ? 'done' : ''} ${step === index ? 'current' : ''}"><span>${step < index ? '✓' : step + 1}</span><small>${escapeHtml(label)}</small></div>`).join('')}</div>`;
 }
 
-async function renderOrderDetails(root, navigate, id) {
+async function renderOrderDetails(root, navigate, id, params = {}) {
   try {
     const localData = await api.order(id);
     const stored = localData.order?.order_number ? await fetchStoredOrder(localData.order.order_number) : null;
@@ -228,7 +228,7 @@ async function renderOrderDetails(root, navigate, id) {
       <div class="cc-client-gallery">${availablePhotos ? Array.from({ length: availablePhotos }, (_, index) => `<button class="cc-client-photo" type="button" data-client-photo="${index}"><img alt="Фото ${index + 1}"><span>${index + 1}</span></button>`).join('') : `<div class="card cc-order-empty" style="grid-column:1/-1">${photoCount ? 'Фотографии этой старой заявки недоступны для восстановления.' : 'Фотографии не прикреплены.'}</div>`}</div>
       <div class="hc-order-actions">${selfCancel ? '<button class="hc-btn hc-btn-danger" type="button" data-cancel>Отменить заявку</button>' : ''}${ACTIVE.has(order.status) ? '<button class="hc-btn hc-btn-blue" type="button" data-manager>✉️ Написать менеджеру</button><button class="hc-btn hc-btn-green" type="button" data-call>📞 Позвонить</button>' : ''}</div>`;
 
-    root.querySelector('[data-back]').onclick = () => navigate('orders');
+    root.querySelector('[data-back]').onclick = () => window.HCNavigation?.back?.(params.from === 'home' ? 'home' : 'orders') || navigate(params.from === 'home' ? 'home' : 'orders');
     root.querySelector('[data-manager]')?.addEventListener('click', openManager);
     root.querySelector('[data-call]')?.addEventListener('click', callManager);
     if (availablePhotos) await loadDetailPhotos(root, order.order_number, availablePhotos);
@@ -240,7 +240,7 @@ async function renderOrderDetails(root, navigate, id) {
         cancel.disabled = true;
         await api.cancelOrder(id);
         showToast('Заявка отменена');
-        renderConciergeOrders(root, navigate, { orderId: id });
+        renderConciergeOrders(root, navigate, { ...params, orderId: id });
       } catch (error) {
         cancel.disabled = false;
         showToast(error.message || 'Не удалось отменить заявку', true);
@@ -248,7 +248,7 @@ async function renderOrderDetails(root, navigate, id) {
     };
   } catch (error) {
     root.innerHTML = `<button class="cc-back hc-fixed-back" type="button" data-back>← Назад</button><div class="card cc-order-empty hc-subpage-offset">${escapeHtml(error.message || 'Заявка не найдена')}</div>`;
-    root.querySelector('[data-back]').onclick = () => navigate('orders');
+    root.querySelector('[data-back]').onclick = () => window.HCNavigation?.back?.(params.from === 'home' ? 'home' : 'orders') || navigate(params.from === 'home' ? 'home' : 'orders');
   }
 }
 
