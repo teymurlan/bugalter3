@@ -393,6 +393,38 @@ export default {
       return handleBroadcast(env, body);
     }
 
+    if (url.pathname === '/api/demo-order-status' && request.method === 'POST') {
+      let body = {};
+      try { body = await request.clone().json(); } catch {}
+      const status = String(body?.status || '');
+      const clientId = positiveInt(body?.clientTelegramId || body?.order?.client_telegram_id);
+      const orderNumber = cleanOrderNumber(body?.order?.order_number);
+      if (status === 'CONFIRMED' && clientId && orderNumber) {
+        const allowed = await notificationAllowed(env, clientId, 'confirmed');
+        if (!allowed) {
+          if (!(await authorizedAdmin(request, env, ctx))) return json({ ok:false, error:'Недостаточно прав' }, 403);
+          const stored = await appStub(env)?.fetch('https://app.internal/status', {
+            method:'PATCH',
+            headers:{'content-type':'application/json'},
+            body:JSON.stringify({
+              client_telegram_id:clientId,
+              order_number:orderNumber,
+              status:'CONFIRMED',
+            }),
+          });
+          if (!stored?.ok) return json({ ok:false, error:'Не удалось сохранить статус' }, 503);
+          const data = await stored.json().catch(()=>({}));
+          return json({
+            ok:true,
+            status:'CONFIRMED',
+            order:data?.order || { ...(body.order || {}), status:'CONFIRMED' },
+            clientNotified:false,
+            notificationSuppressed:true,
+          });
+        }
+      }
+    }
+
     if (['/api/referral-link','/api/referral-dashboard','/api/referral-reward'].includes(url.pathname)) {
       return json({ ok:false, disabled:true, error:'Реферальная программа временно отключена.' }, 410);
     }
@@ -528,6 +560,16 @@ async function getAdminSettings(env) {
   } catch { return { ...DEFAULT_ADMIN_SETTINGS }; }
 }
 
+async function notificationAllowed(env, userId, type) {
+  try {
+    const response = await appStub(env)?.fetch(`https://app.internal/ultra7/notification-allowed?user=${encodeURIComponent(userId)}&type=${encodeURIComponent(type)}`);
+    if (!response?.ok) return true;
+    return (await response.json().catch(()=>({})))?.allowed !== false;
+  } catch {
+    return true;
+  }
+}
+
 async function centralNotificationHealth(env) {
   const baseUrl = String(env?.HC_NOTIFY_URL || '').trim().replace(/\/+$/, '');
   const secret = String(env?.HC_NOTIFY_SECRET || '').trim();
@@ -595,6 +637,11 @@ function publicNumber(order) {
 function positiveInt(value) {
   const number = Number(value);
   return Number.isSafeInteger(number) && number > 0 ? number : 0;
+}
+
+function cleanOrderNumber(value) {
+  const number = String(value || '').trim();
+  return /^[A-Za-z0-9._-]{3,80}$/.test(number) ? number : '';
 }
 
 function nonNegative(value) {
