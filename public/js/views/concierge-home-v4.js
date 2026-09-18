@@ -100,12 +100,7 @@ function profileRemaining() {
 }
 
 function nearestCard(order) {
-  if (!order) {
-    return `<section class="u7-next-cleaning empty">
-      <div><span>БЛИЖАЙШАЯ УБОРКА</span><strong>Пока не запланирована</strong><p>Выберите удобную дату — оформление займёт несколько минут.</p></div>
-      <button type="button" data-book-cleaning>Выбрать дату</button>
-    </section>`;
-  }
+  if (!order) return '';
   const status = statusInfo(order.status);
   const address = [order.city,order.address].filter(Boolean).join(', ');
   return `<section class="u7-next-cleaning">
@@ -119,15 +114,24 @@ function nearestCard(order) {
 function dashboardSummary(list, next) {
   const completed = completedOrders(list);
   const remaining = profileRemaining();
+  const activeCount = activeUpcoming(list).length;
+  if (!next && !(remaining > 0)) return '';
+
   const last = completed[0] || null;
-  return `<section class="u7-home-summary">
-    <div class="u7-home-summary-title"><h2>Мои уборки</h2><span>Коротко о вашем сервисе</span></div>
-    <div class="u7-home-stats">
-      <div><small>Выполнено</small><b>${completed.length}</b><span>всего уборок</span></div>
-      <div><small>Осталось</small><b>${remaining === null ? '—' : remaining}</b><span>${remaining === null ? 'появится после загрузки графика' : 'по вашему графику'}</span></div>
+  const remainingTile = remaining !== null
+    ? `<div class="u7-service-stat"><small>Осталось по графику</small><b>${remaining}</b><span>уборок в вашем плане</span></div>`
+    : `<div class="u7-service-stat"><small>Запланировано</small><b>${activeCount}</b><span>активных уборок</span></div>`;
+
+  return `<section class="u7-home-summary u7-home-summary-v3">
+    <div class="u7-home-summary-title"><div><span class="u7-eyebrow">ВАШ СЕРВИС</span><h2>Мои уборки</h2></div><span>Всё важное без лишнего</span></div>
+    <div class="u7-service-stats">
+      ${remainingTile}
+      <div class="u7-service-stat"><small>Выполнено</small><b>${completed.length}</b><span>за всё время</span></div>
     </div>
-    <div class="u7-home-history-row"><span>Последняя</span><b>${last ? `${escapeHtml(formatDate(last.date))} · ${escapeHtml(formatTime(last.time))}` : 'Ещё не было'}</b></div>
-    <div class="u7-home-history-row"><span>Следующая</span><b>${next ? `${escapeHtml(formatDate(next.date))} · ${escapeHtml(formatTime(next.time))}` : 'Не запланирована'}</b></div>
+    <div class="u7-service-timeline">
+      ${last ? `<div><span>Последняя</span><b>${escapeHtml(formatDate(last.date))} · ${escapeHtml(formatTime(last.time))}</b></div>` : ''}
+      ${next ? `<div class="is-next"><span>Следующая</span><b>${escapeHtml(formatDate(next.date))} · ${escapeHtml(formatTime(next.time))}</b></div>` : ''}
+    </div>
   </section>`;
 }
 
@@ -150,17 +154,34 @@ function upcomingSection(list) {
   const upcoming = list.filter((order)=>ACTIVE.has(order.status))
     .filter((order)=>{ const t=orderStart(order); return Number.isFinite(t) && t>=now && t<=limit; })
     .sort((a,b)=>orderStart(a)-orderStart(b));
-  return `<section class="cc-section hc-home-week-section-v54">
-    <div class="cc-section-head hc-home-section-head-v54"><div><h2>Ближайшие 7 дней</h2><span>${upcoming.length ? `Запланировано: ${upcoming.length}` : 'Пока свободно'}</span></div></div>
-    <div class="hc-home-week-list-v54">${upcoming.length ? upcoming.slice(0,3).map(compactOrderCard).join('') : '<div class="card hc-home-empty-v54">На ближайшие 7 дней уборок нет.</div>'}</div>
+  if (!upcoming.length) return '';
+  return `<section class="cc-section hc-home-week-section-v54 u7-week-v3">
+    <div class="cc-section-head hc-home-section-head-v54"><div><span class="u7-eyebrow">РАСПИСАНИЕ</span><h2>Ближайшие 7 дней</h2><span>${upcoming.length === 1 ? '1 уборка запланирована' : `${upcoming.length} уборки запланировано`}</span></div><button type="button" data-all-orders>Все</button></div>
+    <div class="hc-home-week-list-v54">${upcoming.slice(0,3).map(compactOrderCard).join('')}</div>
   </section>`;
 }
 
-function recentSection(list) {
-  const recent = recentOrders(list);
-  return `<section class="cc-section hc-home-orders-section-v54">
-    <div class="cc-section-head hc-home-section-head-v54"><div><h2>Последние заявки</h2><span>Статус и основные детали</span></div><button type="button" data-all-orders>Все</button></div>
-    <div class="hc-home-order-list-v54">${recent.length ? recent.map(compactOrderCard).join('') : '<div class="card hc-home-empty-v54">У вас пока нет заявок.</div>'}</div>
+function smartSection(order) {
+  if (!order) {
+    return `<section class="u7-smart-card first-cleaning">
+      <div class="u7-smart-icon">✦</div>
+      <div><span class="u7-eyebrow">БЫСТРЫЙ СТАРТ</span><h3>Первая уборка за несколько минут</h3><p>Выберите услугу, адрес и удобное время — остальное подскажем по шагам.</p></div>
+      <button type="button" data-book-cleaning>Оформить уборку</button>
+    </section>`;
+  }
+  const address = [order.city,order.address].filter(Boolean).join(', ');
+  return `<section class="u7-smart-card">
+    <div class="u7-smart-icon">↻</div>
+    <div><span class="u7-eyebrow">БЫСТРЫЙ ПОВТОР</span><h3>Повторить последнюю уборку</h3><p>${escapeHtml(order.service_name || 'Уборка')}${address ? ` · ${escapeHtml(address)}` : ''}</p></div>
+    <button type="button" data-repeat-order>Повторить</button>
+  </section>`;
+}
+
+function supportSection() {
+  return `<section class="u7-home-help u7-home-help-v3">
+    <div class="u7-help-icon">💬</div>
+    <div><span class="u7-eyebrow">ПОДДЕРЖКА</span><strong>Менеджер HOUSE CLEANING</strong><small>Вопрос по заявке, адресу или графику — напишите напрямую.</small></div>
+    <button type="button" data-manager>Написать</button>
   </section>`;
 }
 
@@ -238,39 +259,29 @@ export async function renderConciergeHome(root,navigate) {
   const next = upcoming[0] || null;
   const repeat = repeatableOrder(orders);
 
-  root.innerHTML = `<div class="cc-home u7-home-v2">
+  root.innerHTML = `<div class="cc-home u7-home-v2 u7-home-v3">
     <header class="u7-home-hero cc-greeting-row">
-      <div><span class="cc-kicker">HOUSE CLEANING</span><h1 class="cc-greeting">${escapeHtml(greeting())}, ${escapeHtml(displayName())}!</h1><p>Управляйте уборками без лишних шагов.</p></div>
+      <div><span class="cc-kicker">HOUSE CLEANING</span><h1 class="cc-greeting">${escapeHtml(greeting())}, ${escapeHtml(displayName())}!</h1><p>Ваша уборка, график и поддержка — в одном месте.</p></div>
       <div class="cc-monogram">HC</div>
-      <button class="u7-home-primary" type="button" data-book-cleaning>Заказать уборку</button>
+      <button class="u7-home-primary" type="button" data-book-cleaning><span>＋</span> Заказать уборку</button>
     </header>
 
     ${nearestCard(next)}
-
-    <section class="u7-home-actions">
-      <button type="button" data-repeat-order ${repeat ? '' : 'disabled'}><span>↻</span><b>Повторить уборку</b><small>${repeat ? 'Данные уже подставим' : 'После первой уборки'}</small></button>
-      <button type="button" data-all-orders><span>▤</span><b>Мои заявки</b><small>Статусы и история</small></button>
-      <button type="button" data-my-profile><span>⌂</span><b>Мои данные</b><small>Адрес и контакты</small></button>
-      <button type="button" data-price><span>₽</span><b>Прайс</b><small>Стоимость услуг</small></button>
-    </section>
-
     ${dashboardSummary(orders,next)}
     ${upcomingSection(orders)}
-    ${recentSection(orders)}
+    ${smartSection(repeat)}
 
-    <section class="u7-home-offer">
-      <div><span>АБОНЕМЕНТЫ</span><h3>Регулярная уборка без повторного оформления</h3><p>Заранее согласованный график на 5 или 10 уборок.</p></div>
-      <button type="button" data-subscriptions>Посмотреть</button>
+    <section class="u7-home-offer u7-home-offer-v3">
+      <div><span class="u7-eyebrow">АБОНЕМЕНТЫ</span><h3>Регулярная уборка по вашему графику</h3><p>5 или 10 уборок без повторного заполнения заявки каждый раз.</p></div>
+      <button type="button" data-subscriptions>Подробнее</button>
     </section>
 
-    <section class="u7-home-help"><div><small>Нужна помощь?</small><strong>Менеджер HOUSE CLEANING</strong></div><button type="button" data-manager>Написать</button></section>
+    ${supportSection()}
   </div>`;
 
   root.querySelectorAll('[data-book-cleaning]').forEach((button)=>button.onclick=()=>startBooking(navigate));
   root.querySelector('[data-repeat-order]')?.addEventListener('click',()=>repeatOrder(navigate,repeat));
   root.querySelectorAll('[data-all-orders]').forEach((button)=>button.onclick=()=>navigate('orders',{from:'home'}));
-  root.querySelector('[data-my-profile]')?.addEventListener('click',()=>navigate('profile',{from:'home'}));
-  root.querySelector('[data-price]')?.addEventListener('click',()=>navigate('profile',{section:'price',from:'home'}));
   root.querySelector('[data-subscriptions]')?.addEventListener('click',()=>navigate('profile',{section:'subscriptions',from:'home'}));
   root.querySelector('[data-manager]')?.addEventListener('click',openManager);
   root.querySelector('[data-next-order]')?.addEventListener('click',(event)=>{
