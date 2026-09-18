@@ -33,6 +33,9 @@ jobs:
       - name: Проверить оформление уборки как на iPhone
         run: node tests/playwright-booking-v52.mjs
 
+      - name: Проверить Ultra 7 UX как на iPhone
+        run: node tests/playwright-ultra7-v58.mjs
+
       - name: Сохранить скриншоты проверки
         if: always()
         uses: actions/upload-artifact@v4
