@@ -233,6 +233,34 @@ function calendarDates(days = 10) {
   return Array.from({ length: days }, (_, i) => { const date = new Date(start); date.setDate(start.getDate() + i); return date; });
 }
 
+function updateScheduleControls(root) {
+  const d = state.draft;
+  const dateText = d.date ? formatDate(d.date) : 'Выберите дату';
+  const display = root.querySelector('[data-date-display]');
+  const timeDate = root.querySelector('[data-time-date]');
+  const next = root.querySelector('.wizard-actions [data-next]');
+  if (display) display.textContent = dateText;
+  if (timeDate) timeDate.textContent = dateText;
+  if (next) next.disabled = !d.date || !d.time || Number(d.area) > DAILY_CAPACITY_M2;
+  root.querySelectorAll('[data-calendar-date]').forEach((button) => button.classList.toggle('selected', button.dataset.calendarDate === d.date));
+  root.querySelectorAll('[data-time]').forEach((button) => button.classList.toggle('selected', button.dataset.time === d.time));
+}
+
+async function selectScheduleDate(root, navigate, value) {
+  const nextDate = String(value || '');
+  if (!nextDate) return;
+  state.draft.date = nextDate;
+  state.draft.time = '';
+  state.saveDraft();
+  const input = root.querySelector('[data-date]');
+  if (input && input.value !== nextDate) input.value = nextDate;
+  updateScheduleControls(root);
+  const slots = root.querySelector('[data-slots]');
+  if (slots) slots.innerHTML = '<div class="calendar-loading">Проверяем время...</div>';
+  await loadSlots(root, navigate, nextDate);
+  updateScheduleControls(root);
+}
+
 function renderSchedule(root, navigate) {
   const d = state.draft;
   const minDate = localIso(new Date());
@@ -241,13 +269,13 @@ function renderSchedule(root, navigate) {
     <div class="calendar-card card pad hc-calendar-v2">
       <div class="hc-calendar-head"><div><strong>Ближайшие даты</strong><small>Доступность учитывает площадь вашей уборки</small></div><div class="hc-mini-legend"><span class="free">Свободно</span><span class="partial">Мало мест</span></div></div>
       <div class="calendar-strip" data-calendar><div class="calendar-loading">Загружаем даты...</div></div>
-      <label class="hc-manual-date"><span><strong>Нужна другая дата?</strong><small>Выберите её в календаре</small></span><input type="date" min="${minDate}" value="${escapeHtml(d.date)}" data-date data-label="Другая дата" aria-label="Другая дата"></label>
+      <label class="hc-manual-date"><span><strong>Нужна другая дата?</strong><small>Выберите её в календаре</small></span><span class="hc-date-control"><span data-date-display>${d.date ? escapeHtml(formatDate(d.date)) : 'Выберите дату'}</span><b aria-hidden="true">▣</b><input type="date" min="${minDate}" value="${escapeHtml(d.date)}" data-date data-label="Другая дата" aria-label="Другая дата"></span></label>
       <div data-capacity></div>
-      <div class="time-section"><div class="hc-time-head"><strong>Свободное время</strong><span>${d.date ? escapeHtml(formatDate(d.date)) : 'Выберите дату'}</span></div><div data-slots>${d.date ? '<div class="calendar-loading">Проверяем время...</div>' : '<div class="empty-inline">Сначала выберите дату</div>'}</div></div>
+      <div class="time-section"><div class="hc-time-head"><strong>Свободное время</strong><span data-time-date>${d.date ? escapeHtml(formatDate(d.date)) : 'Выберите дату'}</span></div><div data-slots>${d.date ? '<div class="calendar-loading">Проверяем время...</div>' : '<div class="empty-inline">Сначала выберите дату</div>'}</div></div>
     </div>`, actions({ nextDisabled: !d.date || !d.time || Number(d.area) > DAILY_CAPACITY_M2 }));
 
   const dateInput = root.querySelector('[data-date]');
-  dateInput.onchange = () => { d.date = dateInput.value; d.time = ''; state.saveDraft(); renderSchedule(root, navigate); };
+  dateInput.onchange = () => selectScheduleDate(root, navigate, dateInput.value);
   loadCalendar(root, navigate);
   if (d.date) loadSlots(root, navigate, d.date);
   bindNav(root, 5, () => {
@@ -267,13 +295,10 @@ async function loadCalendar(root, navigate) {
     container.innerHTML = results.map((data, index) => calendarDay(dates[index], data)).join('');
     container.querySelectorAll('[data-calendar-date]').forEach((button) => button.onclick = () => {
       if (button.disabled) return;
-      state.draft.date = button.dataset.calendarDate;
-      state.draft.time = '';
-      state.saveDraft();
-      renderSchedule(root, navigate);
+      selectScheduleDate(root, navigate, button.dataset.calendarDate);
     });
     const selected = container.querySelector('.calendar-day.selected');
-    selected?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    if (selected) container.scrollLeft = Math.max(0, selected.offsetLeft - Math.max(0, (container.clientWidth - selected.clientWidth) / 2));
   } catch (error) { container.innerHTML = `<div class="empty-inline">${escapeHtml(error.message || 'Не удалось загрузить календарь')}</div>`; }
 }
 
@@ -302,7 +327,14 @@ async function loadSlots(root, navigate, date) {
     if (capacity) capacity.innerHTML = `<div class="capacity-box capacity-box-v2"><div><span>Доступно на эту дату</span><strong>${remaining} м²</strong></div><small>Занято ${used} из ${DAILY_CAPACITY_M2} м²</small></div>`;
     if (data.closed || remaining < Number(state.draft.area || 0)) { container.innerHTML = '<div class="empty-inline danger-text">Для вашей площади эта дата уже недоступна. Выберите другую.</div>'; return; }
     container.innerHTML = `<div class="slot-grid slot-grid-v2">${data.slots.map((slot) => `<button type="button" class="slot ${!slot.available ? 'unavailable' : ''} ${state.draft.time === slot.time ? 'selected' : ''}" data-time="${slot.time}" ${!slot.available ? 'disabled' : ''}>${slot.time}</button>`).join('')}</div>`;
-    container.querySelectorAll('[data-time]').forEach((button) => button.onclick = () => { state.draft.time = button.dataset.time; state.saveDraft(); renderSchedule(root, navigate); });
+    container.querySelectorAll('[data-time]').forEach((button) => button.onclick = () => {
+      if (button.disabled) return;
+      state.draft.time = button.dataset.time;
+      state.saveDraft();
+      updateScheduleControls(root);
+      try { window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.(); } catch {}
+    });
+    updateScheduleControls(root);
   } catch (error) { const container = root.querySelector('[data-slots]'); if (container) container.innerHTML = `<div class="empty-inline">${escapeHtml(error.message || 'Не удалось загрузить время')}</div>`; }
 }
 
@@ -375,5 +407,5 @@ function go(root, navigate, step) {
   state.saveDraft();
   if (step === 0 && typeof currentNavigate === 'function') return currentNavigate('home');
   renderBooking(root, navigate || currentNavigate || (() => {}));
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
