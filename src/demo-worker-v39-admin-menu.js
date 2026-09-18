@@ -30,27 +30,27 @@ export default {
 };
 
 async function exposeAdminPanel(env, chatId, origin) {
-  const adminUrl = `${origin}/?admin=1`;
+  const clientUrl = `${origin}/?demo=1`;
+  const adminUrl = `${origin}/?demo=1&admin=1`;
 
   await Promise.allSettled([
     telegram(env, 'setChatMenuButton', {
       chat_id: chatId,
       menu_button: {
         type: 'web_app',
-        text: 'Админ-панель',
-        web_app: { url: adminUrl },
+        text: 'HOUSE CLEANING',
+        web_app: { url: clientUrl },
       },
     }),
     telegram(env, 'sendMessage', {
       chat_id: chatId,
-      text: '<b>HOUSE CLEANING · Администратор</b>\n\nОткрывайте здесь сотрудников, заявки, назначения и обучение команды.',
+      text: '<b>HOUSE CLEANING</b>\n\nВыберите нужный раздел.',
       parse_mode: 'HTML',
       reply_markup: {
-        inline_keyboard: [[{
-          text: '⚙️ Открыть админ-панель',
-          web_app: { url: adminUrl },
-          style: 'primary',
-        }]],
+        inline_keyboard: [
+          [{ text: 'Открыть HOUSE CLEANING', web_app: { url: clientUrl }, style: 'primary' }],
+          [{ text: 'Панель администратора', web_app: { url: adminUrl }, style: 'danger' }],
+        ],
       },
     }),
   ]);
