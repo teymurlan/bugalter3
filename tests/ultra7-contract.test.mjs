@@ -22,7 +22,7 @@ const adminMenuWorker = read('src/demo-worker-v39-admin-menu.js');
 const clientExperience = read('public/js/client-experience-v53.js');
 
 test('Ultra 7 shell loads one design layer and three selectable themes', () => {
-  assert.match(index, /house-cleaning-release" content="60/);
+  assert.match(index, /house-cleaning-release" content="61/);
   assert.match(index, /ultra7\.css\?v=60/);
   assert.match(index, /ultra7-theme\.js\?v=60/);
   assert.doesNotMatch(index, /referral-v2\.css/);
@@ -165,4 +165,54 @@ test('telegram reminders support animated custom emoji with safe fallback', () =
   assert.match(automation, /function animatedEmoji/);
   assert.match(automation, /HC_EMOJI_REMINDER_ID/);
   assert.match(automation, /<tg-emoji emoji-id=/);
+});
+
+
+test('client release 61 removes late mutation layers that caused page jumps', () => {
+  assert.doesNotMatch(index, /sticky-back-v1\.js/);
+  assert.doesNotMatch(index, /release-layout-v2\.js/);
+  assert.doesNotMatch(index, /\/js\/ux-v3\.js/);
+  assert.doesNotMatch(index, /\/js\/ux-v4\.js/);
+  assert.doesNotMatch(index, /\/js\/ux-v5\.js/);
+  assert.doesNotMatch(index, /home-subscription-v2\.js/);
+  assert.doesNotMatch(app, /new MutationObserver\(/);
+  assert.doesNotMatch(clientExperience, /new MutationObserver\(/);
+  assert.match(app, /hc:route-rendered/);
+  assert.match(read('public/js/views/booking-v5.js'), /hc:booking-rendered/);
+});
+
+test('release 61 themes own booking borders controls and back button colors', () => {
+  assert.match(css, /HOUSE CLEANING CLIENT 61/);
+  assert.match(css, /--hc-control-line/);
+  assert.match(css, /\.cc-back,.hc-fixed-back,.hc-booking-back/);
+  assert.match(css, /\.calendar-day\.selected/);
+  assert.match(css, /\.slot\.selected/);
+  assert.match(css, /\.wizard-actions/);
+  assert.match(css, /\.toast\.error/);
+});
+
+test('release 61 schedule caches availability and ignores stale date responses', () => {
+  const booking = read('public/js/views/booking-v2.js');
+  assert.match(booking, /availabilityCache = new Map/);
+  assert.match(booking, /availabilityPending = new Map/);
+  assert.match(booking, /scheduleSelectionVersion/);
+  assert.match(booking, /version !== scheduleSelectionVersion/);
+  assert.match(booking, /getAvailability\(date\)/);
+});
+
+test('release 61 keeps visible orders stable during background refresh', () => {
+  assert.match(orders, /ordersRefreshReady/);
+  assert.doesNotMatch(orders, /if \(!cached \|\| oldKey !== newKey\) renderList/);
+});
+
+test('telegram surfaces use animated emoji IDs with normal emoji fallbacks', () => {
+  const orderWorker = read('src/demo-worker-v31-order-create-safe.js');
+  assert.match(automation, /HC_EMOJI_REMINDER_ID/);
+  assert.match(automation, /HC_EMOJI_CALENDAR_ID/);
+  assert.match(automation, /HC_EMOJI_CLEAN_ID/);
+  assert.match(automation, /HC_EMOJI_LOCATION_ID/);
+  assert.match(reviewWorker, /HC_EMOJI_REVIEW_ID/);
+  assert.match(orderWorker, /HC_EMOJI_NEW_ID/);
+  assert.match(botBranding, /HC_EMOJI_HOME_ID/);
+  assert.match(botBranding, /HC_EMOJI_SPARK_ID/);
 });
