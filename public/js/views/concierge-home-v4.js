@@ -92,11 +92,35 @@ function repeatableOrder(list) {
     .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0] || null;
 }
 
-function profileRemaining() {
+function subscriptionState() {
   const profile = state.bootstrap?.user || {};
-  const raw = profile.cleanings_remaining ?? profile.remaining_cleanings ?? profile.subscription_remaining;
-  const value = Number(raw);
-  return Number.isFinite(value) && value >= 0 && raw !== undefined && raw !== null && raw !== '' ? value : null;
+  const name = String(profile.subscription_name || '').trim();
+  const total = Math.max(0, Number(profile.cleanings_total || 0));
+  const remaining = Math.max(0, Number(profile.cleanings_remaining || 0));
+  const active = Boolean(name || total > 0);
+  return { active, name, total, remaining, used: active && total > 0 ? Math.max(0, total - remaining) : 0 };
+}
+
+function activeDraft() {
+  return Number(state.draft?.step || 0) > 0;
+}
+
+function draftStepLabel() {
+  const step = Number(state.draft?.step || 0);
+  return ({
+    1:'выбор уборки',2:'данные об объекте',3:'дополнительные услуги',4:'адрес',
+    5:'первый или повторный заказ',6:'дата и время',7:'контакты',8:'проверка заявки',
+  })[step] || 'оформление заказа';
+}
+
+function resumeCard() {
+  if (!activeDraft()) return '';
+  return `<section class="u7-resume-card-v60">
+    <div class="u7-resume-icon-v60">↗</div>
+    <div><span class="u7-eyebrow">НЕЗАВЕРШЁННЫЙ ЗАКАЗ</span><h3>Продолжить оформление</h3><p>Вы остановились на этапе: ${escapeHtml(draftStepLabel())}.</p></div>
+    <button type="button" data-resume-order>Продолжить</button>
+    <button type="button" class="u7-resume-new-v60" data-start-new-order>Начать заново</button>
+  </section>`;
 }
 
 function nearestCard(order) {
