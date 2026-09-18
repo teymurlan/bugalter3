@@ -226,11 +226,37 @@ async function renderOrderDetails(root, navigate, id, params = {}) {
       <div class="cc-policy-note">${selfCancel ? '<strong>Отмена доступна самостоятельно, пока до уборки не меньше 24 часов.</strong>' : urgent ? '<strong>До уборки меньше 24 часов.</strong> Изменения и отмена — через менеджера.' : '<strong>Изменить заявку можно через менеджера.</strong>'}</div>
       <div class="cc-gallery-title"><h2>Фото объекта</h2><span>${photoCount ? `${photoCount} фото` : 'Нет фото'}</span></div>
       <div class="cc-client-gallery">${availablePhotos ? Array.from({ length: availablePhotos }, (_, index) => `<button class="cc-client-photo" type="button" data-client-photo="${index}"><img alt="Фото ${index + 1}"><span>${index + 1}</span></button>`).join('') : `<div class="card cc-order-empty" style="grid-column:1/-1">${photoCount ? 'Фотографии этой старой заявки недоступны для восстановления.' : 'Фотографии не прикреплены.'}</div>`}</div>
-      <div class="hc-order-actions">${selfCancel ? '<button class="hc-btn hc-btn-danger" type="button" data-cancel>Отменить заявку</button>' : ''}${ACTIVE.has(order.status) ? '<button class="hc-btn hc-btn-blue" type="button" data-manager>✉️ Написать менеджеру</button><button class="hc-btn hc-btn-green" type="button" data-call>📞 Позвонить</button>' : ''}</div>`;
+      <div class="hc-order-actions">${selfCancel ? '<button class="hc-btn hc-btn-danger" type="button" data-cancel>Отменить заявку</button>' : ''}${ACTIVE.has(order.status) ? '<button class="hc-btn hc-btn-blue" type="button" data-manager>✉️ Написать менеджеру</button><button class="hc-btn hc-btn-green" type="button" data-call>📞 Позвонить</button>' : ''}<button class="hc-btn hc-copy-order-v58" type="button" data-copy-order>Скопировать детали</button></div>`;
 
     root.querySelector('[data-back]').onclick = () => window.HCNavigation?.back?.(params.from === 'home' ? 'home' : 'orders') || navigate(params.from === 'home' ? 'home' : 'orders');
     root.querySelector('[data-manager]')?.addEventListener('click', openManager);
     root.querySelector('[data-call]')?.addEventListener('click', callManager);
+    root.querySelector('[data-copy-order]')?.addEventListener('click', async () => {
+      const address = [order.city, order.address, order.apartment ? `кв./офис ${order.apartment}` : ''].filter(Boolean).join(', ');
+      const text = [
+        `Заказ ${shortOrderNumber(order)}`,
+        order.service_name || 'Уборка',
+        `${formatDate(order.date)} · ${formatTime(order.time)}`,
+        address,
+        `Статус: ${status.label}`,
+      ].filter(Boolean).join('\n');
+      try {
+        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+        else {
+          const area = document.createElement('textarea');
+          area.value = text;
+          area.style.position = 'fixed';
+          area.style.opacity = '0';
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand('copy');
+          area.remove();
+        }
+        showToast('Детали заявки скопированы');
+      } catch {
+        showToast('Не удалось скопировать детали', true);
+      }
+    });
     if (availablePhotos) await loadDetailPhotos(root, order.order_number, availablePhotos);
     const cancel = root.querySelector('[data-cancel]');
     if (cancel) cancel.onclick = async () => {
