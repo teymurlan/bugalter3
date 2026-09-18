@@ -237,7 +237,7 @@ function newOrderAdminText(order, user) {
     order.phone ? `Телефон: <b>${escapeHtml(order.phone)}</b>` : '',
     `Услуга: <b>${escapeHtml(order.service_name)}</b>`,
     `Площадь: <b>${escapeHtml(String(order.area))} м²</b>`,
-    `Дата и время: <b>${escapeHtml(order.date)} · ${escapeHtml(order.time)}</b>`,
+    `Дата и время: <b>${escapeHtml(formatDisplayDate(order.date))} · ${escapeHtml(order.time)}</b>`,
     `Адрес: <b>${escapeHtml(address || 'Не указан')}</b>`,
     `Дополнительно: ${escapeHtml(addons)}`,
     Number(order.estimated_price || 0) > 0 ? `Предварительно: <b>${money(order.estimated_price)}</b>` : '',
@@ -253,7 +253,7 @@ function cancelledAdminText(order, user) {
     `<b>${escapeHtml(order.order_number)}</b>`,
     `Клиент: <b>${escapeHtml(order.customer_name || user.first_name || 'Клиент')}</b>`,
     `Telegram ID: <code>${Number(user.id)}</code>`,
-    order.date ? `Дата: <b>${escapeHtml(order.date)} · ${escapeHtml(normalizeTime(order.time) || '')}</b>` : '',
+    order.date ? `Дата: <b>${escapeHtml(formatDisplayDate(order.date))} · ${escapeHtml(normalizeTime(order.time) || '')}</b>` : '',
     order.address ? `Адрес: <b>${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}</b>` : '',
   ].filter(Boolean).join('\n');
 }
@@ -369,6 +369,12 @@ async function telegram(env, method, payload) {
 
 function callbackData(action, userId, orderNumber) {
   return `hc:${action}:${userId}:${encodeURIComponent(String(orderNumber).slice(0, 28))}`.slice(0, 64);
+}
+
+function formatDisplayDate(value) {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : raw;
 }
 
 function normalizeTime(value) {
