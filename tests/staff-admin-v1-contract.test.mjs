@@ -34,7 +34,9 @@ test('client booking stays isolated while the client bundle uses Ultra 7 cache k
 });
 
 test('legacy employee onboarding remains intact', () => {
-  assert.match(admin, /let section = 'staff'/);
+  assert.match(admin, /let section = 'home'/);
+  assert.match(admin, /Клиенты и графики/);
+  assert.match(admin, /Уведомления и рассылки/);
   assert.match(admin, /Связаться/);
   assert.match(polish, /data-staff-search/);
   for (const id of ['rules','general','safety','chemistry','photos','client']) assert.match(staff, new RegExp(`'${id}'`));
