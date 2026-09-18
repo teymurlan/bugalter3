@@ -336,7 +336,8 @@ async function completeFromWeb(request, env, ctx, body, origin) {
   const stored = await appOrder(env, clientId, orderNumber);
   const order = { ...(stored || {}), ...(body.order || {}), client_telegram_id: clientId, order_number: orderNumber };
   const notificationAllowedNow = await ultraNotificationAllowed(env, clientId, 'completed');
-  const sent = notificationAllowedNow ? await sendCompletionMessage(env, clientId, order, origin) : false;
+  const reviewAllowedNow = await ultraNotificationAllowed(env, clientId, 'review');
+  const sent = notificationAllowedNow ? await sendCompletionMessage(env, clientId, order, origin, { reviewAllowed: reviewAllowedNow }) : false;
   if (notificationAllowedNow && !sent) return json({ ok: false, error: 'Telegram не доставил уведомление клиенту' }, 502);
   await appUpdateStatus(env, clientId, orderNumber, 'COMPLETED');
   await completeReferral(env, clientId, orderNumber);
@@ -365,7 +366,8 @@ async function completeFromCallback(query, env, origin) {
     return new Response('OK');
   }
   const notificationAllowedNow = await ultraNotificationAllowed(env, clientId, 'completed');
-  const sent = notificationAllowedNow ? await sendCompletionMessage(env, clientId, order, origin) : false;
+  const reviewAllowedNow = await ultraNotificationAllowed(env, clientId, 'review');
+  const sent = notificationAllowedNow ? await sendCompletionMessage(env, clientId, order, origin, { reviewAllowed: reviewAllowedNow }) : false;
   if (notificationAllowedNow && !sent) {
     await safeTelegram(env, 'answerCallbackQuery', { callback_query_id: query.id, text: 'Не удалось уведомить клиента', show_alert: true });
     return new Response('OK');
@@ -392,7 +394,7 @@ async function completeFromCallback(query, env, origin) {
   return new Response('OK');
 }
 
-async function sendCompletionMessage(env, clientId, order, origin) {
+async function sendCompletionMessage(env, clientId, order, origin, { reviewAllowed = true } = {}) {
   const lines = [
     '✨ <b>Уборка завершена</b>', '',
     `<b>${escapeHtml(order.order_number || '')}</b>`,
@@ -411,7 +413,7 @@ async function sendCompletionMessage(env, clientId, order, origin) {
     reply_markup: {
       inline_keyboard: [
         [{ text: 'Открыть заявку', web_app: { url: syncClientUrl(origin, order.order_number) }, style: 'primary' }],
-        [{ text: '⭐ Оставить отзыв', web_app: { url: `${origin}/?demo=1&review=${encodeURIComponent(order.order_number)}` }, style: 'success' }],
+        ...(reviewAllowed ? [[{ text: '⭐ Оставить отзыв', web_app: { url: `${origin}/?demo=1&review=${encodeURIComponent(order.order_number)}` }, style: 'success' }]] : []),
       ],
     },
   });
