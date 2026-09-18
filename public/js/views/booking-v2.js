@@ -319,6 +319,7 @@ function calendarDay(date, data) {
 async function loadSlots(root, navigate, date) {
   try {
     const data = await api.availability(date);
+    if (state.draft.date !== date) return;
     const container = root.querySelector('[data-slots]');
     const capacity = root.querySelector('[data-capacity]');
     if (!container) return;
