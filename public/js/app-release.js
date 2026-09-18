@@ -204,7 +204,7 @@ function rememberCurrent() {
 
 function restoreScroll(value) {
   const y = Math.max(0, Number(value || 0));
-  requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: y, left: 0, behavior: 'instant' })));
+  queueMicrotask(() => window.scrollTo({ top: y, left: 0, behavior: 'instant' }));
 }
 
 function renderRoute(route, params) {
@@ -300,9 +300,9 @@ async function start() {
       if (Number.isInteger(orderId)) return navigate('orders', { orderId }, { replace: true });
     }
 
-    const initialRoute = adminMode ? 'admin' : Number(state.draft?.step || 0) > 0 ? 'booking' : 'home';
+    const initialRoute = adminMode ? 'admin' : 'home';
     navigate(initialRoute, {}, { replace: true });
-    if (!adminMode) requestAnimationFrame(() => requestAnimationFrame(() => setActiveNav(initialRoute)));
+    if (!adminMode) setActiveNav('home');
   } catch (error) {
     root.innerHTML = `<div class="card pad" style="margin-top:60px"><h2>Не удалось открыть приложение</h2><p class="page-subtitle">${escapeHtml(error.message || 'Попробуйте ещё раз')}</p><button class="primary-btn" onclick="location.reload()">Попробовать снова</button></div>`;
   }
