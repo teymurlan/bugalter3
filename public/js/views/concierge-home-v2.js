@@ -153,8 +153,6 @@ async function contextualCard(order, orders) {
     const review = await serverJson(`/api/demo-review?order=${encodeURIComponent(item.order_number || '')}`);
     if (review && !review.review) return { title: 'Как прошла уборка?', text: 'Оцените последнюю уборку — это займёт меньше минуты.', action: 'Оставить отзыв', type: 'review', order: item };
   }
-  const benefits = await serverJson('/api/client-benefits');
-  if (Number(benefits?.referral_percent || 0) > 0) return { title: `Ваша скидка ${Number(benefits.referral_percent)}% доступна`, text: 'Она автоматически применится к следующей подходящей заявке.', action: 'Заказать со скидкой', type: 'book' };
   return { title: 'Выберите подходящую уборку', text: 'Сравните услуги и выберите подходящий формат.', action: 'Сравнить услуги', type: 'services' };
 }
 
