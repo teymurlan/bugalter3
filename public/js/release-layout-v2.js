@@ -11,7 +11,7 @@
   function queue() {
     if (queued) return;
     queued = true;
-    requestAnimationFrame(() => {
+    queueMicrotask(() => {
       queued = false;
       sync();
     });
