@@ -212,7 +212,7 @@ function smartSection(order) {
 function subscriptionOffer() {
   if (subscriptionState().active) return '';
   return `<section class="u7-home-offer u7-home-offer-v3 u7-sub-offer-v60">
-    <div class="u7-sub-offer-media-v60"><img src="/assets/subscription-promo-v60.jpg" alt="" loading="lazy"></div>
+    <div class="u7-sub-offer-media-v60"><img src="/assets/subscription-promo-v60.svg" alt="" loading="lazy"></div>
     <div class="u7-sub-offer-copy-v60"><span class="u7-eyebrow">АБОНЕМЕНТЫ</span><h3>Чистота по вашему графику</h3><p>5 или 10 уборок без повторного заполнения заявки. Согласуем даты заранее и закрепим удобный формат.</p><button type="button" data-subscriptions>Подробнее</button></div>
   </section>`;
 }
