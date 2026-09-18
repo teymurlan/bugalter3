@@ -119,3 +119,11 @@ test('theme bridge replaces legacy dark hardcodes with readable theme variables'
   assert.match(css, /u7-home-hero/);
   assert.match(css, /u7-next-cleaning/);
 });
+
+test('client utilities include repeat booking and one-tap order details copy', () => {
+  assert.match(home, /Повторить уборку/);
+  assert.match(home, /async function repeatOrder/);
+  assert.match(orders, /Скопировать детали/);
+  assert.match(orders, /navigator\.clipboard\?\.writeText/);
+  assert.match(orders, /Детали заявки скопированы/);
+});
