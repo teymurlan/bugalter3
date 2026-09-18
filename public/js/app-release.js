@@ -1,10 +1,10 @@
 import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v5.js?v=60';
-import { renderConciergeHome } from './views/concierge-home-v4.js?v=60';
-import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=60';
-import { renderConciergeProfile } from './views/concierge-profile-v4.js?v=60';
+import { renderBooking } from './views/booking-v5.js?v=61';
+import { renderConciergeHome } from './views/concierge-home-v4.js?v=61';
+import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=61';
+import { renderConciergeProfile } from './views/concierge-profile-v4.js?v=61';
 import { renderAdmin } from './views/admin-v5.js?v=44';
 
 const tg = window.Telegram?.WebApp;
@@ -94,12 +94,6 @@ function setActiveNav(route) {
 
 function configureNavSync() {
   if (adminMode || !nav) return;
-  const sync = () => {
-    const booking = Boolean(root.querySelector('.booking-top'));
-    document.body.classList.toggle('booking-flow', booking);
-    if (booking) setActiveNav('home');
-  };
-  new MutationObserver(sync).observe(root, { childList: true, subtree: false });
   if ('ResizeObserver' in window) new ResizeObserver(() => moveIndicator(nav.querySelector('.nav-item.active'))).observe(nav);
   else window.addEventListener('resize', () => moveIndicator(nav.querySelector('.nav-item.active')));
 }
@@ -215,6 +209,7 @@ function renderRoute(route, params) {
     return renderConciergeHome(root, navigate);
   }
   if (route === 'booking') {
+    document.body.classList.add('booking-flow');
     setActiveNav('home');
     if (!Number(state.draft?.step || 0)) {
       state.draft.step = 1;
@@ -251,8 +246,10 @@ export function navigate(route, params = {}, options = {}) {
   if (!goingBack) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
   const result = renderRoute(route, next.params);
-  return Promise.resolve(result).finally(() => {
+  return Promise.resolve(result).then((value) => {
     if (goingBack) restoreScroll(options.restoreY);
+    try { window.dispatchEvent(new CustomEvent('hc:route-rendered', { detail: { route, params: next.params, back: goingBack } })); } catch {}
+    return value;
   });
 }
 

@@ -105,7 +105,7 @@ async function sendInvite(env, clientId, orderNumber, origin) {
     if (reviewCheck.ok) return true;
     const result = await telegram(env, 'sendMessage', {
       chat_id: clientId,
-      text: ['🏠 <b>HOUSE CLEANING</b>', '', 'Уборка завершена ✨', '', 'Спасибо, что выбрали нас.', 'Оцените нашу работу — это займёт меньше минуты.'].join('\n'),
+      text: ['⭐ <b>Оцените уборку</b>', '', 'Работа завершена. Спасибо, что выбрали HOUSE CLEANING.', 'Ваш отзыв займёт меньше минуты и поможет нам сохранить качество сервиса.'].join('\n'),
       parse_mode: 'HTML',
       reply_markup: { inline_keyboard: [[{ text: '⭐ Оставить отзыв', web_app: { url: `${origin}/?demo=1&review=${encodeURIComponent(orderNumber)}` }, style: 'success' }]] },
     });

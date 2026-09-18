@@ -57,6 +57,12 @@ function renderProgress(current, name) {
   return `<div class="booking-top"><div><div class="progress-label">Шаг ${current} из 8 · ${escapeHtml(name)}</div><div class="progress-bars">${Array.from({ length: 8 }, (_, index) => `<i class="${index < current ? 'done' : ''}"></i>`).join('')}</div></div></div>`;
 }
 
+function notifyBookingRendered() {
+  queueMicrotask(() => {
+    try { window.dispatchEvent(new CustomEvent('hc:booking-rendered', { detail: { step:Number(state.draft?.step || 0) } })); } catch {}
+  });
+}
+
 function renderVisitType(root, navigate) {
   activeRoot = root;
   activeNavigate = navigate;
@@ -86,7 +92,14 @@ function renderVisitType(root, navigate) {
   root.querySelectorAll('[data-visit-type]').forEach((button) => {
     button.onclick = () => {
       saveVisitChoice(button.dataset.visitType);
-      renderVisitType(root, navigate);
+      root.querySelectorAll('[data-visit-type]').forEach((item) => {
+        const active = item.dataset.visitType === state.draft.visitType;
+        item.classList.toggle('selected', active);
+        item.setAttribute('aria-checked', String(active));
+      });
+      const next = root.querySelector('[data-next]');
+      if (next) next.disabled = false;
+      try { window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.(); } catch {}
     };
   });
 
@@ -109,6 +122,7 @@ function renderVisitType(root, navigate) {
     renderBooking(root, navigate);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
+  notifyBookingRendered();
 }
 
 function patchProgress(root, current, name) {
@@ -274,6 +288,7 @@ export function renderBooking(root, navigate) {
   if (Number(state.draft?.step || 0) === 5 && !state.draft.visitTypeConfirmed) {
     renderVisitType(root, navigate);
     syncGlobalBack(root);
+    notifyBookingRendered();
     return;
   }
 
@@ -288,4 +303,5 @@ export function renderBooking(root, navigate) {
   renderBaseBooking(root, navigate);
   patchCurrent(root, navigate);
   syncGlobalBack(root);
+  notifyBookingRendered();
 }

@@ -9,7 +9,6 @@ const SCROLL_RESTORE_KEY = 'hc-route-scroll-v53';
 const RESUME_AFTER_MS = 0;
 
 let resumeTimer = 0;
-let observer = null;
 const nativeFetch = window.fetch.bind(window);
 const nativeScrollIntoView = Element.prototype.scrollIntoView;
 
@@ -139,8 +138,8 @@ function decorateAreaLimit() {
 
   if (input.dataset.hcLimitV53 !== '1') {
     input.dataset.hcLimitV53 = '1';
-    input.addEventListener('input', () => requestAnimationFrame(decorateAreaLimit));
-    input.addEventListener('change', () => requestAnimationFrame(decorateAreaLimit));
+    input.addEventListener('input', () => decorateAreaLimit());
+    input.addEventListener('change', () => decorateAreaLimit());
   }
 }
 
@@ -278,9 +277,8 @@ if (CLIENT_MODE) {
   patchCalendarAutoScroll();
   patchRemoteDraftHydration();
   installInteractionGuards();
-  const root = document.querySelector('#app');
-  observer = new MutationObserver(() => queueMicrotask(decorate));
-  if (root) observer.observe(root, { childList: true, subtree: false });
+  window.addEventListener('hc:route-rendered', decorate);
+  window.addEventListener('hc:booking-rendered', decorate);
   document.addEventListener('DOMContentLoaded', decorate, { once: true });
   queueMicrotask(decorate);
 }

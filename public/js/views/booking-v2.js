@@ -16,7 +16,24 @@ const CONTACT_METHODS = [
   ['call', 'Звонок', 'Позвоним на указанный номер'],
 ];
 const DAILY_CAPACITY_M2 = 300;
+const AVAILABILITY_TTL_MS = 60_000;
+const availabilityCache = new Map();
+const availabilityPending = new Map();
+let scheduleSelectionVersion = 0;
 let currentNavigate = null;
+
+async function getAvailability(date, force = false) {
+  const key = String(date || '');
+  const cached = availabilityCache.get(key);
+  if (!force && cached && Date.now() - cached.at < AVAILABILITY_TTL_MS) return cached.data;
+  if (!force && availabilityPending.has(key)) return availabilityPending.get(key);
+  const task = api.availability(key).then((data) => {
+    availabilityCache.set(key, { at:Date.now(), data });
+    return data;
+  }).finally(() => availabilityPending.delete(key));
+  availabilityPending.set(key, task);
+  return task;
+}
 
 function progress(step) {
   const current = Math.max(1, Math.min(7, step));
@@ -78,7 +95,14 @@ function renderService(root, navigate) {
     <div class="option-grid service-grid service-grid-v2">
       ${services.map((service, index) => `<button type="button" class="option-card service-card service-card-v2 ${Number(state.draft.serviceId) === Number(service.id) ? 'selected' : ''}" data-service="${service.id}"><span class="option-index">0${index + 1}</span><span class="service-copy"><strong>${escapeHtml(service.name)}</strong><small>${escapeHtml(service.description || '')}</small></span><span class="hc-service-rate">${escapeHtml(serviceRate(service))}</span></button>`).join('')}
     </div>`, actions({ nextDisabled: !state.draft.serviceId }));
-  root.querySelectorAll('[data-service]').forEach((button) => button.onclick = () => { state.draft.serviceId = Number(button.dataset.service); state.saveDraft(); renderService(root, navigate); });
+  root.querySelectorAll('[data-service]').forEach((button) => button.onclick = () => {
+    state.draft.serviceId = Number(button.dataset.service);
+    state.saveDraft();
+    root.querySelectorAll('[data-service]').forEach((item) => item.classList.toggle('selected', item === button));
+    const next = root.querySelector('[data-next]');
+    if (next) next.disabled = false;
+    try { window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.(); } catch {}
+  });
   bindNav(root, 0, () => state.draft.serviceId && go(root, navigate, 2));
 }
 
@@ -100,7 +124,12 @@ function renderObject(root, navigate) {
       <div class="switch-row"><div><strong>Есть животные</strong><div class="profile-meta">Заранее предупредим команду</div></div><button type="button" class="switch ${d.pets ? 'on' : ''}" data-pets aria-label="Есть животные"><i></i></button></div>
     </div>`, actions());
 
-  root.querySelectorAll('[data-property]').forEach((button) => button.onclick = () => { d.propertyType = button.dataset.property; state.saveDraft(); renderObject(root, navigate); });
+  root.querySelectorAll('[data-property]').forEach((button) => button.onclick = () => {
+    d.propertyType = button.dataset.property;
+    state.saveDraft();
+    root.querySelectorAll('[data-property]').forEach((item) => item.classList.toggle('selected', item === button));
+    try { window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.(); } catch {}
+  });
   const input = root.querySelector('[data-area-input]');
   const range = root.querySelector('[data-area-range]');
   const display = root.querySelector('[data-area-display]');
@@ -118,9 +147,23 @@ function renderObject(root, navigate) {
   input.onblur = () => setArea(input.value);
   input.onkeydown = (event) => { if (event.key === 'Enter') { event.preventDefault(); setArea(input.value); input.blur(); } };
   range.oninput = () => setArea(range.value);
-  root.querySelectorAll('[data-area-delta]').forEach((button) => button.onclick = () => setArea(Math.max(10, Number(d.area || 0) + Number(button.dataset.areaDelta)), true));
-  root.querySelectorAll('[data-counter]').forEach((button) => button.onclick = () => { const field = button.dataset.counter; const max = field === 'rooms' ? 50 : 20; d[field] = Math.max(0, Math.min(max, Number(d[field]) + Number(button.dataset.delta))); state.saveDraft(); renderObject(root, navigate); });
-  root.querySelector('[data-pets]').onclick = () => { d.pets = !d.pets; state.saveDraft(); renderObject(root, navigate); };
+  root.querySelectorAll('[data-area-delta]').forEach((button) => button.onclick = () => {
+    setArea(Math.max(10, Number(d.area || 0) + Number(button.dataset.areaDelta)));
+    input?.dispatchEvent(new Event('input', { bubbles:true }));
+  });
+  root.querySelectorAll('[data-counter]').forEach((button) => button.onclick = () => {
+    const field = button.dataset.counter;
+    const max = field === 'rooms' ? 50 : 20;
+    d[field] = Math.max(0, Math.min(max, Number(d[field]) + Number(button.dataset.delta)));
+    state.saveDraft();
+    const value = button.parentElement?.querySelector('span');
+    if (value) value.textContent = String(d[field]);
+  });
+  root.querySelector('[data-pets]').onclick = (event) => {
+    d.pets = !d.pets;
+    state.saveDraft();
+    event.currentTarget.classList.toggle('on', d.pets);
+  };
   bindNav(root, 1, () => { if (d.area < 10 || d.area > 5000) return showToast('Проверьте площадь объекта', true); go(root, navigate, 3); });
 }
 
@@ -135,7 +178,16 @@ function renderAddons(root, navigate) {
       const selected = state.draft.addonIds.includes(service.id);
       return `<button type="button" class="option-card addon-card addon-card-v2 ${selected ? 'selected' : ''}" data-addon="${service.id}"><span class="addon-check" aria-hidden="true">${selected ? '✓' : ''}</span><span class="addon-copy"><strong>${escapeHtml(service.name)}</strong><small>${escapeHtml(service.description || '')}${service.fixed_price ? ` · ${money(service.fixed_price)}` : ''}</small></span></button>`;
     }).join('') || '<div class="empty card">Дополнительные услуги пока не настроены</div>'}</div>`, actions());
-  root.querySelectorAll('[data-addon]').forEach((button) => button.onclick = () => { const id = Number(button.dataset.addon); state.draft.addonIds = state.draft.addonIds.includes(id) ? state.draft.addonIds.filter((item) => item !== id) : [...state.draft.addonIds, id]; state.saveDraft(); renderAddons(root, navigate); });
+  root.querySelectorAll('[data-addon]').forEach((button) => button.onclick = () => {
+    const id = Number(button.dataset.addon);
+    const selected = state.draft.addonIds.includes(id);
+    state.draft.addonIds = selected ? state.draft.addonIds.filter((item) => item !== id) : [...state.draft.addonIds, id];
+    state.saveDraft();
+    button.classList.toggle('selected', !selected);
+    const check = button.querySelector('.addon-check');
+    if (check) check.textContent = selected ? '' : '✓';
+    try { window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.(); } catch {}
+  });
   bindNav(root, 2, () => go(root, navigate, 4));
 }
 
@@ -249,6 +301,7 @@ function updateScheduleControls(root) {
 async function selectScheduleDate(root, navigate, value) {
   const nextDate = String(value || '');
   if (!nextDate) return;
+  const version = ++scheduleSelectionVersion;
   state.draft.date = nextDate;
   state.draft.time = '';
   state.saveDraft();
@@ -257,8 +310,8 @@ async function selectScheduleDate(root, navigate, value) {
   updateScheduleControls(root);
   const slots = root.querySelector('[data-slots]');
   if (slots) slots.innerHTML = '<div class="calendar-loading">Проверяем время...</div>';
-  await loadSlots(root, navigate, nextDate);
-  updateScheduleControls(root);
+  await loadSlots(root, navigate, nextDate, version);
+  if (version === scheduleSelectionVersion) updateScheduleControls(root);
 }
 
 function renderSchedule(root, navigate) {
@@ -276,8 +329,9 @@ function renderSchedule(root, navigate) {
 
   const dateInput = root.querySelector('[data-date]');
   dateInput.onchange = () => selectScheduleDate(root, navigate, dateInput.value);
+  const version = ++scheduleSelectionVersion;
   loadCalendar(root, navigate);
-  if (d.date) loadSlots(root, navigate, d.date);
+  if (d.date) loadSlots(root, navigate, d.date, version);
   bindNav(root, 5, () => {
     if (Number(d.area) > DAILY_CAPACITY_M2) return showToast('Для площади больше 300 м² требуется согласование', true);
     if (!d.date || !d.time) return showToast('Выберите дату и время', true);
@@ -290,7 +344,7 @@ async function loadCalendar(root, navigate) {
   const container = root.querySelector('[data-calendar]');
   if (!container) return;
   try {
-    const results = await Promise.all(dates.map((date) => api.availability(localIso(date))));
+    const results = await Promise.all(dates.map((date) => getAvailability(localIso(date))));
     if (!root.querySelector('[data-calendar]')) return;
     container.innerHTML = results.map((data, index) => calendarDay(dates[index], data)).join('');
     container.querySelectorAll('[data-calendar-date]').forEach((button) => button.onclick = () => {
@@ -316,10 +370,10 @@ function calendarDay(date, data) {
   return `<button type="button" class="calendar-day ${stateClass} ${state.draft.date === dateValue ? 'selected' : ''} ${insufficient ? 'insufficient' : ''}" data-calendar-date="${dateValue}" ${full || insufficient ? 'disabled' : ''}><span>${weekday}</span><b>${date.getDate()}</b><small>${month}</small><em>${escapeHtml(label)}</em></button>`;
 }
 
-async function loadSlots(root, navigate, date) {
+async function loadSlots(root, navigate, date, version = scheduleSelectionVersion) {
   try {
-    const data = await api.availability(date);
-    if (state.draft.date !== date) return;
+    const data = await getAvailability(date);
+    if (version !== scheduleSelectionVersion || state.draft.date !== date) return;
     const container = root.querySelector('[data-slots]');
     const capacity = root.querySelector('[data-capacity]');
     if (!container) return;
@@ -353,7 +407,16 @@ function renderContacts(root, navigate) {
       ${textareaField('Комментарий к заказу', 'comment', d.comment, 'Что ещё нам нужно знать?')}
     </div>`, actions({ next: 'Проверить заявку' }));
   bindFields(root);
-  root.querySelectorAll('[data-contact-method]').forEach((button) => button.onclick = () => { d.contactMethod = button.dataset.contactMethod; state.saveDraft(); renderContacts(root, navigate); });
+  root.querySelectorAll('[data-contact-method]').forEach((button) => button.onclick = () => {
+    d.contactMethod = button.dataset.contactMethod;
+    state.saveDraft();
+    root.querySelectorAll('[data-contact-method]').forEach((item) => {
+      const active = item === button;
+      item.classList.toggle('selected', active);
+      const check = item.querySelector('.contact-method-check');
+      if (check) check.textContent = active ? '✓' : '';
+    });
+  });
   bindNav(root, 6, () => {
     if (!d.customerName.trim()) return showToast('Укажите имя', true);
     if (String(d.phone).replace(/\D/g, '').length < 10) return showToast('Укажите корректный телефон', true);

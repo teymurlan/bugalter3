@@ -202,7 +202,8 @@ export async function renderConciergeOrders(root, navigate, params = {}) {
     const oldKey = JSON.stringify((cached || []).map((o)=>[o.order_number,o.status,o.date,o.time,o.updated_at]));
     const newKey = JSON.stringify(fresh.map((o)=>[o.order_number,o.status,o.date,o.time,o.updated_at]));
     window.__HC_CLIENT_ORDERS_CACHE = fresh;
-    if (!cached || oldKey !== newKey) renderList(root, navigate, fresh, params);
+    if (!cached) renderList(root, navigate, fresh, params);
+    else if (oldKey !== newKey) root.dataset.ordersRefreshReady = '1';
   } catch (error) {
     if (!cached) root.innerHTML = `<section class="u7-orders-hero"><span class="u7-eyebrow">HOUSE CLEANING</span><h1>Мои заявки</h1></section><div class="u7-orders-empty"><strong>Не удалось загрузить заявки</strong><p>${escapeHtml(error.message || 'Попробуйте ещё раз')}</p></div>`;
   }
@@ -286,6 +287,7 @@ async function renderOrderDetails(root, navigate, id, params = {}) {
       try {
         cancel.disabled = true;
         await api.cancelOrder(id);
+        window.__HC_CLIENT_ORDERS_CACHE = null;
         showToast('Заявка отменена');
         renderConciergeOrders(root, navigate, { ...params, orderId: id });
       } catch (error) {

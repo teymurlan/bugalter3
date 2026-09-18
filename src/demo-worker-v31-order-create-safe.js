@@ -155,7 +155,7 @@ async function handleDiscountedMultipartOrder(request, env, user, benefits, orig
     }
 
     const clientText = [
-      '<b>Заявка оформлена</b>',
+      '🆕 <b>Заявка оформлена</b>',
       '',
       orderDetails(stored),
       '',
@@ -248,7 +248,7 @@ function cleanOrder(raw) {
 
 function newOrderAdminText(order, user) {
   return [
-    '<b>НОВАЯ ЗАЯВКА · HOUSE CLEANING</b>',
+    '🆕 <b>НОВАЯ ЗАЯВКА · HOUSE CLEANING</b>',
     '',
     `<b>${escapeHtml(order.order_number)}</b>`,
     `Клиент: <b>${escapeHtml(order.customer_name)}</b>`,

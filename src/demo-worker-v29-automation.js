@@ -492,12 +492,13 @@ async function sendDueReminders(env) {
       continue;
     }
     const lines = [
-      `${animatedEmoji(env, 'HC_EMOJI_REMINDER_ID', '⏰')} <b>Напоминание об уборке</b>`, '',
-      `Завтра, <b>${formatDate(order.date)}</b> в <b>${formatTime(order.time)}</b>.`,
-      order.service_name ? `Уборка: ${escapeHtml(order.service_name)}` : '',
-      order.city || order.address ? `Адрес: ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}` : '',
+      `${animatedEmoji(env, 'HC_EMOJI_REMINDER_ID', '⏰')} <b>Уборка уже завтра</b>`, '',
+      `📅 <b>${formatDate(order.date)} · ${formatTime(order.time)}</b>`,
+      order.service_name ? `🧹 ${escapeHtml(order.service_name)}` : '',
+      order.city || order.address ? `📍 ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}` : '',
       '',
-      'Если нужно уточнить детали, напишите менеджеру.',
+      'Пожалуйста, убедитесь, что команда сможет попасть на объект в указанное время.',
+      'Если планы изменились или нужно уточнить детали — напишите менеджеру.',
     ].filter(Boolean);
     const sent = await safeTelegram(env, 'sendMessage', {
       chat_id: clientId,
