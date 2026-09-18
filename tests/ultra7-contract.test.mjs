@@ -23,8 +23,8 @@ const clientExperience = read('public/js/client-experience-v53.js');
 
 test('Ultra 7 shell loads one design layer and three selectable themes', () => {
   assert.match(index, /house-cleaning-release" content="61/);
-  assert.match(index, /ultra7\.css\?v=60/);
-  assert.match(index, /ultra7-theme\.js\?v=60/);
+  assert.match(index, /ultra7\.css\?v=61/);
+  assert.match(index, /ultra7-theme\.js\?v=61/);
   assert.doesNotMatch(index, /referral-v2\.css/);
   for (const id of ['light','dark','blue']) assert.match(theme, new RegExp(`['"]${id}['"]`));
   assert.match(theme, /hc-ultra7-theme-/);
@@ -205,14 +205,16 @@ test('release 61 keeps visible orders stable during background refresh', () => {
   assert.doesNotMatch(orders, /if \(!cached \|\| oldKey !== newKey\) renderList/);
 });
 
-test('telegram surfaces use animated emoji IDs with normal emoji fallbacks', () => {
+test('release 61 uses standard emoji on newly refreshed Telegram surfaces', () => {
   const orderWorker = read('src/demo-worker-v31-order-create-safe.js');
-  assert.match(automation, /HC_EMOJI_REMINDER_ID/);
-  assert.match(automation, /HC_EMOJI_CALENDAR_ID/);
-  assert.match(automation, /HC_EMOJI_CLEAN_ID/);
-  assert.match(automation, /HC_EMOJI_LOCATION_ID/);
-  assert.match(reviewWorker, /HC_EMOJI_REVIEW_ID/);
-  assert.match(orderWorker, /HC_EMOJI_NEW_ID/);
-  assert.match(botBranding, /HC_EMOJI_HOME_ID/);
-  assert.match(botBranding, /HC_EMOJI_SPARK_ID/);
+  assert.doesNotMatch(automation, /HC_EMOJI_CALENDAR_ID|HC_EMOJI_CLEAN_ID|HC_EMOJI_LOCATION_ID/);
+  assert.doesNotMatch(reviewWorker, /HC_EMOJI_REVIEW_ID/);
+  assert.doesNotMatch(orderWorker, /HC_EMOJI_NEW_ID/);
+  assert.doesNotMatch(botBranding, /HC_EMOJI_HOME_ID|HC_EMOJI_SPARK_ID/);
+  assert.match(automation, /📅/);
+  assert.match(automation, /🧹/);
+  assert.match(automation, /📍/);
+  assert.match(reviewWorker, /⭐ <b>Оцените уборку/);
+  assert.match(orderWorker, /🆕 <b>Заявка оформлена/);
+  assert.match(botBranding, /🏠 <b>HOUSE CLEANING/);
 });
