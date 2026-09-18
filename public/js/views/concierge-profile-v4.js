@@ -8,7 +8,6 @@ const FAQ = [
   ['Можно ли отменить уборку?', 'Самостоятельная отмена доступна не позднее чем за 24 часа до начала уборки. Позже — через менеджера.'],
   ['Как можно оплатить?', 'Оплата возможна картой, по счёту или наличными.'],
   ['Когда менеджер подтвердит заявку?', 'После оформления менеджер проверит данные и свяжется с вами выбранным способом.'],
-  ['Как работает приглашение друзей?', 'Друг получает 15% на первую успешную уборку по вашей ссылке. После успешного завершения его уборки вам начисляется 15% на следующую.'],
   ['Как оформить абонемент?', 'Выберите подходящий абонемент на 5 или 10 уборок и напишите менеджеру — он поможет согласовать график.'],
   ['Как связаться с менеджером?', 'Нажмите «Написать менеджеру» — откроется личный диалог в Telegram.'],
 ];
@@ -27,6 +26,8 @@ function icon(name) {
     faq: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.4 2.4 0 1 1 4.3 1.5c-.9.9-2.1 1.3-2.1 2.8M12 17h.01"/></svg>',
     chat: '<svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.6 8.6 0 0 1-3.1-.6L4 20l1.5-4.1A7.3 7.3 0 0 1 4 11.5 7.6 7.6 0 0 1 12 4a7.6 7.6 0 0 1 8 7.5Z"/></svg>',
     shield: '<svg viewBox="0 0 24 24"><path d="M12 3 20 6v5c0 5-3.2 8.2-8 10-4.8-1.8-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg>',
+    palette: '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18h1.2a1.8 1.8 0 0 0 1.4-3c-.9-1-.2-2.6 1.1-2.6H18A3 3 0 0 0 21 12a9 9 0 0 0-9-9Z"/><circle cx="7.5" cy="10" r="1"/><circle cx="10.5" cy="6.8" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>',
+    bell: '<svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg>',
   };
   return map[name] || map.shield;
 }
@@ -35,7 +36,10 @@ function menuRow(name, title, subtitle, iconName) {
   return `<button class="cc-menu-row" type="button" data-menu="${name}"><span class="cc-menu-icon">${icon(iconName)}</span><span class="cc-menu-copy"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(subtitle)}</small></span><span class="cc-menu-arrow">›</span></button>`;
 }
 function subpageHeader(title, subtitle = '') { return `<button class="cc-back hc-fixed-back" type="button" data-back>← Назад</button><header class="cc-subpage-head hc-subpage-offset"><span class="cc-kicker">HOUSE CLEANING</span><h1>${escapeHtml(title)}</h1>${subtitle ? `<p class="page-subtitle">${escapeHtml(subtitle)}</p>` : ''}</header>`; }
-function goBack(root, navigate, from = 'profile') { if (from === 'home') return navigate('home'); return renderConciergeProfile(root, navigate); }
+function goBack(root, navigate, from = 'profile') {
+  if (from !== 'profile') return window.HCNavigation?.back?.(from) || navigate(from);
+  return renderConciergeProfile(root, navigate);
+}
 
 async function openManager() {
   try {
@@ -52,13 +56,14 @@ function openTelegram(url) { const tg = window.Telegram?.WebApp; if (tg?.openTel
 export function renderConciergeProfile(root, navigate, params = {}) {
   const from = params.from || 'profile';
   if (params.section === 'faq') return showFaq(root, navigate, from);
-  if (params.section === 'referral') return showReferral(root, navigate, from);
   if (params.section === 'subscriptions') return showSubscriptions(root, navigate, from);
   if (params.section === 'reviews') return showReviews(root, navigate, from);
   if (params.section === 'data') return showEdit(root, navigate, from);
   if (params.section === 'price') return showPrice(root, navigate, from);
   if (params.section === 'contact') return showContact(root, navigate, from);
   if (params.section === 'rules') return showRules(root, navigate, from);
+  if (params.section === 'appearance') return showAppearance(root, navigate, from);
+  if (params.section === 'notifications') return showNotifications(root, navigate, from);
 
   const user = state.bootstrap?.user || {};
   const displayName = user.name || [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Клиент';
@@ -66,9 +71,10 @@ export function renderConciergeProfile(root, navigate, params = {}) {
   const username = user.username ? `@${user.username}` : 'Telegram';
   root.innerHTML = `<div class="cc-profile-page"><header class="cc-profile-head"><div><span class="cc-kicker">HOUSE CLEANING</span><h1 class="page-title">Профиль</h1><p class="page-subtitle">Ваши данные и сервис HOUSE CLEANING.</p></div></header>
     <button class="card cc-profile-card cc-profile-card-button" type="button" data-profile-data><div class="cc-avatar">${user.photo_url ? `<img src="${escapeHtml(user.photo_url)}" alt="">` : escapeHtml(initial)}</div><div class="cc-profile-copy"><strong>${escapeHtml(displayName)}</strong><span>${escapeHtml(username)}</span><small>Имя, телефоны и адрес</small></div><b>›</b></button>
-    <div class="card cc-menu">${menuRow('referral', 'Пригласить друзей', '15% вам и 15% другу', 'gift')}${menuRow('subscriptions', 'Абонементы', 'Регулярная уборка на 5 или 10 визитов', 'pass')}${menuRow('reviews', 'Отзывы', 'Оценки клиентов HOUSE CLEANING', 'star')}${menuRow('price', 'Прайс', 'Услуги и ориентировочные цены', 'price')}${menuRow('faq', 'Частые вопросы', 'Коротко о заказе и сервисе', 'faq')}${menuRow('help', 'Связаться с менеджером', 'Написать в Telegram', 'chat')}${menuRow('rules', 'Правила и условия', 'Порядок работы HOUSE CLEANING', 'shield')}</div></div>`;
+    <div class="card cc-menu">${menuRow('notifications', 'Уведомления', 'Напоминания и сообщения о заказах', 'bell')}${menuRow('appearance', 'Внешний вид', 'Светлая, тёмная или синяя тема', 'palette')}${menuRow('subscriptions', 'Абонементы', 'Регулярная уборка на 5 или 10 визитов', 'pass')}${menuRow('reviews', 'Отзывы', 'Оценки клиентов HOUSE CLEANING', 'star')}${menuRow('price', 'Прайс', 'Услуги и ориентировочные цены', 'price')}${menuRow('faq', 'Частые вопросы', 'Коротко о заказе и сервисе', 'faq')}${menuRow('help', 'Связаться с менеджером', 'Написать в Telegram', 'chat')}${menuRow('rules', 'Правила и условия', 'Порядок работы HOUSE CLEANING', 'shield')}</div></div>`;
   root.querySelector('[data-profile-data]').onclick = () => showEdit(root, navigate, 'profile');
-  root.querySelector('[data-menu="referral"]').onclick = () => showReferral(root, navigate, 'profile');
+  root.querySelector('[data-menu="notifications"]').onclick = () => showNotifications(root, navigate, 'profile');
+  root.querySelector('[data-menu="appearance"]').onclick = () => showAppearance(root, navigate, 'profile');
   root.querySelector('[data-menu="subscriptions"]').onclick = () => showSubscriptions(root, navigate, 'profile');
   root.querySelector('[data-menu="reviews"]').onclick = () => showReviews(root, navigate, 'profile');
   root.querySelector('[data-menu="price"]').onclick = () => showPrice(root, navigate, 'profile');
@@ -77,48 +83,63 @@ export function renderConciergeProfile(root, navigate, params = {}) {
   root.querySelector('[data-menu="rules"]').onclick = () => showRules(root, navigate, 'profile');
 }
 
-async function showReferral(root, navigate, from) {
-  root.innerHTML = `${subpageHeader('Пригласить друзей', 'Друг получает 15% на первую успешную уборку, вы — 15% после её завершения.')}
-    <section class="card cc-referral-hero"><span class="cc-referral-badge">15% + 15%</span><h2>Приглашайте по персональной ссылке</h2><p>Переход, согласие, заявка и завершённая уборка учитываются автоматически.</p></section>
-    <section class="card cc-ref-v2-stats" data-ref-stats><div><strong>…</strong><span>Перешли</span></div><div><strong>…</strong><span>Оформили</span></div><div><strong>…</strong><span>Завершили</span></div><div><strong>…</strong><span>Доступно 15%</span></div></section>
-    <div data-ref-reward></div><div class="cc-ref-actions"><button class="primary-btn" type="button" data-share disabled>Поделиться приглашением</button><button class="secondary-btn" type="button" data-copy disabled>Скопировать ссылку</button></div>
-    <div class="hc-ref-list" data-ref-list><div class="card cc-order-empty">Загружаем приглашения...</div></div>`;
+async function showAppearance(root, navigate, from) {
+  const themes = window.HCUltraTheme?.options || [
+    { id:'light', label:'Светлая' },
+    { id:'dark', label:'Тёмная' },
+    { id:'blue', label:'Синяя' },
+  ];
+  const current = window.HCUltraTheme?.get?.() || 'light';
+  root.innerHTML = `${subpageHeader('Внешний вид', 'Выберите оформление приложения. Настройка сохранится на этом устройстве.')}
+    <section class="card pad"><div class="u7-theme-grid">
+      ${themes.map((item) => `<button class="u7-theme-choice ${current===item.id?'active':''}" type="button" data-theme="${escapeHtml(item.id)}"><i></i><span>${escapeHtml(item.label)}</span></button>`).join('')}
+    </div><div class="cc-policy-note"><strong>Ultra 7:</strong> тема меняет фон, карточки, поля, нижнее меню и системные цвета Telegram Mini App.</div></section>`;
   root.querySelector('[data-back]').onclick = () => goBack(root, navigate, from);
-  let link = '';
+  root.querySelectorAll('[data-theme]').forEach((button) => {
+    button.onclick = () => {
+      const selected = button.dataset.theme;
+      window.HCUltraTheme?.set?.(selected);
+      root.querySelectorAll('[data-theme]').forEach((item) => item.classList.toggle('active', item.dataset.theme === selected));
+      showToast('Оформление сохранено');
+    };
+  });
+}
+
+async function showNotifications(root, navigate, from) {
+  root.innerHTML = `${subpageHeader('Уведомления', 'Вы сами выбираете, какие сообщения получать от HOUSE CLEANING.')}
+    <div class="u7-settings-list" data-notification-settings><div class="card cc-order-empty">Загружаем настройки...</div></div>`;
+  root.querySelector('[data-back]').onclick = () => goBack(root, navigate, from);
+  const holder = root.querySelector('[data-notification-settings]');
   try {
-    const [linkData, stats] = await Promise.all([getJson('/api/referral-link'), getJson('/api/referral-dashboard')]);
-    link = String(linkData.link || '');
-    root.querySelector('[data-ref-stats]').innerHTML = `<div><strong>${Number(stats.invited_count || 0)}</strong><span>Перешли</span></div><div><strong>${Number(stats.ordered_friends || 0)}</strong><span>Оформили</span></div><div><strong>${Number(stats.completed_friends || 0)}</strong><span>Завершили</span></div><div><strong>${Number(stats.available_rewards || 0)}</strong><span>Доступно 15%</span></div>`;
-    drawReward(root, stats, navigate, from);
-    const list = Array.isArray(stats.referrals) ? stats.referrals : [];
-    root.querySelector('[data-ref-list]').innerHTML = list.length ? list.map(referralCard).join('') : '<div class="card cc-order-empty">Пока никто не перешёл по вашей ссылке.</div>';
-    root.querySelector('[data-share]').disabled = !link;
-    root.querySelector('[data-copy]').disabled = !link;
-  } catch (error) { root.querySelector('[data-ref-list]').innerHTML = `<div class="card cc-order-empty">${escapeHtml(error.message || 'Не удалось загрузить приглашения')}</div>`; }
-  root.querySelector('[data-share]').onclick = () => {
-    if (!link) return;
-    const text = ['🏠 HOUSE CLEANING', '', 'Хочу порекомендовать тебе сервис уборки.', 'По моей персональной ссылке ты получишь скидку 15% на первую уборку.', '', 'Оформить заявку можно прямо в Telegram 👇', '', link].join('\n');
-    const shareUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(text)}`;
-    openTelegram(shareUrl);
-  };
-  root.querySelector('[data-copy]').onclick = async () => { try { await navigator.clipboard.writeText(link); showToast('Ссылка скопирована'); } catch { showToast('Не удалось скопировать ссылку', true); } };
+    const data = await getJson('/api/client-notification-settings');
+    const settings = data.settings || {};
+    const rows = [
+      ['confirmed','Подтверждение заявки','Сообщение, когда менеджер подтвердил уборку.'],
+      ['reminder','Напоминание за 24 часа','Напомним о предстоящей уборке заранее.'],
+      ['completed','Завершение уборки','Итоговое сообщение после завершения работ.'],
+      ['review','Просьба оставить отзыв','Короткое приглашение оценить выполненную уборку.'],
+      ['marketing','Новости и предложения','Информационные рассылки HOUSE CLEANING.'],
+    ];
+    holder.innerHTML = `${rows.map(([id,title,subtitle]) => `<label class="u7-toggle-row"><span class="u7-toggle-copy"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(subtitle)}</small></span><span class="u7-switch"><input type="checkbox" data-notify="${id}" ${settings[id] !== false ? 'checked' : ''}><span></span></span></label>`).join('')}
+      <div class="u7-save-row"><button class="primary-btn" type="button" data-save-notifications>Сохранить</button></div>`;
+    holder.querySelector('[data-save-notifications]').onclick = async () => {
+      const button = holder.querySelector('[data-save-notifications]');
+      button.disabled = true;
+      const payload = {};
+      holder.querySelectorAll('[data-notify]').forEach((input) => { payload[input.dataset.notify] = Boolean(input.checked); });
+      try {
+        await postJson('/api/client-notification-settings', payload);
+        showToast('Настройки уведомлений сохранены');
+      } catch (error) {
+        showToast(error.message || 'Не удалось сохранить настройки', true);
+      } finally {
+        button.disabled = false;
+      }
+    };
+  } catch (error) {
+    holder.innerHTML = `<div class="card cc-order-empty">${escapeHtml(error.message || 'Не удалось загрузить настройки')}</div>`;
+  }
 }
-
-function drawReward(root, stats, navigate, from) {
-  const holder = root.querySelector('[data-ref-reward]');
-  if (!holder) return;
-  const available = Number(stats.available_rewards || 0);
-  const armed = Boolean(stats.reward_armed);
-  if (!available) { holder.innerHTML = '<div class="cc-policy-note"><strong>Как получить 15%:</strong> друг должен успешно завершить первую уборку.</div>'; return; }
-  holder.innerHTML = `<section class="card hc-ref-reward-card ${armed ? 'armed' : ''}"><span>Ваша скидка</span><strong>${available} × 15%</strong><p>${armed ? '15% выбраны для следующей уборки.' : 'Вы можете применить одну скидку к следующей заявке.'}</p><button class="hc-btn ${armed ? 'hc-btn-ghost' : 'hc-btn-green'}" type="button" data-arm-reward>${armed ? 'Не применять сейчас' : 'Применить 15% к следующей уборке'}</button></section>`;
-  holder.querySelector('[data-arm-reward]').onclick = async () => { const button = holder.querySelector('[data-arm-reward]'); button.disabled = true; try { await postJson('/api/referral-reward', { enabled: !armed }); showToast(armed ? 'Скидка снята' : 'Скидка 15% выбрана'); showReferral(root, navigate, from); } catch (error) { button.disabled = false; showToast(error.message || 'Не удалось изменить скидку', true); } };
-}
-
-function referralCard(item) {
-  const stages = [['Перешёл по ссылке', true], ['Принял условия', Boolean(item.consent_accepted_at)], ['Оформил заявку', Boolean(item.order_created)], ['Заявка подтверждена', Boolean(item.order_confirmed)], ['Уборка завершена', Boolean(item.completed)]];
-  return `<article class="card hc-ref-client-card"><div class="hc-ref-client-head"><div><small>Приглашённый друг</small><strong>${escapeHtml(item.friend_name || `ID ${item.friend_id}`)}</strong></div><span class="hc-ref-stage">${escapeHtml(stageLabel(item.stage))}</span></div><div class="hc-ref-steps">${stages.map(([label, done]) => `<div class="${done ? 'done' : ''}"><i>${done ? '✓' : '·'}</i><span>${escapeHtml(label)}</span></div>`).join('')}</div></article>`;
-}
-function stageLabel(stage) { return ({ started: 'Перешёл', accepted: 'Принял условия', ordered: 'Оформил', confirmed: 'Подтверждён', completed: 'Завершил' })[stage] || 'Перешёл'; }
 
 function showSubscriptions(root, navigate, from) {
   const plan = (count, accent) => `<section class="card cc-pass-card hc-pass-launch ${accent ? 'featured' : ''}"><div class="cc-pass-top"><span>Абонемент</span><strong>${count} уборок</strong></div><p>${count === 10 ? 'Максимум удобства для регулярной уборки.' : 'Оптимально для тех, кто хочет поддерживать чистоту регулярно.'}</p><ul><li>Согласованный график</li><li>Не нужно каждый раз оформлять заявку заново</li><li>Персональное сопровождение менеджера</li></ul><button class="primary-btn" type="button" data-pass-manager>Написать менеджеру</button></section>`;
