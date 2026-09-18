@@ -345,6 +345,10 @@ function installInteractionGuards() {
     if (detailBack && document.querySelector('.cc-detail-head')) {
       event.preventDefault();
       event.stopImmediatePropagation();
+      if (window.HCNavigation?.back) {
+        window.HCNavigation.back('orders');
+        return;
+      }
       const origin = readOrigin() || { route: 'orders', scrollY: 0 };
       const route = origin.route === 'home' ? 'home' : 'orders';
       queueScrollRestore(route, origin.scrollY);
