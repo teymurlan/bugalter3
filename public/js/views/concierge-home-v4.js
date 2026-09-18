@@ -137,25 +137,39 @@ function nearestCard(order) {
 
 function dashboardSummary(list, next) {
   const completed = completedOrders(list);
-  const remaining = profileRemaining();
-  const activeCount = activeUpcoming(list).length;
-  if (!next && !(remaining > 0)) return '';
-
+  const sub = subscriptionState();
   const last = completed[0] || null;
-  const remainingTile = remaining !== null
-    ? `<div class="u7-service-stat"><small>Осталось по графику</small><b>${remaining}</b><span>уборок в вашем плане</span></div>`
-    : `<div class="u7-service-stat"><small>Запланировано</small><b>${activeCount}</b><span>активных уборок</span></div>`;
 
-  return `<section class="u7-home-summary u7-home-summary-v3">
-    <div class="u7-home-summary-title"><div><span class="u7-eyebrow">ВАШ СЕРВИС</span><h2>Мои уборки</h2></div><span>Всё важное без лишнего</span></div>
+  if (sub.active) {
+    const total = Math.max(1, sub.total || sub.used + sub.remaining || 1);
+    const used = Math.min(total, Math.max(0, sub.used));
+    const percent = Math.max(0, Math.min(100, Math.round(used / total * 100)));
+    return `<section class="u7-home-summary u7-home-summary-v3 u7-plan-summary-v60">
+      <div class="u7-home-summary-title"><div><span class="u7-eyebrow">ВАШ АБОНЕМЕНТ</span><h2>${escapeHtml(sub.name || `План на ${total} уборок`)}</h2></div><span>${used} из ${total}</span></div>
+      <div class="u7-plan-progress-v60"><i style="width:${percent}%"></i></div>
+      <div class="u7-service-stats">
+        <div class="u7-service-stat"><small>Выполнено</small><b>${used}</b><span>уборок по плану</span></div>
+        <div class="u7-service-stat"><small>Осталось</small><b>${sub.remaining}</b><span>до завершения плана</span></div>
+      </div>
+      <div class="u7-service-timeline">
+        ${last ? `<div><span>Последняя</span><b>${escapeHtml(formatDate(last.date))} · ${escapeHtml(formatTime(last.time))}</b></div>` : ''}
+        ${next ? `<div class="is-next"><span>Следующая</span><b>${escapeHtml(formatDate(next.date))} · ${escapeHtml(formatTime(next.time))}</b></div>` : ''}
+      </div>
+    </section>`;
+  }
+
+  const goal = 10;
+  const done = completed.length > 0 && completed.length % goal === 0 ? goal : completed.length % goal;
+  const left = Math.max(0, goal - done);
+  const percent = Math.round(done / goal * 100);
+  return `<section class="u7-home-summary u7-home-summary-v3 u7-progress-summary-v60">
+    <div class="u7-home-summary-title"><div><span class="u7-eyebrow">ВАШ ПРОГРЕСС</span><h2>${done} из ${goal} уборок</h2></div><span>${left ? `до цели ещё ${left}` : 'цель выполнена'}</span></div>
+    <div class="u7-plan-progress-v60"><i style="width:${percent}%"></i></div>
     <div class="u7-service-stats">
-      ${remainingTile}
       <div class="u7-service-stat"><small>Выполнено</small><b>${completed.length}</b><span>за всё время</span></div>
+      <div class="u7-service-stat"><small>${next ? 'Ближайшая' : 'Следующая цель'}</small><b>${next ? escapeHtml(formatDate(next.date)) : left}</b><span>${next ? escapeHtml(formatTime(next.time)) : 'уборок до 10'}</span></div>
     </div>
-    <div class="u7-service-timeline">
-      ${last ? `<div><span>Последняя</span><b>${escapeHtml(formatDate(last.date))} · ${escapeHtml(formatTime(last.time))}</b></div>` : ''}
-      ${next ? `<div class="is-next"><span>Следующая</span><b>${escapeHtml(formatDate(next.date))} · ${escapeHtml(formatTime(next.time))}</b></div>` : ''}
-    </div>
+    ${last ? `<div class="u7-service-timeline"><div><span>Последняя уборка</span><b>${escapeHtml(formatDate(last.date))} · ${escapeHtml(formatTime(last.time))}</b></div></div>` : ''}
   </section>`;
 }
 
