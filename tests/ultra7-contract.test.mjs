@@ -103,12 +103,16 @@ test('client notification switches affect actual Telegram delivery without break
 });
 
 
-test('bot start menu has no duplicate admin card and only exposes client plus admin actions', () => {
+test('bot start and admin menus expose the same two actions without duplicate start cards', () => {
   assert.match(botBranding, /Открыть HOUSE CLEANING/);
   assert.match(botBranding, /Панель администратора/);
   assert.match(botBranding, /const rows = \[\[/);
   assert.doesNotMatch(adminMenuWorker, /\['\/admin', '\/start', '\/menu'\]/);
   assert.match(adminMenuWorker, /command === '\/admin'/);
+  assert.match(adminMenuWorker, /Открыть HOUSE CLEANING/);
+  assert.match(adminMenuWorker, /Панель администратора/);
+  assert.match(adminMenuWorker, /Выберите нужный раздел/);
+  assert.doesNotMatch(adminMenuWorker, /HOUSE CLEANING · Администратор/);
 });
 
 test('theme bridge replaces legacy dark hardcodes with readable theme variables', () => {
