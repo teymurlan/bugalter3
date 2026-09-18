@@ -1,4 +1,4 @@
-import { renderConciergeHome as renderBaseHome } from './concierge-home-v2.js?v=29';
+import { renderConciergeHome as renderBaseHome } from './concierge-home-v2.js?v=57';
 import { state } from '../state.js';
 import { showToast } from '../utils.js';
 
