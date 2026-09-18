@@ -110,6 +110,7 @@ try{
       };
     });
     const cardBg=rgb(values.cardBg),title=rgb(values.title),bodyBg=rgb(values.bodyBg),bodyText=rgb(values.bodyText);
+    console.log('THEME',theme,values,'contrast',cardBg&&title?contrast(cardBg,title):null,bodyBg&&bodyText?contrast(bodyBg,bodyText):null);
     assert.ok(cardBg&&title&&contrast(cardBg,title)>=4.2,`${theme}: текст карточки должен читаться`);
     assert.ok(bodyBg&&bodyText&&contrast(bodyBg,bodyText)>=4.2,`${theme}: основной текст должен читаться`);
   }
