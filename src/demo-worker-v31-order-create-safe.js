@@ -96,7 +96,7 @@ async function handleDiscountedMultipartOrder(request, env, user, benefits, orig
 
     const deliveredAdmins = [];
     const errors = [];
-    const adminText = newOrderAdminText(order, user, env);
+    const adminText = newOrderAdminText(order, user);
 
     for (const id of ids) {
       try {
@@ -155,7 +155,7 @@ async function handleDiscountedMultipartOrder(request, env, user, benefits, orig
     }
 
     const clientText = [
-      `${animatedEmoji(env, 'HC_EMOJI_NEW_ID', '🆕')} <b>Заявка оформлена</b>`,
+      '🆕 <b>Заявка оформлена</b>',
       '',
       orderDetails(stored),
       '',
@@ -246,9 +246,9 @@ function cleanOrder(raw) {
   };
 }
 
-function newOrderAdminText(order, user, env) {
+function newOrderAdminText(order, user) {
   return [
-    `${animatedEmoji(env, 'HC_EMOJI_NEW_ID', '🆕')} <b>НОВАЯ ЗАЯВКА · HOUSE CLEANING</b>`,
+    '🆕 <b>НОВАЯ ЗАЯВКА · HOUSE CLEANING</b>',
     '',
     `<b>${escapeHtml(order.order_number)}</b>`,
     `Клиент: <b>${escapeHtml(order.customer_name)}</b>`,
@@ -381,11 +381,6 @@ async function sendPhotoSetByIds(env, chatId, ids) {
 function largestPhotoId(message) {
   const photos = Array.isArray(message?.photo) ? message.photo : [];
   return photos.length ? String(photos[photos.length - 1]?.file_id || '') : '';
-}
-
-function animatedEmoji(env, key, fallback) {
-  const id = String(env?.[key] || '').trim();
-  return /^\d{6,30}$/.test(id) ? `<tg-emoji emoji-id="${id}">${fallback}</tg-emoji>` : fallback;
 }
 
 function normalizeContactMethod(value) {
