@@ -914,3 +914,179 @@ html[data-hc-theme] body.client-concierge .u7-orders-tabs button{
 }
 html[data-hc-theme] body.client-concierge .u7-orders-tabs button.active{background:color-mix(in srgb,var(--u7-accent) 10%,var(--u7-surface))!important;color:var(--u7-accent)!important;border-color:var(--u7-accent)!important}
 @media(max-width:390px){.u7-sub-offer-v60{grid-template-columns:40% 1fr!important}.u7-sub-offer-copy-v60{padding:12px 11px}.u7-sub-offer-copy-v60 h3{font-size:15px}}
+
+
+/* HOUSE CLEANING CLIENT 61 — complete theme hardening and no-black legacy surfaces */
+html[data-hc-theme] body.client-concierge{
+  --hc-control-bg:var(--u7-surface);
+  --hc-control-soft:var(--u7-surface-2);
+  --hc-control-line:color-mix(in srgb,var(--u7-line) 88%,var(--u7-text) 12%);
+  --hc-selected-bg:color-mix(in srgb,var(--u7-accent) 10%,var(--u7-surface));
+  --hc-selected-line:color-mix(in srgb,var(--u7-accent) 72%,var(--u7-line));
+}
+html[data-hc-theme] body.client-concierge :is(
+  .booking-top,.calendar-card,.hc-manual-date,.hc-date-control,.capacity-box-v2,.time-section,
+  .option-card,.service-card-v2,.addon-card,.property-chip,.area-panel,.counter,.switch-row,.photo-step,.photo-drop,
+  .contact-method,.review-card,.price-card,.success-order,.hc-visit-type-card,.hc-visit-hint,
+  .u7-orders-hero,.u7-orders-toolbar,.u7-order-card-v3,.cc-status-timeline,.hc-detail-block,
+  .cc-profile-card,.cc-menu,.cc-menu-row,.u7-toggle-row,.cc-pass-card,.cc-price-row,.cc-faq,
+  .hc-contact-launch,.hc-rules,.cc-policy-note,.u7-home-summary,.u7-smart-card,.u7-home-help,
+  .u7-resume-card-v60,.u7-sub-offer-v60
+){
+  background:var(--hc-control-bg)!important;
+  border-color:var(--u7-line)!important;
+  color:var(--u7-text)!important;
+}
+html[data-hc-theme] body.client-concierge :is(
+  .booking-title,.page-title,.progress-label,.hc-calendar-head strong,.hc-time-head strong,
+  .option-card strong,.service-copy strong,.field-label,.field label,.area-head strong,.counter span,
+  .switch-row strong,.photo-drop strong,.contact-method strong,.summary-row strong,
+  .u7-orders-hero h1,.u7-order-card-v3 h3,.u7-order-address b,.u7-order-card-bottom strong,
+  .cc-detail-head h1,.cc-gallery-title h2,.cc-profile-copy strong,.cc-menu-copy strong,
+  .u7-toggle-copy strong,.cc-pass-card strong,.cc-price-row strong,.cc-faq strong,
+  .hc-contact-launch strong,.hc-rules strong
+){color:var(--u7-text)!important}
+html[data-hc-theme] body.client-concierge :is(
+  .page-subtitle,.booking-title-block p,.hc-calendar-head small,.hc-time-head span,.field-hint,
+  .area-hint,.photo-drop small,.photo-count,.contact-method small,.summary-row span,
+  .u7-orders-hero p,.u7-order-inline-meta,.u7-order-address span,.cc-detail-head p,
+  .cc-profile-copy span,.cc-profile-copy small,.cc-menu-copy small,.u7-toggle-copy small,
+  .cc-pass-card p,.cc-pass-card li,.cc-price-row small,.cc-faq-a,.hc-contact-launch p,.hc-rules p
+){color:var(--u7-muted)!important}
+html[data-hc-theme] body.client-concierge :is(
+  .input,.textarea,input,textarea,select,.u7-order-search,.hc-date-control,.counter
+){
+  background:var(--hc-control-soft)!important;
+  color:var(--u7-text)!important;
+  border-color:var(--u7-line)!important;
+}
+html[data-hc-theme] body.client-concierge :is(.option-card,.property-chip,.addon-card,.contact-method,.hc-visit-type-card,.calendar-day,.slot){
+  border-color:var(--u7-line)!important;
+  background:var(--u7-surface)!important;
+  color:var(--u7-text)!important;
+  box-shadow:none!important;
+}
+html[data-hc-theme] body.client-concierge :is(.option-card.selected,.property-chip.selected,.addon-card.selected,.contact-method.selected,.hc-visit-type-card.selected,.calendar-day.selected,.slot.selected){
+  border-color:var(--hc-selected-line)!important;
+  background:var(--hc-selected-bg)!important;
+  color:var(--u7-text)!important;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--u7-accent) 16%,transparent)!important;
+}
+html[data-hc-theme] body.client-concierge :is(.calendar-day:disabled,.slot:disabled,.option-card:disabled,.primary-btn:disabled,.wizard-next:disabled){
+  border-color:var(--u7-line)!important;
+  background:color-mix(in srgb,var(--u7-muted) 12%,var(--u7-surface))!important;
+  color:var(--u7-muted)!important;
+  opacity:.62!important;
+}
+html[data-hc-theme] body.client-concierge .calendar-day em{
+  color:var(--u7-accent)!important;
+  background:color-mix(in srgb,var(--u7-accent) 10%,var(--u7-surface))!important;
+}
+html[data-hc-theme] body.client-concierge .calendar-day.full em,
+html[data-hc-theme] body.client-concierge .calendar-day:disabled em{
+  color:var(--u7-danger)!important;
+  background:color-mix(in srgb,var(--u7-danger) 9%,var(--u7-surface))!important;
+}
+html[data-hc-theme] body.client-concierge :is(.cc-back,.hc-fixed-back,.hc-booking-back){
+  background:color-mix(in srgb,var(--u7-surface) 94%,transparent)!important;
+  color:var(--u7-text)!important;
+  border:1px solid var(--hc-control-line)!important;
+  box-shadow:0 8px 24px color-mix(in srgb,var(--u7-text) 9%,transparent)!important;
+}
+html[data-hc-theme] body.client-concierge .wizard-actions{
+  background:color-mix(in srgb,var(--u7-surface) 95%,transparent)!important;
+  border-color:var(--u7-line)!important;
+  box-shadow:0 10px 28px color-mix(in srgb,var(--u7-text) 10%,transparent)!important;
+}
+html[data-hc-theme] body.client-concierge :is(.secondary-btn,.wizard-back){
+  background:var(--u7-surface-2)!important;
+  color:var(--u7-text)!important;
+  border-color:var(--u7-line)!important;
+}
+html[data-hc-theme] body.client-concierge :is(.primary-btn,.wizard-next,.u7-home-primary){
+  background:linear-gradient(135deg,var(--u7-accent),var(--u7-accent-2))!important;
+  color:var(--u7-on-accent)!important;
+  border-color:transparent!important;
+}
+html[data-hc-theme] body.client-concierge .toast{
+  background:color-mix(in srgb,var(--u7-surface) 97%,transparent)!important;
+  color:var(--u7-text)!important;
+  border:1px solid var(--u7-line)!important;
+}
+html[data-hc-theme] body.client-concierge .toast.error{
+  color:var(--u7-danger)!important;
+  background:color-mix(in srgb,var(--u7-danger) 10%,var(--u7-surface))!important;
+  border-color:color-mix(in srgb,var(--u7-danger) 36%,var(--u7-line))!important;
+}
+html[data-hc-theme] body.client-concierge .progress-bars i{
+  background:color-mix(in srgb,var(--u7-muted) 23%,var(--u7-surface-2))!important;
+}
+html[data-hc-theme] body.client-concierge .progress-bars i.done{
+  background:linear-gradient(90deg,var(--u7-accent),var(--u7-accent-2))!important;
+}
+html[data-hc-theme] body.client-concierge .booking-top{
+  border:1px solid var(--u7-line)!important;
+  box-shadow:none!important;
+}
+html[data-hc-theme] body.client-concierge .u7-order-card-v3{
+  box-shadow:var(--u7-shadow)!important;
+}
+html[data-hc-theme] body.client-concierge .u7-order-card-bottom button{
+  color:var(--u7-accent)!important;
+  background:color-mix(in srgb,var(--u7-accent) 8%,var(--u7-surface))!important;
+  border-color:color-mix(in srgb,var(--u7-accent) 30%,var(--u7-line))!important;
+}
+html[data-hc-theme] body.client-concierge .u7-order-number{
+  color:var(--u7-accent)!important;
+  background:color-mix(in srgb,var(--u7-accent) 9%,var(--u7-surface))!important;
+  border-color:color-mix(in srgb,var(--u7-accent) 28%,var(--u7-line))!important;
+}
+html[data-hc-theme] body.client-concierge .u7-orders-tabs button{
+  background:var(--u7-surface)!important;
+  color:var(--u7-muted)!important;
+  border-color:var(--u7-line)!important;
+}
+html[data-hc-theme] body.client-concierge .u7-orders-tabs button.active{
+  background:var(--hc-selected-bg)!important;
+  color:var(--u7-accent)!important;
+  border-color:var(--hc-selected-line)!important;
+}
+html[data-hc-theme] body.client-concierge .u7-progress-summary-v60,
+html[data-hc-theme] body.client-concierge .u7-plan-summary-v60{
+  background:var(--u7-surface)!important;
+  border-color:var(--u7-line)!important;
+}
+html[data-hc-theme] body.client-concierge .u7-service-stat{
+  background:var(--u7-surface-2)!important;
+  border-color:var(--u7-line)!important;
+}
+html[data-hc-theme] body.client-concierge .u7-service-stat b,
+html[data-hc-theme] body.client-concierge .u7-service-timeline b{
+  color:var(--u7-text)!important;
+}
+html[data-hc-theme] body.client-concierge .u7-service-timeline span{
+  color:var(--u7-muted)!important;
+}
+html[data-hc-theme] body.client-concierge .u7-sub-offer-v60{
+  box-shadow:var(--u7-shadow)!important;
+}
+html[data-hc-theme] body.client-concierge .u7-sub-offer-media-v60{
+  background:color-mix(in srgb,var(--u7-accent) 7%,var(--u7-surface-2))!important;
+}
+html[data-hc-theme] body.client-concierge .u7-sub-offer-media-v60 img{
+  border-radius:0!important;
+}
+html[data-hc-theme="dark"] body.client-concierge .u7-sub-offer-media-v60 img{
+  opacity:.86;
+  filter:saturate(.9) brightness(.78) contrast(1.06);
+}
+html[data-hc-theme="dark"] body.client-concierge .u7-sub-offer-v60,
+html[data-hc-theme="dark"] body.client-concierge .u7-progress-summary-v60,
+html[data-hc-theme="dark"] body.client-concierge .u7-plan-summary-v60{
+  background:#121922!important;
+}
+html[data-hc-theme="blue"] body.client-concierge .u7-sub-offer-v60,
+html[data-hc-theme="blue"] body.client-concierge .u7-progress-summary-v60,
+html[data-hc-theme="blue"] body.client-concierge .u7-plan-summary-v60{
+  background:#fff!important;
+}
