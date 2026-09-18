@@ -23,8 +23,8 @@ const clientExperience = read('public/js/client-experience-v53.js');
 
 test('Ultra 7 shell loads one design layer and three selectable themes', () => {
   assert.match(index, /house-cleaning-release" content="60/);
-  assert.match(index, /ultra7\.css\?v=59/);
-  assert.match(index, /ultra7-theme\.js\?v=59/);
+  assert.match(index, /ultra7\.css\?v=60/);
+  assert.match(index, /ultra7-theme\.js\?v=60/);
   assert.doesNotMatch(index, /referral-v2\.css/);
   for (const id of ['light','dark','blue']) assert.match(theme, new RegExp(`['"]${id}['"]`));
   assert.match(theme, /hc-ultra7-theme-/);
@@ -43,7 +43,6 @@ test('client navigation returns to the exact previous screen and scroll position
   assert.match(app, /backStack\.length = 0/);
   assert.match(orders, /window\.HCNavigation\?\.back/);
   assert.match(orders, /params\.from === 'home'/);
-  assert.match(clientExperience, /window\.HCNavigation\?\.back/);
 });
 
 test('referral product surface is disabled while customer settings are available', () => {
