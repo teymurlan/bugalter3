@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eef6ff"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2f87ff"/><stop offset="1" stop-color="#0b5fd4"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4d477"/><stop offset="1" stop-color="#c8942f"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-opacity=".12"/></filter>
+  </defs>
+  <rect width="720" height="720" rx="70" fill="url(#bg)"/>
+  <circle cx="604" cy="112" r="88" fill="#dcecff"/>
+  <circle cx="103" cy="616" r="115" fill="#edf5ff"/>
+  <g filter="url(#shadow)">
+    <rect x="112" y="108" width="496" height="400" rx="52" fill="#fff"/>
+    <rect x="146" y="145" width="428" height="118" rx="32" fill="url(#blue)"/>
+    <text x="184" y="194" font-family="-apple-system,BlinkMacSystemFont,Arial" font-size="23" font-weight="800" fill="#fff">HOUSE CLEANING</text>
+    <text x="184" y="235" font-family="-apple-system,BlinkMacSystemFont,Arial" font-size="44" font-weight="900" fill="#fff">АБОНЕМЕНТ</text>
+    <rect x="146" y="294" width="201" height="166" rx="30" fill="#f6f9fd" stroke="#dbe7f5" stroke-width="3"/>
+    <text x="178" y="345" font-family="-apple-system,BlinkMacSystemFont,Arial" font-size="20" font-weight="700" fill="#60758e">ВЫПОЛНЕНО</text>
+    <text x="178" y="412" font-family="-apple-system,BlinkMacSystemFont,Arial" font-size="70" font-weight="900" fill="#0a2546">8</text>
+    <text x="255" y="412" font-family="-apple-system,BlinkMacSystemFont,Arial" font-size="36" font-weight="800" fill="#9babc0">/10</text>
+    <rect x="372" y="294" width="202" height="166" rx="30" fill="#fff9e8" stroke="#f0d98e" stroke-width="3"/>
+    <text x="404" y="345" font-family="-apple-system,BlinkMacSystemFont,Arial" font-size="20" font-weight="700" fill="#866514">ОСТАЛОСЬ</text>
+    <text x="404" y="412" font-family="-apple-system,BlinkMacSystemFont,Arial" font-size="70" font-weight="900" fill="#a86f08">2</text>
+  </g>
+  <g transform="translate(166 540)">
+    <rect width="388" height="88" rx="26" fill="url(#gold)"/>
+    <path d="M55 27l7 14 15 2-11 11 3 15-14-7-14 7 3-15-11-11 15-2 7-14Z" fill="#fff7dc"/>
+    <text x="95" y="43" font-family="-apple-system,BlinkMacSystemFont,Arial" font-size="18" font-weight="800" fill="#35260a">ЧИСТОТА ПО ГРАФИКУ</text>
+    <text x="95" y="66" font-family="-apple-system,BlinkMacSystemFont,Arial" font-size="14" font-weight="600" fill="#5c4514">5 или 10 уборок без повторной заявки</text>
+  </g>
+</svg>
