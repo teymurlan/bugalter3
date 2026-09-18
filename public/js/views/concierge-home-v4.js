@@ -296,37 +296,11 @@ async function repeatOrder(navigate, order) {
   navigate('booking');
 }
 
-export async function renderConciergeHome(root,navigate) {
-  root.innerHTML = `<div class="cc-home u7-home-v2"><div class="loading"><div><div class="spinner"></div>Загружаем ваш кабинет...</div></div></div>`;
-  let orders = [];
-  try { orders = await loadOrders(); } catch {}
-  if (!root.querySelector('.u7-home-v2')) return;
-
-  const upcoming = activeUpcoming(orders);
-  const next = upcoming[0] || null;
+function bindHome(root,navigate,orders) {
   const repeat = repeatableOrder(orders);
-
-  root.innerHTML = `<div class="cc-home u7-home-v2 u7-home-v3">
-    <header class="u7-home-hero cc-greeting-row">
-      <div><span class="cc-kicker">HOUSE CLEANING</span><h1 class="cc-greeting">${escapeHtml(greeting())}, ${escapeHtml(displayName())}!</h1><p>Ваша уборка, график и поддержка — в одном месте.</p></div>
-      <div class="cc-monogram">HC</div>
-      <button class="u7-home-primary" type="button" data-book-cleaning><span>＋</span> Заказать уборку</button>
-    </header>
-
-    ${nearestCard(next)}
-    ${dashboardSummary(orders,next)}
-    ${upcomingSection(orders)}
-    ${smartSection(repeat)}
-
-    <section class="u7-home-offer u7-home-offer-v3">
-      <div><span class="u7-eyebrow">АБОНЕМЕНТЫ</span><h3>Регулярная уборка по вашему графику</h3><p>5 или 10 уборок без повторного заполнения заявки каждый раз.</p></div>
-      <button type="button" data-subscriptions>Подробнее</button>
-    </section>
-
-    ${supportSection()}
-  </div>`;
-
   root.querySelectorAll('[data-book-cleaning]').forEach((button)=>button.onclick=()=>startBooking(navigate));
+  root.querySelector('[data-resume-order]')?.addEventListener('click',()=>continueBooking(navigate));
+  root.querySelector('[data-start-new-order]')?.addEventListener('click',()=>startBooking(navigate));
   root.querySelector('[data-repeat-order]')?.addEventListener('click',()=>repeatOrder(navigate,repeat));
   root.querySelectorAll('[data-all-orders]').forEach((button)=>button.onclick=()=>navigate('orders',{from:'home'}));
   root.querySelector('[data-subscriptions]')?.addEventListener('click',()=>navigate('profile',{section:'subscriptions',from:'home'}));
@@ -341,4 +315,44 @@ export async function renderConciergeHome(root,navigate) {
       if(id) navigate('orders',{orderId:id,from:'home'});
     };
   });
+}
+
+function paintHome(root,navigate,orders) {
+  const upcoming = activeUpcoming(orders);
+  const next = upcoming[0] || null;
+  const repeat = repeatableOrder(orders);
+
+  root.innerHTML = `<div class="cc-home u7-home-v2 u7-home-v3">
+    <header class="u7-home-hero cc-greeting-row">
+      <div><span class="cc-kicker">HOUSE CLEANING</span><h1 class="cc-greeting">${escapeHtml(greeting())}, ${escapeHtml(displayName())}!</h1><p>Ваша уборка, график и поддержка — в одном месте.</p></div>
+      <div class="cc-monogram">HC</div>
+      <button class="u7-home-primary" type="button" data-book-cleaning><span>＋</span> Заказать уборку</button>
+    </header>
+
+    ${resumeCard()}
+    ${nearestCard(next)}
+    ${dashboardSummary(orders,next)}
+    ${upcomingSection(orders)}
+    ${smartSection(repeat)}
+    ${subscriptionOffer()}
+    ${supportSection()}
+  </div>`;
+
+  bindHome(root,navigate,orders);
+}
+
+export async function renderConciergeHome(root,navigate) {
+  const cached = Array.isArray(window.__HC_CLIENT_ORDERS_CACHE) ? window.__HC_CLIENT_ORDERS_CACHE : null;
+  if (cached) paintHome(root,navigate,cached);
+  else root.innerHTML = `<div class="cc-home u7-home-v2"><div class="loading"><div><div class="spinner"></div>Загружаем ваш кабинет...</div></div></div>`;
+
+  let orders = cached || [];
+  try {
+    const fresh = await loadOrders();
+    orders = fresh;
+    window.__HC_CLIENT_ORDERS_CACHE = fresh;
+  } catch {}
+
+  if (!document.body.contains(root) || !root.querySelector('.cc-home')) return;
+  if (!cached) paintHome(root,navigate,orders);
 }
