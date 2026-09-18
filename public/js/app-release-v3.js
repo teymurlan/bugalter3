@@ -64,7 +64,7 @@ async function startSpecialMode() {
 if (adminMode || staffMode) {
   startSpecialMode().catch(showFatal);
 } else {
-  import('./client-experience-v53.js?v=61')
-    .then(() => import('./app-release-v2.js?v=61'))
+  import('./client-experience-v53.js?v=62')
+    .then(() => import('./app-release-v2.js?v=62'))
     .catch(showFatal);
 }
