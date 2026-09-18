@@ -76,7 +76,7 @@ if (root) {
   new MutationObserver(() => {
     if (queued) return;
     queued = true;
-    requestAnimationFrame(() => { queued = false; enhance(); });
+    queueMicrotask(() => { queued = false; enhance(); });
   }).observe(root, { childList: true, subtree: false });
   enhance();
 }
