@@ -177,21 +177,21 @@ test('one-time clean launch no longer clears draft on every reopen', () => {
   assert.doesNotMatch(launchReset, /localStorage\.setItem\(KEY, 'pending'\)/);
 });
 
-test('release 61 loads stable client UX without invalidating production worker layers', () => {
-  assert.match(index, /house-cleaning-release" content="61/);
+test('release 62 cache-busts the stable client UX without invalidating production worker layers', () => {
+  assert.match(index, /house-cleaning-release" content="62/);
   assert.match(index, /public-order-number-v55\.js\?v=55/);
   assert.match(index, /client-ui-v53\.css\?v=54/);
-  assert.match(index, /app-release-v3\.js\?v=61/);
-  assert.match(specialEntry, /client-experience-v53\.js\?v=61/);
-  assert.match(specialEntry, /app-release-v2\.js\?v=61/);
-  assert.match(entry, /api-release-v2\.js\?v=61/);
-  assert.match(entry, /api-shared-v50\.js\?v=61/);
-  assert.match(entry, /state-release-v2\.js\?v=61/);
-  assert.match(entry, /app-release\.js\?v=61/);
-  assert.match(app, /booking-v5\.js\?v=61/);
-  assert.match(app, /concierge-home-v4\.js\?v=61/);
-  assert.match(app, /concierge-orders-v4\.js\?v=61/);
-  assert.match(bookingV5, /booking-v2\.js\?v=61/);
+  assert.match(index, /app-release-v3\.js\?v=62/);
+  assert.match(specialEntry, /client-experience-v53\.js\?v=62/);
+  assert.match(specialEntry, /app-release-v2\.js\?v=62/);
+  assert.match(entry, /api-release-v2\.js\?v=62/);
+  assert.match(entry, /api-shared-v50\.js\?v=62/);
+  assert.match(entry, /state-release-v2\.js\?v=62/);
+  assert.match(entry, /app-release\.js\?v=62/);
+  assert.match(app, /booking-v5\.js\?v=62/);
+  assert.match(app, /concierge-home-v4\.js\?v=62/);
+  assert.match(app, /concierge-orders-v4\.js\?v=62/);
+  assert.match(bookingV5, /booking-v2\.js\?v=62/);
   assert.match(clientUi, /hc-resume-card-v53/);
   assert.match(clientUi, /height:64px!important/);
 });
