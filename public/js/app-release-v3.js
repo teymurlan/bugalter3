@@ -21,10 +21,14 @@ function configureLightApp() {
   try {
     tg?.ready?.();
     tg?.expand?.();
-    tg?.setHeaderColor?.('#f6f8fb');
-    tg?.setBackgroundColor?.('#f6f8fb');
-    tg?.setBottomBarColor?.('#ffffff');
     tg?.disableVerticalSwipes?.();
+    const current = window.HCUltraTheme?.get?.();
+    if (current) window.HCUltraTheme?.set?.(current);
+    else {
+      tg?.setHeaderColor?.('#f6f8fb');
+      tg?.setBackgroundColor?.('#f6f8fb');
+      tg?.setBottomBarColor?.('#ffffff');
+    }
   } catch {}
 }
 
