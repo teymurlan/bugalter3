@@ -41,17 +41,17 @@ function installPolishStyles() {
     .hc-calendar-v2 .hc-manual-date{
       display:flex!important;flex-direction:column!important;align-items:stretch!important;
       gap:14px!important;width:100%!important;max-width:100%!important;
-      padding:18px!important;border:1px solid #263640!important;border-radius:22px!important;
-      background:linear-gradient(145deg,#0d151a,#0a1115)!important;box-sizing:border-box!important
+      padding:18px!important;border:1px solid var(--u7-line,#dfe6ee)!important;border-radius:22px!important;
+      background:var(--u7-surface,#fff)!important;box-sizing:border-box!important
     }
     .hc-calendar-v2 .hc-manual-date>span{width:100%!important;display:block!important;min-width:0!important}
     .hc-calendar-v2 .hc-manual-date input{
       width:100%!important;max-width:100%!important;min-width:0!important;height:60px!important;
-      padding:0 18px!important;border:1px solid #344852!important;border-radius:18px!important;
-      background:#10191f!important;color:#f5f7f8!important;font-size:18px!important;font-weight:650!important;
-      letter-spacing:.01em!important;box-sizing:border-box!important;color-scheme:dark!important
+      padding:0 18px!important;border:1px solid var(--u7-line,#dfe6ee)!important;border-radius:18px!important;
+      background:var(--u7-surface-2,#f6f8fb)!important;color:var(--u7-text,#111820)!important;font-size:18px!important;font-weight:650!important;
+      letter-spacing:.01em!important;box-sizing:border-box!important;color-scheme:inherit!important
     }
-    .hc-calendar-v2 .hc-manual-date input:focus{border-color:#efbd4b!important;box-shadow:0 0 0 3px rgba(239,189,75,.13)!important;outline:none!important}
+    .hc-calendar-v2 .hc-manual-date input:focus{border-color:var(--u7-accent,#126fe5)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--u7-accent,#126fe5) 14%,transparent)!important;outline:none!important}
     .hc-known-address-note{margin:12px 0 0;padding:12px 14px;border-radius:16px;background:rgba(69,201,122,.10);border:1px solid rgba(69,201,122,.25);color:#88e7ad;font-size:14px;line-height:1.4}
     .hc-confetti-canvas{display:none!important}
     .hc-confetti-v45{display:block!important;position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;pointer-events:none!important;z-index:99999!important}
