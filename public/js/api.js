@@ -172,7 +172,7 @@ async function notifyStatus(order, status) {
   });
 
   const data = await response.json().catch(() => ({}));
-  if (!response.ok || !data?.ok || !data?.clientNotified) {
+  if (!response.ok || !data?.ok || (!data?.clientNotified && !data?.notificationSuppressed)) {
     throw new Error(data?.error || `Не удалось уведомить клиента (${response.status})`);
   }
   return data;
