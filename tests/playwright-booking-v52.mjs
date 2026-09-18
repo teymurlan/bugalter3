@@ -81,6 +81,10 @@ async function createApp(initialDraft, availability = { usedM2: 0, remainingM2: 
   const page = await context.newPage();
   await page.goto(`${BASE_URL}/?demo=1`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#app');
+  if (Number(initialDraft?.step || 0) > 0) {
+    await page.locator('[data-resume-order]').waitFor({ state: 'visible' });
+    await page.locator('[data-resume-order]').click();
+  }
   return { context, page, getKnownAddressCalls: () => knownAddressCalls };
 }
 
@@ -146,7 +150,12 @@ await run('общая занятость приходит с сервера', dr
   await page.locator('.hc-calendar-v2').waitFor({ state: 'visible' });
   const firstDate = page.locator('[data-calendar-date]:not([disabled])').first();
   await firstDate.waitFor({ state: 'visible' });
+  await page.locator('.hc-calendar-v2').evaluate(node => { node.dataset.stabilityToken = 'same-calendar'; });
+  const beforeScroll = await page.evaluate(() => window.scrollY);
   await firstDate.click();
+  assert.equal(await page.locator('.hc-calendar-v2').getAttribute('data-stability-token'), 'same-calendar', 'Выбор даты не должен перерисовывать весь экран');
+  const afterScroll = await page.evaluate(() => window.scrollY);
+  assert.ok(Math.abs(afterScroll - beforeScroll) < 30, `Выбор даты не должен дёргать страницу: ${beforeScroll} -> ${afterScroll}`);
 
   const capacity = page.locator('[data-capacity] .capacity-box-v2 strong');
   await capacity.waitFor({ state: 'visible' });
