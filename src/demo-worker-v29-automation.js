@@ -401,7 +401,7 @@ async function completeFromCallback(query, env, origin) {
 
 async function sendCompletionMessage(env, clientId, order, origin, { reviewAllowed = true } = {}) {
   const lines = [
-    '✨ <b>Уборка завершена</b>', '',
+    `${animatedEmoji(env, 'HC_EMOJI_DONE_ID', '✨')} <b>Уборка завершена</b>`, '',
     `<b>${escapeHtml(order.order_number || '')}</b>`,
   ];
   if (order.service_name) lines.push(`Уборка: ${escapeHtml(order.service_name)}`);
@@ -447,7 +447,7 @@ async function notifyReferralReward(env, friendId, orderNumber, origin) {
   const inviterId = positiveInt(data.inviter_id);
   const sent = await safeTelegram(env, 'sendMessage', {
     chat_id: inviterId,
-    text: ['🎁 <b>Вам начислена скидка 15%</b>', '', 'Ваш друг успешно завершил уборку по вашей ссылке.', 'Скидка 15% появилась в профиле HOUSE CLEANING и доступна для следующей уборки.'].join('\n'),
+    text: [`${animatedEmoji(env, 'HC_EMOJI_GIFT_ID', '🎁')} <b>Вам начислена скидка 15%</b>`, '', 'Ваш друг успешно завершил уборку по вашей ссылке.', 'Скидка 15% появилась в профиле HOUSE CLEANING и доступна для следующей уборки.'].join('\n'),
     parse_mode: 'HTML',
     reply_markup: { inline_keyboard: [[{ text: 'Открыть скидку', web_app: { url: `${origin}/?demo=1&open=referral` }, style: 'success' }]] },
   });
@@ -492,7 +492,7 @@ async function sendDueReminders(env) {
       continue;
     }
     const lines = [
-      '⏰ <b>Напоминание об уборке</b>', '',
+      `${animatedEmoji(env, 'HC_EMOJI_REMINDER_ID', '⏰')} <b>Напоминание об уборке</b>`, '',
       `Завтра, <b>${formatDate(order.date)}</b> в <b>${formatTime(order.time)}</b>.`,
       order.service_name ? `Уборка: ${escapeHtml(order.service_name)}` : '',
       order.city || order.address ? `Адрес: ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}` : '',
@@ -565,6 +565,10 @@ function orderTimestamp(order) {
   return Date.parse(`${date}T${time}:00+03:00`);
 }
 
+function animatedEmoji(env, key, fallback) {
+  const id = String(env?.[key] || '').trim();
+  return /^\d{6,30}$/.test(id) ? `<tg-emoji emoji-id="${id}">${fallback}</tg-emoji>` : fallback;
+}
 function reminderKey(clientId, orderNumber) { return `reminder24:${clientId}:${orderNumber}`; }
 function stripTrailingStatus(text) { return String(text || '').replace(/\n\n(?:✅|✨|❌)?\s*Статус:[\s\S]*$/i, '').replace(/\n\n⚠️[\s\S]*$/i, '').trim(); }
 function clean(value, max = 160) { return String(value || '').trim().replace(/\s+/g, ' ').slice(0, max); }
