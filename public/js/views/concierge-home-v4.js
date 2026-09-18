@@ -200,18 +200,20 @@ function upcomingSection(list) {
 }
 
 function smartSection(order) {
-  if (!order) {
-    return `<section class="u7-smart-card first-cleaning">
-      <div class="u7-smart-icon">✦</div>
-      <div><span class="u7-eyebrow">БЫСТРЫЙ СТАРТ</span><h3>Первая уборка за несколько минут</h3><p>Выберите услугу, адрес и удобное время — остальное подскажем по шагам.</p></div>
-      <button type="button" data-book-cleaning>Оформить уборку</button>
-    </section>`;
-  }
+  if (!order) return '';
   const address = [order.city,order.address].filter(Boolean).join(', ');
   return `<section class="u7-smart-card">
     <div class="u7-smart-icon">↻</div>
     <div><span class="u7-eyebrow">БЫСТРЫЙ ПОВТОР</span><h3>Повторить последнюю уборку</h3><p>${escapeHtml(order.service_name || 'Уборка')}${address ? ` · ${escapeHtml(address)}` : ''}</p></div>
     <button type="button" data-repeat-order>Повторить</button>
+  </section>`;
+}
+
+function subscriptionOffer() {
+  if (subscriptionState().active) return '';
+  return `<section class="u7-home-offer u7-home-offer-v3 u7-sub-offer-v60">
+    <div class="u7-sub-offer-media-v60"><img src="/assets/subscription-promo-v60.jpg" alt="" loading="lazy"></div>
+    <div class="u7-sub-offer-copy-v60"><span class="u7-eyebrow">АБОНЕМЕНТЫ</span><h3>Чистота по вашему графику</h3><p>5 или 10 уборок без повторного заполнения заявки. Согласуем даты заранее и закрепим удобный формат.</p><button type="button" data-subscriptions>Подробнее</button></div>
   </section>`;
 }
 
@@ -244,8 +246,15 @@ async function openManager() {
   else window.open(url,'_blank');
 }
 
-function startBooking(navigate) {
-  if (!Number(state.draft?.step || 0)) state.draft.step = 1;
+async function startBooking(navigate) {
+  if (activeDraft()) await state.resetDraft();
+  state.draft.step = 1;
+  state.saveDraft();
+  navigate('booking');
+}
+
+function continueBooking(navigate) {
+  if (!activeDraft()) return startBooking(navigate);
   state.saveDraft();
   navigate('booking');
 }
