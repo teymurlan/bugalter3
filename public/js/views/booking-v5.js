@@ -1,4 +1,4 @@
-import { renderBooking as renderBaseBooking } from './booking-v2.js?v=60';
+import { renderBooking as renderBaseBooking } from './booking-v2.js?v=61';
 import { state } from '../state.js';
 import { showToast } from '../utils.js';
 
@@ -288,7 +288,6 @@ export function renderBooking(root, navigate) {
   if (Number(state.draft?.step || 0) === 5 && !state.draft.visitTypeConfirmed) {
     renderVisitType(root, navigate);
     syncGlobalBack(root);
-    notifyBookingRendered();
     return;
   }
 
@@ -303,5 +302,4 @@ export function renderBooking(root, navigate) {
   renderBaseBooking(root, navigate);
   patchCurrent(root, navigate);
   syncGlobalBack(root);
-  notifyBookingRendered();
 }

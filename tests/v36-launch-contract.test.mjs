@@ -191,7 +191,7 @@ test('release 61 loads stable client UX without invalidating production worker l
   assert.match(app, /booking-v5\.js\?v=61/);
   assert.match(app, /concierge-home-v4\.js\?v=61/);
   assert.match(app, /concierge-orders-v4\.js\?v=61/);
-  assert.match(bookingV5, /booking-v2\.js\?v=60/);
+  assert.match(bookingV5, /booking-v2\.js\?v=61/);
   assert.match(clientUi, /hc-resume-card-v53/);
   assert.match(clientUi, /height:64px!important/);
 });

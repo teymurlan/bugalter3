@@ -49,6 +49,12 @@ function actions({ back = true, next = 'Продолжить', nextDisabled = fa
   return `<div class="wizard-actions ${back ? '' : 'one'}">${back ? '<button class="secondary-btn wizard-back" data-back aria-label="Назад">← <span>Назад</span></button>' : ''}<button class="primary-btn wizard-next" data-next ${nextDisabled ? 'disabled' : ''}>${next}</button></div>`;
 }
 
+function notifyBookingRendered() {
+  queueMicrotask(() => {
+    try { window.dispatchEvent(new CustomEvent('hc:booking-rendered', { detail: { step:Number(state.draft?.step || 0) } })); } catch {}
+  });
+}
+
 export function renderBooking(root, navigate) {
   currentNavigate = navigate;
   const draft = state.draft;
@@ -57,18 +63,23 @@ export function renderBooking(root, navigate) {
   if (!draft.phone) draft.phone = user.phone || '';
   if (!draft.contactMethod) draft.contactMethod = 'telegram';
 
-  if (draft.step === 0) return renderHome(root, navigate);
-  if (draft.step === 1) return renderService(root, navigate);
-  if (draft.step === 2) return renderObject(root, navigate);
-  if (draft.step === 3) return renderAddons(root, navigate);
-  if (draft.step === 4) return renderAddress(root, navigate);
-  if (draft.step === 5) return renderPhotos(root, navigate);
-  if (draft.step === 6) return renderSchedule(root, navigate);
-  if (draft.step === 7) return renderContacts(root, navigate);
-  if (draft.step === 8) return renderReview(root, navigate);
-  draft.step = 0;
-  state.saveDraft();
-  renderBooking(root, navigate);
+  let result;
+  if (draft.step === 0) result = renderHome(root, navigate);
+  else if (draft.step === 1) result = renderService(root, navigate);
+  else if (draft.step === 2) result = renderObject(root, navigate);
+  else if (draft.step === 3) result = renderAddons(root, navigate);
+  else if (draft.step === 4) result = renderAddress(root, navigate);
+  else if (draft.step === 5) result = renderPhotos(root, navigate);
+  else if (draft.step === 6) result = renderSchedule(root, navigate);
+  else if (draft.step === 7) result = renderContacts(root, navigate);
+  else if (draft.step === 8) result = renderReview(root, navigate);
+  else {
+    draft.step = 0;
+    state.saveDraft();
+    result = renderHome(root, navigate);
+  }
+  notifyBookingRendered();
+  return result;
 }
 
 function renderHome(root, navigate) {
