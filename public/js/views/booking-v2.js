@@ -16,7 +16,24 @@ const CONTACT_METHODS = [
   ['call', 'Звонок', 'Позвоним на указанный номер'],
 ];
 const DAILY_CAPACITY_M2 = 300;
+const AVAILABILITY_TTL_MS = 60_000;
+const availabilityCache = new Map();
+const availabilityPending = new Map();
+let scheduleSelectionVersion = 0;
 let currentNavigate = null;
+
+async function getAvailability(date, force = false) {
+  const key = String(date || '');
+  const cached = availabilityCache.get(key);
+  if (!force && cached && Date.now() - cached.at < AVAILABILITY_TTL_MS) return cached.data;
+  if (!force && availabilityPending.has(key)) return availabilityPending.get(key);
+  const task = api.availability(key).then((data) => {
+    availabilityCache.set(key, { at:Date.now(), data });
+    return data;
+  }).finally(() => availabilityPending.delete(key));
+  availabilityPending.set(key, task);
+  return task;
+}
 
 function progress(step) {
   const current = Math.max(1, Math.min(7, step));
@@ -249,6 +266,7 @@ function updateScheduleControls(root) {
 async function selectScheduleDate(root, navigate, value) {
   const nextDate = String(value || '');
   if (!nextDate) return;
+  const version = ++scheduleSelectionVersion;
   state.draft.date = nextDate;
   state.draft.time = '';
   state.saveDraft();
@@ -257,8 +275,8 @@ async function selectScheduleDate(root, navigate, value) {
   updateScheduleControls(root);
   const slots = root.querySelector('[data-slots]');
   if (slots) slots.innerHTML = '<div class="calendar-loading">Проверяем время...</div>';
-  await loadSlots(root, navigate, nextDate);
-  updateScheduleControls(root);
+  await loadSlots(root, navigate, nextDate, version);
+  if (version === scheduleSelectionVersion) updateScheduleControls(root);
 }
 
 function renderSchedule(root, navigate) {
@@ -276,8 +294,9 @@ function renderSchedule(root, navigate) {
 
   const dateInput = root.querySelector('[data-date]');
   dateInput.onchange = () => selectScheduleDate(root, navigate, dateInput.value);
+  const version = ++scheduleSelectionVersion;
   loadCalendar(root, navigate);
-  if (d.date) loadSlots(root, navigate, d.date);
+  if (d.date) loadSlots(root, navigate, d.date, version);
   bindNav(root, 5, () => {
     if (Number(d.area) > DAILY_CAPACITY_M2) return showToast('Для площади больше 300 м² требуется согласование', true);
     if (!d.date || !d.time) return showToast('Выберите дату и время', true);
@@ -290,7 +309,7 @@ async function loadCalendar(root, navigate) {
   const container = root.querySelector('[data-calendar]');
   if (!container) return;
   try {
-    const results = await Promise.all(dates.map((date) => api.availability(localIso(date))));
+    const results = await Promise.all(dates.map((date) => getAvailability(localIso(date))));
     if (!root.querySelector('[data-calendar]')) return;
     container.innerHTML = results.map((data, index) => calendarDay(dates[index], data)).join('');
     container.querySelectorAll('[data-calendar-date]').forEach((button) => button.onclick = () => {
@@ -316,10 +335,10 @@ function calendarDay(date, data) {
   return `<button type="button" class="calendar-day ${stateClass} ${state.draft.date === dateValue ? 'selected' : ''} ${insufficient ? 'insufficient' : ''}" data-calendar-date="${dateValue}" ${full || insufficient ? 'disabled' : ''}><span>${weekday}</span><b>${date.getDate()}</b><small>${month}</small><em>${escapeHtml(label)}</em></button>`;
 }
 
-async function loadSlots(root, navigate, date) {
+async function loadSlots(root, navigate, date, version = scheduleSelectionVersion) {
   try {
-    const data = await api.availability(date);
-    if (state.draft.date !== date) return;
+    const data = await getAvailability(date);
+    if (version !== scheduleSelectionVersion || state.draft.date !== date) return;
     const container = root.querySelector('[data-slots]');
     const capacity = root.querySelector('[data-capacity]');
     if (!container) return;
