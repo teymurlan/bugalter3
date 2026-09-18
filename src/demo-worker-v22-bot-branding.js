@@ -4,7 +4,7 @@ export { ConsentStore, AppStore };
 
 const CONSENT_VERSION = '2026-09-09-v1';
 const OPERATOR = 'ИП Царегородцева Евгения Андреевна';
-const CLIENT_RELEASE = '40';
+const CLIENT_RELEASE = '61';
 
 export default {
   async fetch(request, env, ctx) {
@@ -36,7 +36,7 @@ export default {
         await safeTelegram(env, 'editMessageText', {
           chat_id: chatId,
           message_id: messageId,
-          text: mainText(),
+          text: mainText(env),
           parse_mode: 'HTML',
           reply_markup: roleKeyboard(env, queryUserId, url.origin),
         });
@@ -56,7 +56,7 @@ async function refreshMenuAfterCommand(env, userId, origin) {
     await safeTelegram(env, 'editMessageText', {
       chat_id: userId,
       message_id: menuId,
-      text: mainText(),
+      text: mainText(env),
       parse_mode: 'HTML',
       reply_markup: roleKeyboard(env, userId, origin),
     });
@@ -67,18 +67,18 @@ async function refreshMenuAfterCommand(env, userId, origin) {
     await safeTelegram(env, 'editMessageText', {
       chat_id: userId,
       message_id: menuId,
-      text: consentText(),
+      text: consentText(env),
       parse_mode: 'HTML',
       reply_markup: consentKeyboard(origin),
     });
   }
 }
 
-function consentText() {
+function consentText(env) {
   return [
-    '🏠 <b>HOUSE CLEANING</b>',
+    `${animatedEmoji(env, 'HC_EMOJI_HOME_ID', '🏠')} <b>HOUSE CLEANING</b>`,
     '',
-    'Чистота начинается с хорошего сервиса ✨',
+    `Чистота начинается с хорошего сервиса ${animatedEmoji(env, 'HC_EMOJI_SPARK_ID', '✨')}`,
     '',
     'Оформляйте уборку, выбирайте удобное время и отправляйте фото объекта прямо в Telegram.',
     '',
@@ -92,18 +92,23 @@ function consentText() {
   ].join('\n');
 }
 
-function mainText() {
+function mainText(env) {
   return [
-    '🏠 <b>HOUSE CLEANING</b>',
+    `${animatedEmoji(env, 'HC_EMOJI_HOME_ID', '🏠')} <b>HOUSE CLEANING</b>`,
     '',
     'Управляйте уборкой прямо в Telegram.',
     '',
     'Запись, статус заявки, история уборок и помощь менеджера — всё в одном месте.',
     '',
-    '✨ Быстро, удобно и без лишних звонков.',
+    `${animatedEmoji(env, 'HC_EMOJI_SPARK_ID', '✨')} Быстро, удобно и без лишних звонков.`,
     '',
     'Выберите нужный раздел ниже.',
   ].join('\n');
+}
+
+function animatedEmoji(env, key, fallback) {
+  const id = String(env?.[key] || '').trim();
+  return /^\d{6,30}$/.test(id) ? `<tg-emoji emoji-id="${id}">${fallback}</tg-emoji>` : fallback;
 }
 
 function consentKeyboard(origin) {
