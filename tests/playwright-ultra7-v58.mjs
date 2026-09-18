@@ -81,7 +81,8 @@ async function createApp(){
 
 function rgb(value){
   const numbers=String(value).match(/[\d.]+/g)?.slice(0,3).map(Number)||[];
-  return numbers.length===3?numbers:null;
+  if(numbers.length!==3) return null;
+  return Math.max(...numbers)<=1.01 ? numbers.map((item)=>item*255) : numbers;
 }
 function luminance([r,g,b]){
   const f=v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4};
