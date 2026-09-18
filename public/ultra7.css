@@ -135,3 +135,5 @@ html[data-hc-theme] .hc-m-nav button.active{color:var(--u7-accent)!important}
 @media(max-width:380px){
   .u7-summary-grid{gap:7px}.u7-summary-card{padding:12px}.u7-theme-grid{gap:7px}.u7-theme-choice{font-size:11px;padding:10px 5px}
 }
+
+.hc-mobile-shell .hc-m-nav{grid-template-columns:repeat(5,1fr)!important}
