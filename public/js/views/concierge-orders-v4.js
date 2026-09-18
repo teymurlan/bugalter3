@@ -130,37 +130,48 @@ function orderCard(order) {
   const address = [order.city, order.address].filter(Boolean).join(', ');
   const price = Number(order.estimated_price || 0);
   const showEstimate = order.status !== 'COMPLETED' && price > 0;
-  return `<article class="card hc-order-card-v54 status-${status.cls}" data-order-id="${escapeHtml(order.id)}">
-    <div class="hc-order-card-head-v54">
-      <div><span class="hc-order-number-v54">Заказ ${escapeHtml(shortOrderNumber(order))}</span><strong>${escapeHtml(order.service_name || 'Уборка')}</strong></div>
-      <span class="cc-status-pill hc-status ${status.cls}">${escapeHtml(status.label)}</span>
+  return `<article class="u7-order-card-v3 status-${status.cls}" data-order-id="${escapeHtml(order.id)}">
+    <div class="u7-order-card-top">
+      <span class="u7-order-number">Заказ ${escapeHtml(shortOrderNumber(order))}</span>
+      <span class="u7-order-status ${status.cls}">${escapeHtml(status.label)}</span>
     </div>
-    <div class="hc-order-meta-v54">
-      <div><small>Дата и время</small><b>${escapeHtml(whenLabel(order))}</b></div>
-      <div><small>Площадь</small><b>${escapeHtml(String(order.area || 0))} м²</b></div>
-      <div class="wide"><small>Адрес</small><b>${escapeHtml(address || 'Адрес указан в заявке')}</b></div>
+    <h3>${escapeHtml(order.service_name || 'Уборка')}</h3>
+    <div class="u7-order-inline-meta">
+      <span><i>◷</i>${escapeHtml(whenLabel(order))}</span>
+      <span><i>□</i>${escapeHtml(String(order.area || 0))} м²</span>
     </div>
-    <div class="hc-order-card-foot-v54">
-      <span>${showEstimate ? `от ${escapeHtml(money(price))}` : status.label}</span>
-      <button class="hc-order-more-v54" type="button" data-open>Подробнее <i>›</i></button>
+    <div class="u7-order-address"><span>⌖</span><b>${escapeHtml(address || 'Адрес указан в заявке')}</b></div>
+    <div class="u7-order-card-bottom">
+      <strong>${showEstimate ? `от ${escapeHtml(money(price))}` : (order.status === 'COMPLETED' ? 'Выполнено' : status.label)}</strong>
+      <button type="button" data-open>Открыть <i>›</i></button>
     </div>
   </article>`;
 }
 
 function renderList(root, navigate, list) {
   const visible = list.filter(matchesFilter).sort(sortOrders);
-  const searchText = currentQuery.trim() || currentFilter !== 'all'
-    ? (visible.length ? `Показано: ${visible.length}` : 'Ничего не найдено')
-    : `Всего заявок: ${list.length}`;
+  const activeCount = countFilter(list, 'active');
+  const historyCount = countFilter(list, 'history');
   const filters = [
     ['active', 'Активные'],
     ['history', 'История'],
     ['all', 'Все'],
   ];
-  root.innerHTML = `<section class="cc-orders-head hc-orders-head-v54"><span class="cc-kicker">HOUSE CLEANING</span><h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Сначала актуальные уборки. Завершённые и отменённые — в истории.</p></section>
-    <div class="hc-client-search hc-client-search-v54"><input type="search" value="${escapeHtml(currentQuery)}" data-order-search placeholder="Заказ #023, услуга, адрес или дата"><span>${escapeHtml(searchText)}</span></div>
-    <div class="cc-filter-row hc-orders-tabs-v54" role="tablist">${filters.map(([id, label]) => `<button class="cc-filter ${currentFilter === id ? 'active' : ''}" type="button" data-filter="${id}">${label}<b>${countFilter(list, id)}</b></button>`).join('')}</div>
-    <div class="cc-order-list hc-order-list-v54">${visible.length ? visible.map(orderCard).join('') : '<div class="card cc-order-empty">В этом разделе заявок пока нет.</div>'}</div>`;
+
+  root.innerHTML = `<section class="u7-orders-hero">
+      <span class="u7-eyebrow">HOUSE CLEANING</span>
+      <h1>Мои заявки</h1>
+      <p>Текущие уборки, статусы и история — без лишних экранов.</p>
+      <div class="u7-orders-counters"><span><b>${activeCount}</b> активных</span><span><b>${historyCount}</b> в истории</span></div>
+    </section>
+    <section class="u7-orders-toolbar">
+      <label class="u7-order-search"><span>⌕</span><input type="search" value="${escapeHtml(currentQuery)}" data-order-search placeholder="Номер, услуга, адрес или дата"></label>
+      <div class="u7-orders-tabs" role="tablist">${filters.map(([id,label])=>`<button class="${currentFilter===id?'active':''}" type="button" data-filter="${id}"><span>${label}</span><b>${countFilter(list,id)}</b></button>`).join('')}</div>
+    </section>
+    <div class="u7-order-list-v3">
+      ${visible.length ? visible.map(orderCard).join('') : `<div class="u7-orders-empty"><span>✓</span><strong>${currentFilter === 'active' ? 'Активных заявок нет' : 'Заявок не найдено'}</strong><p>${currentFilter === 'active' ? 'Когда оформите новую уборку, она появится здесь.' : 'Попробуйте изменить фильтр или поиск.'}</p></div>`}
+    </div>`;
+
   const input = root.querySelector('[data-order-search]');
   input.oninput = () => {
     currentQuery = input.value;
@@ -168,22 +179,22 @@ function renderList(root, navigate, list) {
     const next = root.querySelector('[data-order-search]');
     if (next) { next.focus(); next.setSelectionRange(next.value.length, next.value.length); }
   };
-  root.querySelectorAll('[data-filter]').forEach((button) => button.onclick = () => { currentFilter = button.dataset.filter; renderList(root, navigate, list); });
-  root.querySelectorAll('[data-order-id]').forEach((card) => {
-    const open = () => navigate('orders', { orderId: Number(card.dataset.orderId), from: 'orders' });
-    card.querySelector('[data-open]').onclick = (event) => { event.stopPropagation(); open(); };
-    card.onclick = (event) => { if (!event.target.closest('button')) open(); };
+  root.querySelectorAll('[data-filter]').forEach((button)=>button.onclick=()=>{ currentFilter=button.dataset.filter; renderList(root,navigate,list); });
+  root.querySelectorAll('[data-order-id]').forEach((card)=>{
+    const open=()=>navigate('orders',{orderId:Number(card.dataset.orderId),from:'orders'});
+    card.querySelector('[data-open]').onclick=(event)=>{ event.stopPropagation(); open(); };
+    card.onclick=(event)=>{ if(!event.target.closest('button')) open(); };
   });
 }
 
 export async function renderConciergeOrders(root, navigate, params = {}) {
   if (params.orderId) return renderOrderDetails(root, navigate, params.orderId, params);
-  root.innerHTML = `<section class="cc-orders-head"><span class="cc-kicker">HOUSE CLEANING</span><h1 class="page-title">Мои заявки</h1><p class="page-subtitle">Загружаем заявки...</p></section><div class="loading"><div><div class="spinner"></div>Проверяем данные...</div></div>`;
+  root.innerHTML = `<section class="u7-orders-hero"><span class="u7-eyebrow">HOUSE CLEANING</span><h1>Мои заявки</h1><p>Загружаем актуальные данные...</p></section><div class="loading"><div><div class="spinner"></div>Проверяем заявки...</div></div>`;
   try {
     const [local, stored] = await Promise.all([api.orders(), fetchStoredOrders()]);
     renderList(root, navigate, mergeOrders(Array.isArray(local?.orders) ? local.orders : [], stored));
   } catch (error) {
-    root.innerHTML = `<section class="cc-orders-head"><h1 class="page-title">Мои заявки</h1></section><div class="card cc-order-empty">${escapeHtml(error.message || 'Не удалось загрузить заявки')}</div>`;
+    root.innerHTML = `<section class="u7-orders-hero"><span class="u7-eyebrow">HOUSE CLEANING</span><h1>Мои заявки</h1></section><div class="u7-orders-empty"><strong>Не удалось загрузить заявки</strong><p>${escapeHtml(error.message || 'Попробуйте ещё раз')}</p></div>`;
   }
 }
 
@@ -226,11 +237,37 @@ async function renderOrderDetails(root, navigate, id, params = {}) {
       <div class="cc-policy-note">${selfCancel ? '<strong>Отмена доступна самостоятельно, пока до уборки не меньше 24 часов.</strong>' : urgent ? '<strong>До уборки меньше 24 часов.</strong> Изменения и отмена — через менеджера.' : '<strong>Изменить заявку можно через менеджера.</strong>'}</div>
       <div class="cc-gallery-title"><h2>Фото объекта</h2><span>${photoCount ? `${photoCount} фото` : 'Нет фото'}</span></div>
       <div class="cc-client-gallery">${availablePhotos ? Array.from({ length: availablePhotos }, (_, index) => `<button class="cc-client-photo" type="button" data-client-photo="${index}"><img alt="Фото ${index + 1}"><span>${index + 1}</span></button>`).join('') : `<div class="card cc-order-empty" style="grid-column:1/-1">${photoCount ? 'Фотографии этой старой заявки недоступны для восстановления.' : 'Фотографии не прикреплены.'}</div>`}</div>
-      <div class="hc-order-actions">${selfCancel ? '<button class="hc-btn hc-btn-danger" type="button" data-cancel>Отменить заявку</button>' : ''}${ACTIVE.has(order.status) ? '<button class="hc-btn hc-btn-blue" type="button" data-manager>✉️ Написать менеджеру</button><button class="hc-btn hc-btn-green" type="button" data-call>📞 Позвонить</button>' : ''}</div>`;
+      <div class="hc-order-actions">${selfCancel ? '<button class="hc-btn hc-btn-danger" type="button" data-cancel>Отменить заявку</button>' : ''}${ACTIVE.has(order.status) ? '<button class="hc-btn hc-btn-blue" type="button" data-manager>✉️ Написать менеджеру</button><button class="hc-btn hc-btn-green" type="button" data-call>📞 Позвонить</button>' : ''}<button class="hc-btn hc-copy-order-v58" type="button" data-copy-order>Скопировать детали</button></div>`;
 
     root.querySelector('[data-back]').onclick = () => window.HCNavigation?.back?.(params.from === 'home' ? 'home' : 'orders') || navigate(params.from === 'home' ? 'home' : 'orders');
     root.querySelector('[data-manager]')?.addEventListener('click', openManager);
     root.querySelector('[data-call]')?.addEventListener('click', callManager);
+    root.querySelector('[data-copy-order]')?.addEventListener('click', async () => {
+      const address = [order.city, order.address, order.apartment ? `кв./офис ${order.apartment}` : ''].filter(Boolean).join(', ');
+      const text = [
+        `Заказ ${shortOrderNumber(order)}`,
+        order.service_name || 'Уборка',
+        `${formatDate(order.date)} · ${formatTime(order.time)}`,
+        address,
+        `Статус: ${status.label}`,
+      ].filter(Boolean).join('\n');
+      try {
+        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+        else {
+          const area = document.createElement('textarea');
+          area.value = text;
+          area.style.position = 'fixed';
+          area.style.opacity = '0';
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand('copy');
+          area.remove();
+        }
+        showToast('Детали заявки скопированы');
+      } catch {
+        showToast('Не удалось скопировать детали', true);
+      }
+    });
     if (availablePhotos) await loadDetailPhotos(root, order.order_number, availablePhotos);
     const cancel = root.querySelector('[data-cancel]');
     if (cancel) cancel.onclick = async () => {

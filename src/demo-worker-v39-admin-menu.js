@@ -15,17 +15,9 @@ export default {
       const userId = positiveInt(message?.from?.id);
       const command = commandName(message?.text);
 
-      if (chatId && userId && isAdminId(env, userId) && ['/admin', '/start', '/menu'].includes(command)) {
-        if (command === '/admin') {
-          await exposeAdminPanel(env, chatId, url.origin);
-          return json({ ok: true });
-        }
-
-        const response = await baseWorker.fetch(request, env, ctx);
-        const setup = exposeAdminPanel(env, chatId, url.origin);
-        if (ctx?.waitUntil) ctx.waitUntil(setup);
-        else await setup;
-        return response;
+      if (chatId && userId && isAdminId(env, userId) && command === '/admin') {
+        await exposeAdminPanel(env, chatId, url.origin);
+        return json({ ok: true });
       }
     }
 
@@ -38,27 +30,27 @@ export default {
 };
 
 async function exposeAdminPanel(env, chatId, origin) {
-  const adminUrl = `${origin}/?admin=1`;
+  const clientUrl = `${origin}/?demo=1`;
+  const adminUrl = `${origin}/?demo=1&admin=1`;
 
   await Promise.allSettled([
     telegram(env, 'setChatMenuButton', {
       chat_id: chatId,
       menu_button: {
         type: 'web_app',
-        text: 'Админ-панель',
-        web_app: { url: adminUrl },
+        text: 'HOUSE CLEANING',
+        web_app: { url: clientUrl },
       },
     }),
     telegram(env, 'sendMessage', {
       chat_id: chatId,
-      text: '<b>HOUSE CLEANING · Администратор</b>\n\nОткрывайте здесь сотрудников, заявки, назначения и обучение команды.',
+      text: '<b>HOUSE CLEANING</b>\n\nВыберите нужный раздел.',
       parse_mode: 'HTML',
       reply_markup: {
-        inline_keyboard: [[{
-          text: '⚙️ Открыть админ-панель',
-          web_app: { url: adminUrl },
-          style: 'primary',
-        }]],
+        inline_keyboard: [
+          [{ text: 'Открыть HOUSE CLEANING', web_app: { url: clientUrl }, style: 'primary' }],
+          [{ text: 'Панель администратора', web_app: { url: adminUrl }, style: 'danger' }],
+        ],
       },
     }),
   ]);
