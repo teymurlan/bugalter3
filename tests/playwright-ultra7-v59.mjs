@@ -54,7 +54,15 @@ async function createApp({orders=[completedOrder,activeOrder],remaining=4,subscr
 
     if(path==='/api/demo-config') return json({adminConfigured:true,reminder24hReady:true});
     if(path==='/api/client-draft') return json(method==='GET'?{ok:true,draft:null}:{ok:true});
-    if(path==='/api/client-profile') return json({ok:true,profile:{telegram_id:790059,name:'Ultra Client',phone:'+79990000000,...(subscription?{subscription_name:'Регулярная уборка',cleanings_remaining:remaining,cleanings_total:10}:{})}});
+    if(path==='/api/client-profile') {
+      const profile={telegram_id:790059,name:'Ultra Client',phone:'+79990000000'};
+      if(subscription){
+        profile.subscription_name='Регулярная уборка';
+        profile.cleanings_remaining=remaining;
+        profile.cleanings_total=10;
+      }
+      return json({ok:true,profile});
+    }
     if(path==='/api/demo-client-orders') return json({ok:true,orders});
     if(path==='/api/demo-client-order'){
       const number=url.searchParams.get('order');
