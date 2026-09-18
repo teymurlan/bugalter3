@@ -43,7 +43,8 @@ test('release 55 wraps release 53 with stable public order numbering while produ
   assert.match(worker44, /isKpPath/);
   assert.match(worker43, /demo-worker-v42-launch-hardening\.js/);
   assert.match(worker42, /MIN_BOOKING_LEAD_MS = 6 \* 60 \* 60 \* 1000/);
-  assert.match(worker29, /Напоминание об уборке/);
+  assert.match(worker29, /Уборка уже завтра/);
+  assert.match(worker29, /HC_EMOJI_REMINDER_ID/);
 });
 
 test('public order numbers are server-owned, sequential and do not count test orders', () => {
@@ -176,20 +177,20 @@ test('one-time clean launch no longer clears draft on every reopen', () => {
   assert.doesNotMatch(launchReset, /localStorage\.setItem\(KEY, 'pending'\)/);
 });
 
-test('release 60 loads stable client UX without invalidating production worker layers', () => {
-  assert.match(index, /house-cleaning-release" content="60/);
+test('release 61 loads stable client UX without invalidating production worker layers', () => {
+  assert.match(index, /house-cleaning-release" content="61/);
   assert.match(index, /public-order-number-v55\.js\?v=55/);
   assert.match(index, /client-ui-v53\.css\?v=54/);
-  assert.match(index, /app-release-v3\.js\?v=60/);
-  assert.match(specialEntry, /client-experience-v53\.js\?v=60/);
-  assert.match(specialEntry, /app-release-v2\.js\?v=60/);
-  assert.match(entry, /api-release-v2\.js\?v=60/);
-  assert.match(entry, /api-shared-v50\.js\?v=60/);
-  assert.match(entry, /state-release-v2\.js\?v=60/);
-  assert.match(entry, /app-release\.js\?v=60/);
-  assert.match(app, /booking-v5\.js\?v=60/);
-  assert.match(app, /concierge-home-v4\.js\?v=60/);
-  assert.match(app, /concierge-orders-v4\.js\?v=60/);
+  assert.match(index, /app-release-v3\.js\?v=61/);
+  assert.match(specialEntry, /client-experience-v53\.js\?v=61/);
+  assert.match(specialEntry, /app-release-v2\.js\?v=61/);
+  assert.match(entry, /api-release-v2\.js\?v=61/);
+  assert.match(entry, /api-shared-v50\.js\?v=61/);
+  assert.match(entry, /state-release-v2\.js\?v=61/);
+  assert.match(entry, /app-release\.js\?v=61/);
+  assert.match(app, /booking-v5\.js\?v=61/);
+  assert.match(app, /concierge-home-v4\.js\?v=61/);
+  assert.match(app, /concierge-orders-v4\.js\?v=61/);
   assert.match(bookingV5, /booking-v2\.js\?v=60/);
   assert.match(clientUi, /hc-resume-card-v53/);
   assert.match(clientUi, /height:64px!important/);
