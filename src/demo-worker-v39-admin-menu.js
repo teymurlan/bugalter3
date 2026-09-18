@@ -15,17 +15,9 @@ export default {
       const userId = positiveInt(message?.from?.id);
       const command = commandName(message?.text);
 
-      if (chatId && userId && isAdminId(env, userId) && ['/admin', '/start', '/menu'].includes(command)) {
-        if (command === '/admin') {
-          await exposeAdminPanel(env, chatId, url.origin);
-          return json({ ok: true });
-        }
-
-        const response = await baseWorker.fetch(request, env, ctx);
-        const setup = exposeAdminPanel(env, chatId, url.origin);
-        if (ctx?.waitUntil) ctx.waitUntil(setup);
-        else await setup;
-        return response;
+      if (chatId && userId && isAdminId(env, userId) && command === '/admin') {
+        await exposeAdminPanel(env, chatId, url.origin);
+        return json({ ok: true });
       }
     }
 
