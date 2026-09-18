@@ -93,15 +93,15 @@ test('first visit requires photo while repeat visit skips photo screen', () => {
   assert.match(bookingV5, /function patchScheduleStep/);
 });
 
-test('release 53 stops date jumping and resumes abandoned booking after ten seconds', () => {
-  assert.match(clientExperience, /RESUME_AFTER_MS = 10_000/);
+test('release 60 stops date jumping and keeps abandoned booking behind an explicit resume action', () => {
+  assert.match(clientExperience, /RESUME_AFTER_MS = 0/);
   assert.match(clientExperience, /hc-booking-left-at-v53/);
   assert.match(clientExperience, /__HC_RESUME_DRAFT_V53/);
-  assert.match(clientExperience, /Продолжить оформление/);
-  assert.match(clientExperience, /location\.reload\(\)/);
-  assert.match(clientExperience, /calendar-day\.selected/);
-  assert.match(clientExperience, /Element\.prototype\.scrollIntoView/);
-  assert.match(clientExperience, /data-calendar/);
+  assert.match(clientHome, /Продолжить оформление/);
+  assert.match(clientHome, /data-resume-order/);
+  assert.match(app, /const initialRoute = adminMode \? 'admin' : 'home'/);
+  assert.match(bookingBase, /function updateScheduleControls/);
+  assert.match(bookingBase, /selectScheduleDate/);
 });
 
 test('release 53 blocks more than 300 square metres before scheduling and offers manager contact', () => {
@@ -123,11 +123,12 @@ test('success stays inside Mini App and client booking chat message is suppresse
 });
 
 test('order detail back remembers whether client came from home or orders', () => {
-  assert.match(clientExperience, /hc-order-origin-v53/);
-  assert.match(clientExperience, /saveOrigin\('orders'\)/);
-  assert.match(clientExperience, /saveOrigin\('home'\)/);
-  assert.match(clientExperience, /queueScrollRestore/);
-  assert.match(clientExperience, /cc-detail-head/);
+  assert.match(app, /const backStack = \[\]/);
+  assert.match(app, /backStack\.push/);
+  assert.match(app, /backStack\.pop/);
+  assert.match(app, /restoreScroll/);
+  assert.match(clientOrders, /params\.from === 'home'/);
+  assert.match(clientOrders, /window\.HCNavigation\?\.back/);
 });
 
 test('release 59 applies handwritten home and orders revisions', () => {
@@ -135,7 +136,7 @@ test('release 59 applies handwritten home and orders revisions', () => {
   assert.match(clientOrders, /function shortOrderNumber/);
   assert.match(clientOrders, /display_number/);
   assert.match(clientOrders, /Заказ \$\{escapeHtml\(shortOrderNumber\(order\)\)\}/);
-  assert.match(clientOrders, /\['history', 'История'\]/);
+  assert.match(clientOrders, /\['history'\s*,\s*'История'\]/);
   assert.match(clientOrders, /u7-order-card-v3/);
   assert.match(clientOrders, /<h1>Заказ \$\{escapeHtml\(shortOrderNumber\(order\)\)\}<\/h1>/);
   assert.doesNotMatch(clientHome, /Последние заявки/);
@@ -175,21 +176,21 @@ test('one-time clean launch no longer clears draft on every reopen', () => {
   assert.doesNotMatch(launchReset, /localStorage\.setItem\(KEY, 'pending'\)/);
 });
 
-test('release 59 loads Ultra 7.2 UX fixes without invalidating stable production layers', () => {
-  assert.match(index, /house-cleaning-release" content="59/);
+test('release 60 loads stable client UX without invalidating production worker layers', () => {
+  assert.match(index, /house-cleaning-release" content="60/);
   assert.match(index, /public-order-number-v55\.js\?v=55/);
   assert.match(index, /client-ui-v53\.css\?v=54/);
-  assert.match(index, /app-release-v3\.js\?v=59/);
-  assert.match(specialEntry, /client-experience-v53\.js\?v=59/);
-  assert.match(specialEntry, /app-release-v2\.js\?v=59/);
-  assert.match(entry, /api-release-v2\.js\?v=59/);
-  assert.match(entry, /api-shared-v50\.js\?v=59/);
-  assert.match(entry, /state-release-v2\.js\?v=59/);
-  assert.match(entry, /app-release\.js\?v=59/);
-  assert.match(app, /booking-v5\.js\?v=59/);
-  assert.match(app, /concierge-home-v4\.js\?v=59/);
-  assert.match(app, /concierge-orders-v4\.js\?v=59/);
-  assert.match(bookingV5, /booking-v2\.js\?v=52/);
+  assert.match(index, /app-release-v3\.js\?v=60/);
+  assert.match(specialEntry, /client-experience-v53\.js\?v=60/);
+  assert.match(specialEntry, /app-release-v2\.js\?v=60/);
+  assert.match(entry, /api-release-v2\.js\?v=60/);
+  assert.match(entry, /api-shared-v50\.js\?v=60/);
+  assert.match(entry, /state-release-v2\.js\?v=60/);
+  assert.match(entry, /app-release\.js\?v=60/);
+  assert.match(app, /booking-v5\.js\?v=60/);
+  assert.match(app, /concierge-home-v4\.js\?v=60/);
+  assert.match(app, /concierge-orders-v4\.js\?v=60/);
+  assert.match(bookingV5, /booking-v2\.js\?v=60/);
   assert.match(clientUi, /hc-resume-card-v53/);
   assert.match(clientUi, /height:64px!important/);
 });
