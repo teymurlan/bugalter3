@@ -6,7 +6,7 @@ const CLIENT_MODE = params.get('admin') !== '1' && params.get('staff') !== '1';
 const LEFT_AT_KEY = 'hc-booking-left-at-v53';
 const ORDER_ORIGIN_KEY = 'hc-order-origin-v53';
 const SCROLL_RESTORE_KEY = 'hc-route-scroll-v53';
-const RESUME_AFTER_MS = 10_000;
+const RESUME_AFTER_MS = 0;
 
 let resumeTimer = 0;
 let observer = null;
@@ -64,11 +64,7 @@ function elapsedSinceExit() {
 }
 
 function shouldOfferResume() {
-  const draft = savedResumeDraft();
-  if (!draft) return false;
-  if (window.__HC_FORCE_HOME_V53) return true;
-  const elapsed = elapsedSinceExit();
-  return elapsed >= RESUME_AFTER_MS;
+  return Boolean(savedResumeDraft());
 }
 
 function stepLabel(draft) {
@@ -84,74 +80,13 @@ function stepLabel(draft) {
   return 'оформление заказа';
 }
 
-function scheduleResumeCard(leftAt = 0) {
+function scheduleResumeCard() {
   if (resumeTimer) clearTimeout(resumeTimer);
-  let stamp = Number(leftAt || 0);
-  if (!stamp) {
-    try { stamp = Number(localStorage.getItem(LEFT_AT_KEY) || 0); } catch {}
-  }
-  if (!stamp) return;
-  const delay = Math.max(0, RESUME_AFTER_MS - (Date.now() - stamp)) + 80;
-  resumeTimer = window.setTimeout(() => {
-    resumeTimer = 0;
-    decorateHomeResume();
-  }, delay);
+  resumeTimer = 0;
 }
 
 function decorateHomeResume() {
-  if (!CLIENT_MODE) return;
-  const home = document.querySelector('.cc-home');
-  if (!home) return;
-  const existing = home.querySelector('[data-resume-booking-v53]');
-  if (!shouldOfferResume()) {
-    existing?.remove();
-    scheduleResumeCard();
-    return;
-  }
-
-  const draft = savedResumeDraft();
-  if (!draft) return;
-  if (existing) {
-    const text = existing.querySelector('[data-resume-step]');
-    if (text) text.textContent = `Вы остановились на этапе: ${stepLabel(draft)}.`;
-    return;
-  }
-
-  const card = document.createElement('section');
-  card.className = 'card hc-resume-card-v53';
-  card.dataset.resumeBookingV53 = '1';
-  card.innerHTML = `
-    <div class="hc-resume-icon-v53" aria-hidden="true">↗</div>
-    <div class="hc-resume-copy-v53">
-      <span>НЕЗАВЕРШЁННЫЙ ЗАКАЗ</span>
-      <strong>Продолжить оформление</strong>
-      <p data-resume-step>Вы остановились на этапе: ${stepLabel(draft)}.</p>
-    </div>
-    <button class="hc-resume-main-v53" type="button" data-resume-order-v53>Продолжить</button>
-    <button class="hc-resume-new-v53" type="button" data-new-order-v53>Начать заново</button>`;
-
-  const header = home.querySelector('.cc-greeting-row');
-  if (header) header.insertAdjacentElement('afterend', card);
-  else home.prepend(card);
-
-  card.querySelector('[data-resume-order-v53]').onclick = () => {
-    const resume = cloneDraft(savedResumeDraft());
-    if (!activeDraft(resume)) return;
-    state.draft = resume;
-    state.saveDraft();
-    clearResumeMarker();
-    location.reload();
-  };
-
-  card.querySelector('[data-new-order-v53]').onclick = async () => {
-    const button = card.querySelector('[data-new-order-v53]');
-    if (button) button.disabled = true;
-    await state.resetDraft();
-    clearResumeMarker();
-    state.draft.step = 1;
-    state.saveDraft();
-    location.reload();
-  };
+  // STAFF 60 renders the resume card directly in the Home view before first paint.
 }
 
 async function openManager() {
@@ -291,24 +226,13 @@ function patchRemoteDraftHydration() {
   const original = state.hydrateRemoteDraft.bind(state);
   state.hydrateRemoteDraft = async function () {
     await original();
-    const leftAt = (() => { try { return Number(localStorage.getItem(LEFT_AT_KEY) || 0); } catch { return 0; } })();
-    if (!activeDraft(this.draft) || !leftAt) return;
-    const elapsed = Date.now() - leftAt;
-    if (elapsed > RESUME_AFTER_MS) {
-      window.__HC_RESUME_DRAFT_V53 = cloneDraft(this.draft);
-      window.__HC_FORCE_HOME_V53 = true;
-      this.draft = { ...this.draft, step: 0 };
-    } else {
-      scheduleResumeCard(leftAt);
-    }
+    if (activeDraft(this.draft)) window.__HC_RESUME_DRAFT_V53 = cloneDraft(this.draft);
   };
 }
 
 function decorate() {
-  decorateHomeResume();
   decorateAreaLimit();
   decorateSuccess();
-  restoreRouteScroll();
 }
 
 function installInteractionGuards() {
@@ -341,19 +265,6 @@ function installInteractionGuards() {
       return;
     }
 
-    const detailBack = target.closest('.cc-detail-head') ? null : target.closest('[data-back]');
-    if (detailBack && document.querySelector('.cc-detail-head')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      if (window.HCNavigation?.back) {
-        window.HCNavigation.back('orders');
-        return;
-      }
-      const origin = readOrigin() || { route: 'orders', scrollY: 0 };
-      const route = origin.route === 'home' ? 'home' : 'orders';
-      queueScrollRestore(route, origin.scrollY);
-      navButton(route)?.click();
-    }
   }, true);
 
   document.addEventListener('visibilitychange', () => {
@@ -367,8 +278,9 @@ if (CLIENT_MODE) {
   patchCalendarAutoScroll();
   patchRemoteDraftHydration();
   installInteractionGuards();
-  observer = new MutationObserver(() => requestAnimationFrame(decorate));
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  const root = document.querySelector('#app');
+  observer = new MutationObserver(() => queueMicrotask(decorate));
+  if (root) observer.observe(root, { childList: true, subtree: false });
   document.addEventListener('DOMContentLoaded', decorate, { once: true });
-  requestAnimationFrame(decorate);
+  queueMicrotask(decorate);
 }

@@ -9,6 +9,12 @@ function money(value) {
   return `${Math.round(amount).toLocaleString('ru-RU')} ₽`;
 }
 
+function formatDate(value) {
+  const raw = clean(value, 40);
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : raw;
+}
+
 function orderDisplayNumber(order) {
   return clean(order?.public_order_number || order?.display_number || order?.order_number, 100);
 }
@@ -48,7 +54,7 @@ export function buildCentralNotificationPayload(event, order = {}) {
   if (order.phone) lines.push(`📞 Телефон: ${clean(order.phone, 80)}`);
   if (order.service_name) lines.push(`🧹 Услуга: ${clean(order.service_name, 160)}`);
   if (Number(order.area || 0) > 0) lines.push(`📐 Площадь: ${Number(order.area)} м²`);
-  if (order.date || order.time) lines.push(`📅 Дата и время: ${[clean(order.date, 20), clean(order.time, 20)].filter(Boolean).join(' · ')}`);
+  if (order.date || order.time) lines.push(`📅 Дата и время: ${[formatDate(order.date), clean(order.time, 20)].filter(Boolean).join(' · ')}`);
 
   const address = orderAddress(order);
   if (address) lines.push(`📍 Адрес: ${address}`);

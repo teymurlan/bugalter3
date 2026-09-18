@@ -32,7 +32,7 @@ function telegramStub(){
   return `window.Telegram={WebApp:{initData:'query_id=ultra59',initDataUnsafe:{user:{id:790059,first_name:'Ultra'}},ready(){},expand(){},disableVerticalSwipes(){},setHeaderColor(){},setBackgroundColor(){},setBottomBarColor(){},openTelegramLink(){},HapticFeedback:{selectionChanged(){},impactOccurred(){},notificationOccurred(){}}}};`;
 }
 
-async function createApp({orders=[completedOrder,activeOrder],remaining=4}={}){
+async function createApp({orders=[completedOrder,activeOrder],remaining=4,subscription=true}={}){
   const context=await browser.newContext({...iphone,locale:'ru-RU',timezoneId:'Europe/Moscow'});
   await context.addInitScript(({orders,key})=>{
     localStorage.setItem('hc-clean-start-generation','v45-clean-launch');
@@ -54,7 +54,15 @@ async function createApp({orders=[completedOrder,activeOrder],remaining=4}={}){
 
     if(path==='/api/demo-config') return json({adminConfigured:true,reminder24hReady:true});
     if(path==='/api/client-draft') return json(method==='GET'?{ok:true,draft:null}:{ok:true});
-    if(path==='/api/client-profile') return json({ok:true,profile:{telegram_id:790059,name:'Ultra Client',phone:'+79990000000',cleanings_remaining:remaining,cleanings_total:10}});
+    if(path==='/api/client-profile') {
+      const profile={telegram_id:790059,name:'Ultra Client',phone:'+79990000000'};
+      if(subscription){
+        profile.subscription_name='Регулярная уборка';
+        profile.cleanings_remaining=remaining;
+        profile.cleanings_total=10;
+      }
+      return json({ok:true,profile});
+    }
     if(path==='/api/demo-client-orders') return json({ok:true,orders});
     if(path==='/api/demo-client-order'){
       const number=url.searchParams.get('order');
@@ -107,7 +115,7 @@ async function assertContrast(locator,label){
     assert.equal(await page.locator('.hc-home-orders-section-v54').count(),0,'Последние заявки на главной должны быть убраны');
     assert.equal(await page.locator('.u7-smart-card').count(),1,'Вместо последних заявок нужен полезный быстрый повтор');
     assert.match(await page.locator('.u7-smart-card').textContent(),/Повторить последнюю уборку/);
-    assert.match(await page.locator('.u7-home-summary-v3').textContent(),/Осталось по графику\s*4/);
+    assert.match(await page.locator('.u7-home-summary-v3').textContent(),/Осталось\s*4/);
     assert.equal(await page.locator('.u7-week-v3').count(),1);
 
     const primaryHeight=await page.locator('.u7-home-primary').evaluate(node=>node.getBoundingClientRect().height);
@@ -168,10 +176,13 @@ async function assertContrast(locator,label){
 }
 
 {
-  const {context,page}=await createApp({orders:[completedOrder],remaining:0});
+  const {context,page}=await createApp({orders:[completedOrder],remaining:0,subscription:false});
   try{
     assert.equal(await page.locator('.u7-next-cleaning').count(),0,'Без активной уборки блок ближайшей уборки скрыт');
-    assert.equal(await page.locator('.u7-home-summary-v3').count(),0,'Без активного графика блок Мои уборки скрыт');
+    assert.equal(await page.locator('.u7-home-summary-v3').count(),1,'Без абонемента показывается прогресс клиента');
+    assert.match(await page.locator('.u7-home-summary-v3').textContent(),/ВАШ ПРОГРЕСС|Ваш прогресс/i);
+    assert.equal(await page.locator('.u7-sub-offer-v60').count(),1,'Без абонемента показывается рекламная карточка');
+    await page.locator('.u7-sub-offer-media-v60 img').waitFor({state:'visible'});
     assert.equal(await page.locator('.u7-week-v3').count(),0,'Пустой блок 7 дней не показывается');
     assert.equal(await page.locator('.u7-smart-card').count(),1,'Быстрый повтор остаётся полезным действием');
     await page.screenshot({path:'playwright-ultra7-v59-empty.png',fullPage:true});
@@ -182,4 +193,4 @@ async function assertContrast(locator,label){
 }
 
 await browser.close();
-console.log('\n✅ HOUSE CLEANING release 59 handwritten screens passed');
+console.log('\n✅ HOUSE CLEANING release 60 client screens passed');

@@ -22,9 +22,9 @@ const adminMenuWorker = read('src/demo-worker-v39-admin-menu.js');
 const clientExperience = read('public/js/client-experience-v53.js');
 
 test('Ultra 7 shell loads one design layer and three selectable themes', () => {
-  assert.match(index, /house-cleaning-release" content="59/);
-  assert.match(index, /ultra7\.css\?v=59/);
-  assert.match(index, /ultra7-theme\.js\?v=59/);
+  assert.match(index, /house-cleaning-release" content="60/);
+  assert.match(index, /ultra7\.css\?v=60/);
+  assert.match(index, /ultra7-theme\.js\?v=60/);
   assert.doesNotMatch(index, /referral-v2\.css/);
   for (const id of ['light','dark','blue']) assert.match(theme, new RegExp(`['"]${id}['"]`));
   assert.match(theme, /hc-ultra7-theme-/);
@@ -43,7 +43,6 @@ test('client navigation returns to the exact previous screen and scroll position
   assert.match(app, /backStack\.length = 0/);
   assert.match(orders, /window\.HCNavigation\?\.back/);
   assert.match(orders, /params\.from === 'home'/);
-  assert.match(clientExperience, /window\.HCNavigation\?\.back/);
 });
 
 test('referral product surface is disabled while customer settings are available', () => {
@@ -58,8 +57,10 @@ test('referral product surface is disabled while customer settings are available
 });
 
 test('customer dashboard is ready for current orders, repeat booking and imported cleaning schedules', () => {
-  assert.match(home, /Мои уборки/);
+  assert.match(home, /subscriptionState/);
   assert.match(home, /cleanings_remaining/);
+  assert.match(home, /ВАШ ПРОГРЕСС/);
+  assert.match(home, /subscription-promo-v60\.svg/);
   assert.match(home, /Последняя/);
   assert.match(home, /Следующая/);
   assert.match(home, /Повторить последнюю уборку/);
@@ -138,13 +139,30 @@ test('handwritten screens 01–04 remove clutter, hide empty service blocks and 
   assert.doesNotMatch(home, /Последние заявки/);
   assert.match(home, /function smartSection/);
   assert.match(home, /if \(!order\) return ''/);
-  assert.match(home, /if \(!next && !\(remaining > 0\)\) return ''/);
+  assert.match(home, /if \(subscriptionState\(\)\.active\) return ''/);
   assert.match(home, /if \(!upcoming\.length\) return ''/);
   assert.match(home, /u7-home-primary/);
   assert.match(orders, /u7-orders-hero/);
   assert.match(orders, /u7-order-card-v3/);
   assert.match(orders, /u7-order-inline-meta/);
   assert.match(css, /Ultra 7\.2 — handwritten client review/);
+  assert.match(css, /HOUSE CLEANING CLIENT 60/);
   assert.match(css, /u7-order-status\.progress/);
   assert.match(css, /u7-home-primary[\s\S]*min-height:56px!important/);
+});
+
+test('client v60 keeps unfinished booking on home and updates schedule without full rerender', () => {
+  const booking = read('public/js/views/booking-v2.js');
+  assert.match(app, /const initialRoute = adminMode \? 'admin' : 'home'/);
+  assert.match(home, /data-resume-order/);
+  assert.match(booking, /function updateScheduleControls/);
+  assert.match(booking, /selectScheduleDate/);
+  assert.match(booking, /state\.draft\.time = button\.dataset\.time/);
+  assert.doesNotMatch(booking, /data-time[^\n]+renderSchedule\(root, navigate\)/);
+});
+
+test('telegram reminders support animated custom emoji with safe fallback', () => {
+  assert.match(automation, /function animatedEmoji/);
+  assert.match(automation, /HC_EMOJI_REMINDER_ID/);
+  assert.match(automation, /<tg-emoji emoji-id=/);
 });

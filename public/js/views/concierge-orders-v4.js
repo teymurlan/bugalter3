@@ -148,17 +148,13 @@ function orderCard(order) {
   </article>`;
 }
 
-function renderList(root, navigate, list) {
-  const visible = list.filter(matchesFilter).sort(sortOrders);
+function renderList(root, navigate, list, params = {}) {
   const activeCount = countFilter(list, 'active');
   const historyCount = countFilter(list, 'history');
-  const filters = [
-    ['active', 'Активные'],
-    ['history', 'История'],
-    ['all', 'Все'],
-  ];
+  const filters = [['active','Активные'],['history','История'],['all','Все']];
+  const back = params.from === 'home' ? '<button class="cc-back hc-fixed-back" type="button" data-orders-back>← Главная</button>' : '';
 
-  root.innerHTML = `<section class="u7-orders-hero">
+  root.innerHTML = `${back}<section class="u7-orders-hero ${params.from === 'home' ? 'hc-subpage-offset' : ''}">
       <span class="u7-eyebrow">HOUSE CLEANING</span>
       <h1>Мои заявки</h1>
       <p>Текущие уборки, статусы и история — без лишних экранов.</p>
@@ -168,33 +164,47 @@ function renderList(root, navigate, list) {
       <label class="u7-order-search"><span>⌕</span><input type="search" value="${escapeHtml(currentQuery)}" data-order-search placeholder="Номер, услуга, адрес или дата"></label>
       <div class="u7-orders-tabs" role="tablist">${filters.map(([id,label])=>`<button class="${currentFilter===id?'active':''}" type="button" data-filter="${id}"><span>${label}</span><b>${countFilter(list,id)}</b></button>`).join('')}</div>
     </section>
-    <div class="u7-order-list-v3">
-      ${visible.length ? visible.map(orderCard).join('') : `<div class="u7-orders-empty"><span>✓</span><strong>${currentFilter === 'active' ? 'Активных заявок нет' : 'Заявок не найдено'}</strong><p>${currentFilter === 'active' ? 'Когда оформите новую уборку, она появится здесь.' : 'Попробуйте изменить фильтр или поиск.'}</p></div>`}
-    </div>`;
+    <div class="u7-order-list-v3" data-order-list></div>`;
+
+  const holder = root.querySelector('[data-order-list]');
+  const draw = () => {
+    const visible = list.filter(matchesFilter).sort(sortOrders);
+    holder.innerHTML = visible.length ? visible.map(orderCard).join('') : `<div class="u7-orders-empty"><span>✓</span><strong>${currentFilter === 'active' ? 'Активных заявок нет' : 'Заявок не найдено'}</strong><p>${currentFilter === 'active' ? 'Когда оформите новую уборку, она появится здесь.' : 'Попробуйте изменить фильтр или поиск.'}</p></div>`;
+    root.querySelectorAll('[data-filter]').forEach((button)=>button.classList.toggle('active',button.dataset.filter===currentFilter));
+    holder.querySelectorAll('[data-order-id]').forEach((card)=>{
+      const open=()=>navigate('orders',{orderId:Number(card.dataset.orderId),from:'orders'});
+      card.querySelector('[data-open]').onclick=(event)=>{event.stopPropagation();open();};
+      card.onclick=(event)=>{if(!event.target.closest('button'))open();};
+    });
+  };
 
   const input = root.querySelector('[data-order-search]');
-  input.oninput = () => {
-    currentQuery = input.value;
-    renderList(root, navigate, list);
-    const next = root.querySelector('[data-order-search]');
-    if (next) { next.focus(); next.setSelectionRange(next.value.length, next.value.length); }
-  };
-  root.querySelectorAll('[data-filter]').forEach((button)=>button.onclick=()=>{ currentFilter=button.dataset.filter; renderList(root,navigate,list); });
-  root.querySelectorAll('[data-order-id]').forEach((card)=>{
-    const open=()=>navigate('orders',{orderId:Number(card.dataset.orderId),from:'orders'});
-    card.querySelector('[data-open]').onclick=(event)=>{ event.stopPropagation(); open(); };
-    card.onclick=(event)=>{ if(!event.target.closest('button')) open(); };
-  });
+  input.oninput = () => { currentQuery = input.value; draw(); };
+  root.querySelectorAll('[data-filter]').forEach((button)=>button.onclick=()=>{currentFilter=button.dataset.filter;draw();});
+  root.querySelector('[data-orders-back]')?.addEventListener('click',()=>window.HCNavigation?.back?.('home') || navigate('home'));
+  draw();
 }
 
 export async function renderConciergeOrders(root, navigate, params = {}) {
-  if (params.orderId) return renderOrderDetails(root, navigate, params.orderId, params);
-  root.innerHTML = `<section class="u7-orders-hero"><span class="u7-eyebrow">HOUSE CLEANING</span><h1>Мои заявки</h1><p>Загружаем актуальные данные...</p></section><div class="loading"><div><div class="spinner"></div>Проверяем заявки...</div></div>`;
+  if (params.orderId) {
+    root.innerHTML = `<button class="cc-back hc-fixed-back" type="button" data-back>← Назад</button><section class="cc-detail-head hc-subpage-offset"><span class="cc-kicker">HOUSE CLEANING</span><h1>Открываем заявку</h1><p class="page-subtitle">Проверяем актуальный статус...</p></section><div class="card hc-detail-block"><div class="loading">Загрузка...</div></div>`;
+    root.querySelector('[data-back]').onclick = () => window.HCNavigation?.back?.(params.from === 'home' ? 'home' : 'orders') || navigate(params.from === 'home' ? 'home' : 'orders');
+    return renderOrderDetails(root, navigate, params.orderId, params);
+  }
+
+  const cached = Array.isArray(window.__HC_CLIENT_ORDERS_CACHE) ? window.__HC_CLIENT_ORDERS_CACHE : null;
+  if (cached) renderList(root, navigate, cached, params);
+  else root.innerHTML = `<section class="u7-orders-hero"><span class="u7-eyebrow">HOUSE CLEANING</span><h1>Мои заявки</h1><p>Загружаем актуальные данные...</p></section><div class="loading"><div><div class="spinner"></div>Проверяем заявки...</div></div>`;
+
   try {
     const [local, stored] = await Promise.all([api.orders(), fetchStoredOrders()]);
-    renderList(root, navigate, mergeOrders(Array.isArray(local?.orders) ? local.orders : [], stored));
+    const fresh = mergeOrders(Array.isArray(local?.orders) ? local.orders : [], stored);
+    const oldKey = JSON.stringify((cached || []).map((o)=>[o.order_number,o.status,o.date,o.time,o.updated_at]));
+    const newKey = JSON.stringify(fresh.map((o)=>[o.order_number,o.status,o.date,o.time,o.updated_at]));
+    window.__HC_CLIENT_ORDERS_CACHE = fresh;
+    if (!cached || oldKey !== newKey) renderList(root, navigate, fresh, params);
   } catch (error) {
-    root.innerHTML = `<section class="u7-orders-hero"><span class="u7-eyebrow">HOUSE CLEANING</span><h1>Мои заявки</h1></section><div class="u7-orders-empty"><strong>Не удалось загрузить заявки</strong><p>${escapeHtml(error.message || 'Попробуйте ещё раз')}</p></div>`;
+    if (!cached) root.innerHTML = `<section class="u7-orders-hero"><span class="u7-eyebrow">HOUSE CLEANING</span><h1>Мои заявки</h1></section><div class="u7-orders-empty"><strong>Не удалось загрузить заявки</strong><p>${escapeHtml(error.message || 'Попробуйте ещё раз')}</p></div>`;
   }
 }
 

@@ -34,7 +34,7 @@ function formatDate(value) {
 
 function polishDate() {
   const input = root?.querySelector('.hc-calendar-v2 [data-date]');
-  if (!input || input.closest('.hc-date-shell-v47')) return;
+  if (!input || input.closest('.hc-date-control') || input.closest('.hc-date-shell-v47')) return;
   const shell = document.createElement('div');
   shell.className = 'hc-date-shell-v47';
   const label = document.createElement('div');

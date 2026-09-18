@@ -56,6 +56,8 @@ test('builds new order payload for notification center', () => {
   assert.match(payload.message, /Тимур/);
   assert.match(payload.message, /6\s?500 ₽/);
   assert.match(payload.message, /Комендантский/);
+  assert.match(payload.message, /18\.09\.2026/);
+  assert.doesNotMatch(payload.message, /2026-09-18/);
 });
 
 test('builds cancellation payload', () => {

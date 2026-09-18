@@ -722,3 +722,195 @@ html[data-hc-theme="light"] body.client-concierge .u7-order-status.completed{col
   .u7-order-card-v3 h3{font-size:16px!important}
   .u7-home-v3 .u7-home-primary{min-height:54px!important}
 }
+
+
+/* HOUSE CLEANING CLIENT 60 — theme-safe surfaces, readable text and stable controls */
+html[data-hc-theme] body.client-concierge{
+  --hc-v60-back-bg:color-mix(in srgb,var(--u7-surface) 94%,transparent);
+  --hc-v60-back-line:color-mix(in srgb,var(--u7-line) 92%,var(--u7-text) 8%);
+  --hc-v60-soft:color-mix(in srgb,var(--u7-surface-2) 88%,var(--u7-surface));
+}
+html[data-hc-theme] body.client-concierge .booking-top,
+html[data-hc-theme] body.client-concierge .calendar-card,
+html[data-hc-theme] body.client-concierge .hc-manual-date,
+html[data-hc-theme] body.client-concierge .hc-date-control,
+html[data-hc-theme] body.client-concierge .capacity-box-v2,
+html[data-hc-theme] body.client-concierge .time-section,
+html[data-hc-theme] body.client-concierge .service-card-v2,
+html[data-hc-theme] body.client-concierge .property-card-v2,
+html[data-hc-theme] body.client-concierge .addon-card,
+html[data-hc-theme] body.client-concierge .form-card,
+html[data-hc-theme] body.client-concierge .review-card,
+html[data-hc-theme] body.client-concierge .price-card,
+html[data-hc-theme] body.client-concierge .success-order,
+html[data-hc-theme] body.client-concierge .hc-visit-type-card,
+html[data-hc-theme] body.client-concierge .hc-visit-hint,
+html[data-hc-theme] body.client-concierge .u7-orders-toolbar,
+html[data-hc-theme] body.client-concierge .u7-orders-hero,
+html[data-hc-theme] body.client-concierge .u7-home-summary,
+html[data-hc-theme] body.client-concierge .u7-smart-card,
+html[data-hc-theme] body.client-concierge .u7-home-help,
+html[data-hc-theme] body.client-concierge .u7-resume-card-v60{
+  background:var(--u7-surface)!important;
+  color:var(--u7-text)!important;
+  border-color:var(--u7-line)!important;
+}
+html[data-hc-theme] body.client-concierge .booking-title,
+html[data-hc-theme] body.client-concierge .booking-title-block h1,
+html[data-hc-theme] body.client-concierge .hc-calendar-head strong,
+html[data-hc-theme] body.client-concierge .hc-time-head strong,
+html[data-hc-theme] body.client-concierge .field-label,
+html[data-hc-theme] body.client-concierge .field label,
+html[data-hc-theme] body.client-concierge .calendar-day b,
+html[data-hc-theme] body.client-concierge .slot,
+html[data-hc-theme] body.client-concierge .u7-resume-card-v60 h3,
+html[data-hc-theme] body.client-concierge .u7-home-summary h2,
+html[data-hc-theme] body.client-concierge .u7-home-summary b,
+html[data-hc-theme] body.client-concierge .u7-smart-card h3{
+  color:var(--u7-text)!important;
+}
+html[data-hc-theme] body.client-concierge .booking-title-block p,
+html[data-hc-theme] body.client-concierge .hc-calendar-head small,
+html[data-hc-theme] body.client-concierge .hc-time-head span,
+html[data-hc-theme] body.client-concierge .field-hint,
+html[data-hc-theme] body.client-concierge .calendar-day span,
+html[data-hc-theme] body.client-concierge .calendar-day small,
+html[data-hc-theme] body.client-concierge .u7-resume-card-v60 p,
+html[data-hc-theme] body.client-concierge .u7-service-stat span,
+html[data-hc-theme] body.client-concierge .u7-service-stat small{
+  color:var(--u7-muted)!important;
+}
+html[data-hc-theme] body.client-concierge .cc-back.hc-fixed-back,
+html[data-hc-theme] body.client-concierge .hc-booking-back.hc-fixed-back{
+  position:sticky!important;
+  top:8px!important;
+  left:auto!important;
+  min-width:0!important;
+  width:max-content!important;
+  min-height:44px!important;
+  margin:8px 0 10px!important;
+  padding:9px 13px!important;
+  border:1px solid var(--hc-v60-back-line)!important;
+  border-radius:15px!important;
+  background:var(--hc-v60-back-bg)!important;
+  color:var(--u7-text)!important;
+  box-shadow:0 8px 22px rgba(20,34,48,.08)!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+}
+html[data-hc-theme="dark"] body.client-concierge .cc-back.hc-fixed-back,
+html[data-hc-theme="dark"] body.client-concierge .hc-booking-back.hc-fixed-back{
+  box-shadow:0 10px 24px rgba(0,0,0,.28)!important;
+}
+html[data-hc-theme] body.client-concierge .hc-original-back-hidden{display:none!important}
+html[data-hc-theme] body.client-concierge .wizard-actions{
+  border:1px solid var(--u7-line)!important;
+  background:color-mix(in srgb,var(--u7-surface) 95%,transparent)!important;
+  box-shadow:0 10px 30px rgba(18,35,52,.13)!important;
+}
+html[data-hc-theme] body.client-concierge .secondary-btn,
+html[data-hc-theme] body.client-concierge .wizard-back{
+  color:var(--u7-text)!important;
+  background:var(--u7-surface-2)!important;
+  border-color:var(--u7-line)!important;
+}
+html[data-hc-theme] body.client-concierge .primary-btn,
+html[data-hc-theme] body.client-concierge .wizard-next{
+  color:var(--u7-on-accent)!important;
+  background:linear-gradient(135deg,var(--u7-accent),var(--u7-accent-2))!important;
+  border-color:transparent!important;
+}
+html[data-hc-theme] body.client-concierge .primary-btn:disabled,
+html[data-hc-theme] body.client-concierge .wizard-next:disabled{
+  background:color-mix(in srgb,var(--u7-muted) 28%,var(--u7-surface-2))!important;
+  color:color-mix(in srgb,var(--u7-muted) 80%,transparent)!important;
+  opacity:1!important;
+}
+html[data-hc-theme] body.client-concierge .calendar-day,
+html[data-hc-theme] body.client-concierge .slot{
+  background:var(--u7-surface)!important;
+  border-color:var(--u7-line)!important;
+  box-shadow:none!important;
+  transition:none!important;
+}
+html[data-hc-theme] body.client-concierge .calendar-day.selected,
+html[data-hc-theme] body.client-concierge .slot.selected{
+  border-color:var(--u7-accent)!important;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--u7-accent) 18%,transparent)!important;
+  background:color-mix(in srgb,var(--u7-accent) 9%,var(--u7-surface))!important;
+  color:var(--u7-text)!important;
+}
+html[data-hc-theme] body.client-concierge .calendar-day.full,
+html[data-hc-theme] body.client-concierge .calendar-day:disabled,
+html[data-hc-theme] body.client-concierge .slot:disabled{
+  background:color-mix(in srgb,var(--u7-muted) 12%,var(--u7-surface))!important;
+  border-color:var(--u7-line)!important;
+  color:var(--u7-muted)!important;
+  opacity:.62!important;
+}
+html[data-hc-theme] body.client-concierge .hc-manual-date{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:10px!important;
+  padding:14px!important;
+  border:1px solid var(--u7-line)!important;
+  border-radius:18px!important;
+  box-sizing:border-box!important;
+}
+html[data-hc-theme] body.client-concierge .hc-date-control{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  min-height:58px!important;
+  padding:0 16px!important;
+  border:1px solid var(--u7-line)!important;
+  border-radius:16px!important;
+  background:var(--u7-surface-2)!important;
+  color:var(--u7-text)!important;
+  overflow:hidden!important;
+}
+html[data-hc-theme] body.client-concierge .hc-date-control>[data-date-display]{font-size:17px!important;font-weight:850!important;color:var(--u7-text)!important}
+html[data-hc-theme] body.client-concierge .hc-date-control>b{color:var(--u7-muted)!important}
+html[data-hc-theme] body.client-concierge .hc-date-control>input[type="date"]{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  opacity:0!important;
+  cursor:pointer!important;
+}
+html[data-hc-theme] body.client-concierge .capacity-box-v2{
+  border:1px solid var(--u7-line)!important;
+  background:var(--u7-surface-2)!important;
+}
+html[data-hc-theme] body.client-concierge .toast{
+  background:color-mix(in srgb,var(--u7-surface) 96%,transparent)!important;
+  color:var(--u7-text)!important;
+  border:1px solid var(--u7-line)!important;
+  box-shadow:var(--u7-shadow)!important;
+}
+html[data-hc-theme] body.client-concierge .toast.error{
+  background:color-mix(in srgb,var(--u7-danger) 12%,var(--u7-surface))!important;
+  color:var(--u7-danger)!important;
+  border-color:color-mix(in srgb,var(--u7-danger) 35%,var(--u7-line))!important;
+}
+.u7-plan-progress-v60{height:9px;border-radius:999px;background:var(--u7-surface-2);overflow:hidden;margin:11px 0 13px;border:1px solid var(--u7-line)}
+.u7-plan-progress-v60>i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--u7-accent),var(--u7-accent-2))}
+.u7-resume-card-v60{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;padding:14px;border:1px solid var(--u7-line);border-radius:20px;box-shadow:var(--u7-shadow);margin:12px 0}
+.u7-resume-icon-v60{grid-row:1/3;width:42px;height:42px;display:grid;place-items:center;border-radius:14px;background:color-mix(in srgb,var(--u7-accent) 10%,var(--u7-surface));color:var(--u7-accent);font-size:22px}
+.u7-resume-card-v60 h3{margin:3px 0 2px;font-size:17px}.u7-resume-card-v60 p{margin:0;font-size:12px;line-height:1.4}
+.u7-resume-card-v60>button{grid-column:1/-1;min-height:44px;border-radius:14px;border:0;font-weight:900}
+.u7-resume-card-v60>[data-resume-order]{background:linear-gradient(135deg,var(--u7-accent),var(--u7-accent-2));color:var(--u7-on-accent)}
+.u7-resume-new-v60{background:var(--u7-surface-2);color:var(--u7-muted);border:1px solid var(--u7-line)!important}
+.u7-sub-offer-v60{padding:0!important;overflow:hidden!important;display:grid!important;grid-template-columns:44% 1fr!important;min-height:174px!important;border:1px solid var(--u7-line)!important;background:var(--u7-surface)!important}
+.u7-sub-offer-media-v60{min-height:174px;background:var(--u7-surface-2);overflow:hidden}.u7-sub-offer-media-v60 img{width:100%;height:100%;object-fit:cover;display:block}
+.u7-sub-offer-copy-v60{padding:14px 14px 14px 12px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:6px}.u7-sub-offer-copy-v60 h3{margin:0;color:var(--u7-text)!important;font-size:17px;line-height:1.12}.u7-sub-offer-copy-v60 p{margin:0;color:var(--u7-muted)!important;font-size:11px;line-height:1.35}.u7-sub-offer-copy-v60 button{margin-top:4px;border:1px solid color-mix(in srgb,var(--u7-accent) 42%,var(--u7-line));background:color-mix(in srgb,var(--u7-accent) 9%,var(--u7-surface));color:var(--u7-accent);border-radius:12px;min-height:38px;padding:8px 12px;font-weight:850}
+html[data-hc-theme] body.client-concierge .u7-theme-choice{border-color:var(--u7-line)!important;background:var(--u7-surface)!important;color:var(--u7-text)!important}
+html[data-hc-theme] body.client-concierge .u7-theme-choice.active{border-color:var(--u7-accent)!important}
+html[data-hc-theme] body.client-concierge .u7-order-search,
+html[data-hc-theme] body.client-concierge .u7-orders-tabs button{
+  background:var(--u7-surface)!important;border-color:var(--u7-line)!important;color:var(--u7-text)!important
+}
+html[data-hc-theme] body.client-concierge .u7-orders-tabs button.active{background:color-mix(in srgb,var(--u7-accent) 10%,var(--u7-surface))!important;color:var(--u7-accent)!important;border-color:var(--u7-accent)!important}
+@media(max-width:390px){.u7-sub-offer-v60{grid-template-columns:40% 1fr!important}.u7-sub-offer-copy-v60{padding:12px 11px}.u7-sub-offer-copy-v60 h3{font-size:15px}}
