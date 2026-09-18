@@ -1,4 +1,4 @@
-import { renderConciergeHome as renderBaseHome } from './concierge-home-v3.js?v=34';
+import { renderConciergeHome as renderBaseHome } from './concierge-home-v3.js?v=57';
 import { api } from '../api.js';
 import { state } from '../state.js';
 import { escapeHtml, formatDate, formatTime, money } from '../utils.js';
