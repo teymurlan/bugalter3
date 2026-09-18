@@ -247,6 +247,12 @@ function sanitizeProfile(value) {
     apartment: clean(profile.apartment, 40),
     floor: clean(profile.floor, 20),
     entrance: clean(profile.entrance, 40),
+    subscription_name: clean(profile.subscription_name, 80),
+    cleanings_total: Math.max(0, Number(profile.cleanings_total || 0)),
+    cleanings_remaining: Math.max(0, Number(profile.cleanings_remaining || 0)),
+    schedule_note: clean(profile.schedule_note, 500),
+    last_cleaning_at: clean(profile.last_cleaning_at, 40),
+    next_cleaning_at: clean(profile.next_cleaning_at, 40),
   };
 }
 
