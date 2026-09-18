@@ -493,9 +493,9 @@ async function sendDueReminders(env) {
     }
     const lines = [
       `${animatedEmoji(env, 'HC_EMOJI_REMINDER_ID', '⏰')} <b>Уборка уже завтра</b>`, '',
-      `${animatedEmoji(env, 'HC_EMOJI_CALENDAR_ID', '📅')} <b>${formatDate(order.date)} · ${formatTime(order.time)}</b>`,
-      order.service_name ? `${animatedEmoji(env, 'HC_EMOJI_CLEAN_ID', '🧹')} ${escapeHtml(order.service_name)}` : '',
-      order.city || order.address ? `${animatedEmoji(env, 'HC_EMOJI_LOCATION_ID', '📍')} ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}` : '',
+      `📅 <b>${formatDate(order.date)} · ${formatTime(order.time)}</b>`,
+      order.service_name ? `🧹 ${escapeHtml(order.service_name)}` : '',
+      order.city || order.address ? `📍 ${escapeHtml([order.city, order.address].filter(Boolean).join(', '))}` : '',
       '',
       'Пожалуйста, убедитесь, что команда сможет попасть на объект в указанное время.',
       'Если планы изменились или нужно уточнить детали — напишите менеджеру.',
