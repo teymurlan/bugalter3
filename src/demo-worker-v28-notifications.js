@@ -105,7 +105,7 @@ async function sendInvite(env, clientId, orderNumber, origin) {
     if (reviewCheck.ok) return true;
     const result = await telegram(env, 'sendMessage', {
       chat_id: clientId,
-      text: ['🏠 <b>HOUSE CLEANING</b>', '', 'Уборка завершена ✨', '', 'Спасибо, что выбрали нас.', 'Оцените нашу работу — это займёт меньше минуты.'].join('\n'),
+      text: [`${animatedEmoji(env, 'HC_EMOJI_REVIEW_ID', '⭐')} <b>Оцените уборку</b>`, '', 'Работа завершена. Спасибо, что выбрали HOUSE CLEANING.', 'Ваш отзыв займёт меньше минуты и поможет нам сохранить качество сервиса.'].join('\n'),
       parse_mode: 'HTML',
       reply_markup: { inline_keyboard: [[{ text: '⭐ Оставить отзыв', web_app: { url: `${origin}/?demo=1&review=${encodeURIComponent(orderNumber)}` }, style: 'success' }]] },
     });
@@ -143,6 +143,11 @@ async function telegram(env, method, payload) {
   const data = await response.json();
   if (!response.ok || !data.ok) throw new Error(data.description || `Telegram ${method} failed`);
   return data.result;
+}
+
+function animatedEmoji(env, key, fallback) {
+  const id = String(env?.[key] || '').trim();
+  return /^\d{6,30}$/.test(id) ? `<tg-emoji emoji-id="${id}">${fallback}</tg-emoji>` : fallback;
 }
 
 function positiveInt(value) { const n = Number(value); return Number.isSafeInteger(n) && n > 0 ? n : 0; }
