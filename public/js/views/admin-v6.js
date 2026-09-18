@@ -4,7 +4,7 @@ import { escapeHtml, formatDate, formatTime, money, modal, showToast } from '../
 const ACTIVE = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
 const PENDING = new Set(['NEW', 'REVIEW']);
 const CAPACITY = 300;
-let section = 'staff';
+let section = 'home';
 let orders = [];
 let staff = [];
 let selectedStaffId = null;
@@ -63,6 +63,7 @@ function icon(name) {
     home:'<svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9.5 20v-6h5v6"/></svg>',
     more:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>',
     search:'<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>',
+    clients:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 20c.5-4 2.4-6 5.5-6s5 2 5.5 6"/><circle cx="17" cy="9" r="2.2"/><path d="M14.5 15.5c2.7.2 4.5 1.7 5 4.5"/></svg>',
   }; return m[name] || '';
 }
 
@@ -112,7 +113,7 @@ function top(title, subtitle='') {
   return `<header class="hc-m-head"><div class="hc-m-brand"><span class="hc-m-logo">HC</span><div><strong>House Cleaning</strong><small>Админ</small></div></div><button class="hc-m-bell" type="button" data-refresh aria-label="Обновить">↻</button></header><div class="hc-m-title"><h1>${escapeHtml(title)}</h1>${subtitle ? `<p>${escapeHtml(subtitle)}</p>`:''}</div>`;
 }
 function bottomNav() {
-  const items = [['home','Главная'],['orders','Заявки'],['staff','Сотрудники'],['more','Ещё']];
+  const items = [['home','Главная'],['orders','Заявки'],['clients','Клиенты'],['staff','Сотрудники'],['more','Ещё']];
   return `<nav class="hc-m-nav">${items.map(([id,l])=>`<button class="${section===id?'active':''}" data-sec="${id}" type="button"><span>${icon(id)}</span><small>${l}</small></button>`).join('')}</nav>`;
 }
 function staffView() {
