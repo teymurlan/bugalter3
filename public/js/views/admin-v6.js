@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, formatDate, formatTime, money, showToast } from '../utils.js';
+import { escapeHtml, formatDate, formatTime, money, modal, showToast } from '../utils.js';
 
 const ACTIVE = new Set(['NEW', 'REVIEW', 'CONFIRMED', 'CLEANER_ASSIGNED', 'IN_PROGRESS']);
 const PENDING = new Set(['NEW', 'REVIEW']);
@@ -381,7 +381,11 @@ function bind(root) {
       const form = new FormData(broadcast);
       const audience = Number(count?.textContent || 0);
       if (!audience) return showToast('В выбранном сегменте нет получателей', true);
-      const approved = confirm(`Отправить сообщение ${audience} клиентам?`);
+      const approved = await modal({
+        title:'Отправить рассылку?',
+        text:`Сообщение получат до ${audience} клиентов выбранного сегмента. Отправку нельзя отменить.`,
+        confirmText:'Отправить',
+      });
       if (!approved) return;
       const button = broadcast.querySelector('button[type=submit]');
       button.disabled = true;
