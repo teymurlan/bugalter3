@@ -22,14 +22,14 @@ const adminMenuWorker = read('src/demo-worker-v39-admin-menu.js');
 const clientExperience = read('public/js/client-experience-v53.js');
 
 test('Ultra 7 shell loads one design layer and three selectable themes', () => {
-  assert.match(index, /house-cleaning-release" content="58/);
-  assert.match(index, /ultra7\.css\?v=58/);
-  assert.match(index, /ultra7-theme\.js\?v=58/);
+  assert.match(index, /house-cleaning-release" content="59/);
+  assert.match(index, /ultra7\.css\?v=59/);
+  assert.match(index, /ultra7-theme\.js\?v=59/);
   assert.doesNotMatch(index, /referral-v2\.css/);
   for (const id of ['light','dark','blue']) assert.match(theme, new RegExp(`['"]${id}['"]`));
   assert.match(theme, /hc-ultra7-theme-/);
   assert.match(theme, /setHeaderColor/);
-  assert.match(css, /\.bottom-nav\{[\s\S]*height:54px!important/);
+  assert.match(css, /\.bottom-nav\{[\s\S]*height:50px!important/);
   assert.match(css, /\.hc-mobile-shell \.hc-m-nav\{[\s\S]*height:58px!important/);
 });
 
@@ -62,11 +62,11 @@ test('customer dashboard is ready for current orders, repeat booking and importe
   assert.match(home, /cleanings_remaining/);
   assert.match(home, /Последняя/);
   assert.match(home, /Следующая/);
-  assert.match(home, /Повторить уборку/);
+  assert.match(home, /Повторить последнюю уборку/);
   assert.match(home, /async function repeatOrder/);
   assert.match(home, /visitType:'repeat'/);
   assert.match(home, /step:6/);
-  assert.match(home, /Мои данные/);
+  assert.doesNotMatch(home, /data-my-profile/);
   assert.match(profileWorker, /cleanings_total/);
   assert.match(profileWorker, /cleanings_remaining/);
   assert.match(profileWorker, /schedule_note/);
@@ -125,9 +125,26 @@ test('theme bridge replaces legacy dark hardcodes with readable theme variables'
 });
 
 test('client utilities include repeat booking and one-tap order details copy', () => {
-  assert.match(home, /Повторить уборку/);
+  assert.match(home, /Повторить последнюю уборку/);
   assert.match(home, /async function repeatOrder/);
   assert.match(orders, /Скопировать детали/);
   assert.match(orders, /navigator\.clipboard\?\.writeText/);
   assert.match(orders, /Детали заявки скопированы/);
+});
+
+
+test('handwritten screens 01–04 remove clutter, hide empty service blocks and use new readable orders cards', () => {
+  assert.doesNotMatch(home, /u7-home-actions/);
+  assert.doesNotMatch(home, /Последние заявки/);
+  assert.match(home, /function smartSection/);
+  assert.match(home, /if \(!order\) return ''/);
+  assert.match(home, /if \(!next && !\(remaining > 0\)\) return ''/);
+  assert.match(home, /if \(!upcoming\.length\) return ''/);
+  assert.match(home, /u7-home-primary/);
+  assert.match(orders, /u7-orders-hero/);
+  assert.match(orders, /u7-order-card-v3/);
+  assert.match(orders, /u7-order-inline-meta/);
+  assert.match(css, /Ultra 7\.2 — handwritten client review/);
+  assert.match(css, /u7-order-status\.progress/);
+  assert.match(css, /u7-home-primary[\s\S]*min-height:56px!important/);
 });
