@@ -397,3 +397,65 @@ html[data-hc-theme] .hc-mobile-shell .hc-muted{color:var(--u7-muted)!important}
   .u7-home-hero{padding:15px!important}
   .u7-next-cleaning{padding:14px}
 }
+
+
+/* Ultra 7.1 hard theme surfaces — prevents stale legacy backgrounds in Telegram WebKit */
+html[data-hc-theme="dark"] body.client-concierge .card,
+html[data-hc-theme="dark"] body.client-concierge .cc-greeting-row,
+html[data-hc-theme="dark"] body.client-concierge .hc-order-card-v54,
+html[data-hc-theme="dark"] body.client-concierge .hc-home-order-card-v54,
+html[data-hc-theme="dark"] body.client-concierge .hc-detail-block,
+html[data-hc-theme="dark"] body.client-concierge .u7-home-hero,
+html[data-hc-theme="dark"] body.client-concierge .u7-home-summary,
+html[data-hc-theme="dark"] body.client-concierge .u7-home-actions button,
+html[data-hc-theme="dark"] body.client-concierge .u7-home-help{
+  background:#121922!important;
+  border-color:#28323c!important;
+  color:#f4f7fb!important;
+}
+html[data-hc-theme="dark"] body.client-concierge .hc-order-meta-v54>div,
+html[data-hc-theme="dark"] body.client-concierge .u7-home-stats>div{
+  background:#18212c!important;
+  border-color:#28323c!important;
+}
+html[data-hc-theme="light"] body.client-concierge .card,
+html[data-hc-theme="light"] body.client-concierge .cc-greeting-row,
+html[data-hc-theme="light"] body.client-concierge .hc-order-card-v54,
+html[data-hc-theme="light"] body.client-concierge .hc-home-order-card-v54,
+html[data-hc-theme="light"] body.client-concierge .hc-detail-block,
+html[data-hc-theme="light"] body.client-concierge .u7-home-hero,
+html[data-hc-theme="light"] body.client-concierge .u7-home-summary,
+html[data-hc-theme="light"] body.client-concierge .u7-home-actions button,
+html[data-hc-theme="light"] body.client-concierge .u7-home-help{
+  background:#fff!important;
+  border-color:#e3e8ee!important;
+  color:#111820!important;
+}
+html[data-hc-theme="blue"] body.client-concierge .card,
+html[data-hc-theme="blue"] body.client-concierge .cc-greeting-row,
+html[data-hc-theme="blue"] body.client-concierge .hc-order-card-v54,
+html[data-hc-theme="blue"] body.client-concierge .hc-home-order-card-v54,
+html[data-hc-theme="blue"] body.client-concierge .hc-detail-block,
+html[data-hc-theme="blue"] body.client-concierge .u7-home-hero,
+html[data-hc-theme="blue"] body.client-concierge .u7-home-summary,
+html[data-hc-theme="blue"] body.client-concierge .u7-home-actions button,
+html[data-hc-theme="blue"] body.client-concierge .u7-home-help{
+  background:#fff!important;
+  border-color:#d5e3f5!important;
+  color:#0a2546!important;
+}
+html[data-hc-theme="dark"] body.client-concierge .hc-home-order-card-v54>strong,
+html[data-hc-theme="dark"] body.client-concierge .hc-order-card-head-v54 strong,
+html[data-hc-theme="dark"] body.client-concierge .hc-order-meta-v54 b{
+  color:#f4f7fb!important;
+}
+html[data-hc-theme="light"] body.client-concierge .hc-home-order-card-v54>strong,
+html[data-hc-theme="light"] body.client-concierge .hc-order-card-head-v54 strong,
+html[data-hc-theme="light"] body.client-concierge .hc-order-meta-v54 b{
+  color:#111820!important;
+}
+html[data-hc-theme="blue"] body.client-concierge .hc-home-order-card-v54>strong,
+html[data-hc-theme="blue"] body.client-concierge .hc-order-card-head-v54 strong,
+html[data-hc-theme="blue"] body.client-concierge .hc-order-meta-v54 b{
+  color:#0a2546!important;
+}
