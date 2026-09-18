@@ -335,12 +335,18 @@ async function completeFromWeb(request, env, ctx, body, origin) {
   if (!clientId || !orderNumber) return json({ ok: false, error: 'Недостаточно данных' }, 400);
   const stored = await appOrder(env, clientId, orderNumber);
   const order = { ...(stored || {}), ...(body.order || {}), client_telegram_id: clientId, order_number: orderNumber };
-  const sent = await sendCompletionMessage(env, clientId, order, origin);
-  if (!sent) return json({ ok: false, error: 'Telegram не доставил уведомление клиенту' }, 502);
+  const notificationAllowedNow = await ultraNotificationAllowed(env, clientId, 'completed');
+  const sent = notificationAllowedNow ? await sendCompletionMessage(env, clientId, order, origin) : false;
+  if (notificationAllowedNow && !sent) return json({ ok: false, error: 'Telegram не доставил уведомление клиенту' }, 502);
   await appUpdateStatus(env, clientId, orderNumber, 'COMPLETED');
   await completeReferral(env, clientId, orderNumber);
   await notifyReferralReward(env, clientId, orderNumber, origin);
-  return json({ ok: true, status: 'COMPLETED', clientNotified: true });
+  return json({
+    ok: true,
+    status: 'COMPLETED',
+    clientNotified: Boolean(sent),
+    notificationSuppressed: !notificationAllowedNow,
+  });
 }
 
 async function completeFromCallback(query, env, origin) {
@@ -358,8 +364,9 @@ async function completeFromCallback(query, env, origin) {
     await safeTelegram(env, 'answerCallbackQuery', { callback_query_id: query.id, text: 'Заявка не найдена', show_alert: true });
     return new Response('OK');
   }
-  const sent = await sendCompletionMessage(env, clientId, order, origin);
-  if (!sent) {
+  const notificationAllowedNow = await ultraNotificationAllowed(env, clientId, 'completed');
+  const sent = notificationAllowedNow ? await sendCompletionMessage(env, clientId, order, origin) : false;
+  if (notificationAllowedNow && !sent) {
     await safeTelegram(env, 'answerCallbackQuery', { callback_query_id: query.id, text: 'Не удалось уведомить клиента', show_alert: true });
     return new Response('OK');
   }
@@ -468,6 +475,15 @@ async function sendDueReminders(env) {
     const clientId = positiveInt(order.client_telegram_id);
     const orderNumber = cleanOrderNumber(order.order_number);
     if (!clientId || !orderNumber) continue;
+    const reminderAllowed = await ultraNotificationAllowed(env, clientId, 'reminder');
+    if (!reminderAllowed) {
+      await stub.fetch('https://app.internal/reminder/mark', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_telegram_id: clientId, order_number: orderNumber }),
+      });
+      continue;
+    }
     const lines = [
       '⏰ <b>Напоминание об уборке</b>', '',
       `Завтра, <b>${formatDate(order.date)}</b> в <b>${formatTime(order.time)}</b>.`,
@@ -507,6 +523,19 @@ async function appUpdateStatus(env, clientId, orderNumber, status) {
 function appStub(env) {
   if (!env.APP_STORE) return null;
   return env.APP_STORE.get(env.APP_STORE.idFromName(APP_STORE_NAME));
+}
+
+async function ultraNotificationAllowed(env, userId, type) {
+  try {
+    const stub = appStub(env);
+    if (!stub || !positiveInt(userId)) return true;
+    const response = await stub.fetch(`https://app.internal/ultra7/notification-allowed?user=${encodeURIComponent(userId)}&type=${encodeURIComponent(type)}`);
+    if (!response.ok) return true;
+    const data = await response.json().catch(() => ({}));
+    return data?.allowed !== false;
+  } catch {
+    return true;
+  }
 }
 
 async function getConsent(env, userId) {
