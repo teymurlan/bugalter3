@@ -4,6 +4,7 @@ export { ConsentStore };
 
 const APP_STORE_NAME = 'house-cleaning-app-v1';
 const REF_PERCENT = 15;
+const REFERRALS_ENABLED = false;
 const MANAGER_PHONE = '+79992107977';
 const ACTIVE_REMINDER_STATUSES = new Set(['CONFIRMED', 'CLEANER_ASSIGNED']);
 const RELEASED_STATUSES = new Set(['CANCELLED']);
@@ -191,9 +192,9 @@ export class AppStore extends BaseAppStore {
     const rewardCount = Math.max(0, Number(await this.state.storage.get(`ref:reward-count:${userId}`) || 0));
     const rewardUsed = Math.max(0, Number(await this.state.storage.get(`ref:reward-used:${userId}`) || 0));
     const rawAvailable = Math.max(0, rewardCount - rewardUsed);
-    const availableRewards = Math.max(0, rawAvailable - activeRewardReservations);
-    const friendDiscount = friendReferral && completed === 0 && !activeFriendReservation ? REF_PERCENT : 0;
-    const rewardArmed = Boolean(await this.state.storage.get(`ref:reward-armed:${userId}`)) && availableRewards > 0;
+    const availableRewards = REFERRALS_ENABLED ? Math.max(0, rawAvailable - activeRewardReservations) : 0;
+    const friendDiscount = REFERRALS_ENABLED && friendReferral && completed === 0 && !activeFriendReservation ? REF_PERCENT : 0;
+    const rewardArmed = REFERRALS_ENABLED && Boolean(await this.state.storage.get(`ref:reward-armed:${userId}`)) && availableRewards > 0;
     const referral = friendDiscount || (rewardArmed ? REF_PERCENT : 0);
     const selected = Math.max(loyalty, referral);
     const selectedType = selected === 0
@@ -302,7 +303,7 @@ export default {
       const message = update?.message || update?.edited_message;
       const text = String(message?.text || '').trim();
       const friendId = positiveInt(message?.from?.id);
-      const referralStart = /^\/start(?:@\w+)?\s+ref_(HC[A-Z0-9]+)$/i.exec(text);
+      const referralStart = REFERRALS_ENABLED ? /^\/start(?:@\w+)?\s+ref_(HC[A-Z0-9]+)$/i.exec(text) : null;
       if (referralStart && friendId) {
         await markReferralStage(env, friendId, 'started', message.from);
         const consent = await getConsent(env, friendId);
@@ -312,7 +313,7 @@ export default {
       }
 
       const query = update?.callback_query;
-      const consentMatch = /^pd:accept:(.+)$/.exec(String(query?.data || ''));
+      const consentMatch = REFERRALS_ENABLED ? /^pd:accept:(.+)$/.exec(String(query?.data || '')) : null;
       if (query && consentMatch && consentMatch[1] === CONSENT_VERSION && query.from?.id) {
         await markReferralStage(env, positiveInt(query.from.id), 'accepted', query.from);
       }
@@ -340,8 +341,10 @@ async function completeFromWeb(request, env, ctx, body, origin) {
   const sent = notificationAllowedNow ? await sendCompletionMessage(env, clientId, order, origin, { reviewAllowed: reviewAllowedNow }) : false;
   if (notificationAllowedNow && !sent) return json({ ok: false, error: 'Telegram не доставил уведомление клиенту' }, 502);
   await appUpdateStatus(env, clientId, orderNumber, 'COMPLETED');
-  await completeReferral(env, clientId, orderNumber);
-  await notifyReferralReward(env, clientId, orderNumber, origin);
+  if (REFERRALS_ENABLED) {
+    await completeReferral(env, clientId, orderNumber);
+    await notifyReferralReward(env, clientId, orderNumber, origin);
+  }
   return json({
     ok: true,
     status: 'COMPLETED',
@@ -373,8 +376,10 @@ async function completeFromCallback(query, env, origin) {
     return new Response('OK');
   }
   await appUpdateStatus(env, clientId, orderNumber, 'COMPLETED');
-  await completeReferral(env, clientId, orderNumber);
-  await notifyReferralReward(env, clientId, orderNumber, origin);
+  if (REFERRALS_ENABLED) {
+    await completeReferral(env, clientId, orderNumber);
+    await notifyReferralReward(env, clientId, orderNumber, origin);
+  }
   await safeTelegram(env, 'answerCallbackQuery', { callback_query_id: query.id, text: 'Уборка завершена' });
   if (query.message?.chat?.id && query.message?.message_id) {
     const base = stripTrailingStatus(query.message.text || '');
