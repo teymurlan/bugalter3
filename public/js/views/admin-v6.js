@@ -217,15 +217,21 @@ function clientsView() {
 function clientCard(client) {
   const last = client.last_cleaning_at || 'Ещё не было';
   const next = client.next_cleaning_at || 'Не запланирована';
+  const total = Math.max(0, Number(client.cleanings_total || 0));
+  const remaining = Math.min(total || Number(client.cleanings_remaining || 0), Math.max(0, Number(client.cleanings_remaining || 0)));
+  const completed = total ? Math.max(0, total - remaining) : 0;
+  const percent = total ? Math.min(100, Math.round(completed / total * 100)) : 0;
+  const plan = total ? `<div class="u7-client-plan-v64"><div><span>Абонемент</span><b>${escapeHtml(client.subscription_name || `План на ${total} уборок`)}</b><em>${completed} из ${total}</em></div><div class="u7-client-plan-track-v64"><i style="width:${percent}%"></i></div></div>` : '';
   return `<article class="u7-client-card">
     <div class="u7-client-card-head"><div><strong>${escapeHtml(client.name || `ID ${client.telegram_id}`)}</strong><small>${escapeHtml(client.phone || `Telegram ID ${client.telegram_id}`)}</small></div><button class="hc-m-filter" type="button" data-edit-client-schedule="${escapeHtml(String(client.telegram_id))}">•••</button></div>
+    ${plan}
     <div class="u7-client-stats">
-      <div><small>Уборок</small><b>${Number(client.completed_count || 0)}</b></div>
-      <div><small>Осталось</small><b>${Number(client.cleanings_remaining || 0)}</b></div>
+      <div><small>Всего заказов</small><b>${Number(client.completed_count || 0)}</b></div>
+      <div><small>По абонементу</small><b>${total ? completed : '—'}</b></div>
       <div><small>Активных</small><b>${Number(client.active_count || 0)}</b></div>
     </div>
     <div class="u7-client-next"><b>Последняя:</b> ${escapeHtml(last)}<br><b>Следующая:</b> ${escapeHtml(next)}${client.next_address ? `<br><span>${escapeHtml(client.next_address)}</span>` : ''}</div>
-    <div class="hc-card-actions"><button data-contact-client="${escapeHtml(String(client.telegram_id))}">Связаться</button><button data-edit-client-schedule="${escapeHtml(String(client.telegram_id))}">График</button></div>
+    <div class="hc-card-actions"><button data-contact-client="${escapeHtml(String(client.telegram_id))}">Связаться</button><button data-edit-client-schedule="${escapeHtml(String(client.telegram_id))}">Абонемент</button></div>
   </article>`;
 }
 
@@ -249,9 +255,9 @@ function notificationsView() {
         <button class="hc-primary" type="button" data-save-ultra-settings>Сохранить настройки</button>
       </section>
       <section class="hc-block">
-        <div class="hc-block-head"><h2>Рассылка клиентам</h2><span>Только главный админ</span></div>
+        <div class="hc-block-head"><h2>Рассылка клиентам</h2><span>Сотрудники исключены</span></div>
         <form class="u7-broadcast-form" data-broadcast-form>
-          <label>Кому<select name="segment"><option value="all">Все клиенты</option><option value="active">С активной уборкой</option><option value="completed">Уже заказывали</option><option value="subscription">Есть уборки по графику</option></select></label>
+          <label>Кому<select name="segment"><option value="all">Все клиенты · без сотрудников</option><option value="active">С активной уборкой</option><option value="completed">Уже заказывали</option><option value="subscription">Есть уборки по графику</option></select></label>
           <div class="u7-audience"><span>Доступно получателей</span><b data-audience-count>${Number(ultra.counts.marketing || 0)}</b></div>
           <label>Заголовок<input name="title" maxlength="160" placeholder="Например: Важная информация"></label>
           <label>Сообщение<textarea name="message" maxlength="3500" placeholder="Введите текст для клиентов" required></textarea></label>
@@ -283,38 +289,61 @@ function contactClient(client) {
 
 function clientScheduleEditor(root, client) {
   if (!client) return;
-  const el = sheet(`<div class="hc-sheet-head"><h2>График клиента</h2><button data-close>×</button></div><p class="hc-sheet-sub">${escapeHtml(client.name || `ID ${client.telegram_id}`)}</p>
+  const totalInitial = Math.max(0, Number(client.cleanings_total || 0));
+  const remainingInitial = Math.min(totalInitial, Math.max(0, Number(client.cleanings_remaining || 0)));
+  const completedInitial = totalInitial ? Math.max(0, totalInitial - remainingInitial) : 0;
+  const el = sheet(`<div class="hc-sheet-head"><h2>Абонемент клиента</h2><button data-close>×</button></div><p class="hc-sheet-sub">${escapeHtml(client.name || `ID ${client.telegram_id}`)}</p>
     <form class="hc-form" data-client-schedule-form>
-      <label>Название графика / абонемента<input name="subscription_name" value="${escapeHtml(client.subscription_name || '')}" placeholder="Например: Еженедельно"></label>
-      <label>Всего уборок<input type="number" min="0" name="cleanings_total" value="${Number(client.cleanings_total || 0)}"></label>
-      <label>Осталось уборок<input type="number" min="0" name="cleanings_remaining" value="${Number(client.cleanings_remaining || 0)}"></label>
+      <label>Название абонемента<input name="subscription_name" value="${escapeHtml(client.subscription_name || '')}" placeholder="Например: 10 уборок · еженедельно"></label>
+      <div class="u7-plan-editor-v64">
+        <label>Всего уборок<input type="number" min="0" max="999" name="cleanings_total" value="${totalInitial}"></label>
+        <label>Выполнено<input type="number" min="0" max="999" name="cleanings_completed" value="${completedInitial}"></label>
+        <div class="u7-plan-editor-summary-v64"><span>Осталось</span><b data-plan-remaining>${Math.max(0,totalInitial-completedInitial)}</b><small data-plan-percent>${totalInitial ? Math.round(completedInitial/totalInitial*100) : 0}% выполнено</small></div>
+      </div>
       <label>Последняя уборка<input name="last_cleaning_at" value="${escapeHtml(client.last_cleaning_at || '')}" placeholder="2026-09-10 12:00"></label>
       <label>Следующая уборка<input name="next_cleaning_at" value="${escapeHtml(client.next_cleaning_at || '')}" placeholder="2026-09-24 12:00"></label>
       <label>Заметка<textarea name="schedule_note" rows="3" placeholder="График, пожелания, особенности">${escapeHtml(client.schedule_note || '')}</textarea></label>
-      <button class="hc-primary" type="submit">Сохранить график</button>
+      <button class="hc-primary" type="submit">Сохранить абонемент</button>
     </form>`);
   el.querySelector('[data-close]').onclick = () => el.remove();
-  el.querySelector('form').onsubmit = async (event) => {
+  const form = el.querySelector('form');
+  const totalInput = form.querySelector('[name=cleanings_total]');
+  const completedInput = form.querySelector('[name=cleanings_completed]');
+  const syncPlanPreview = () => {
+    const total = Math.max(0, Number(totalInput.value || 0));
+    const completed = Math.min(total, Math.max(0, Number(completedInput.value || 0)));
+    if (Number(completedInput.value || 0) !== completed) completedInput.value = String(completed);
+    const remaining = Math.max(0, total - completed);
+    const percent = total ? Math.round(completed / total * 100) : 0;
+    const remainingNode = form.querySelector('[data-plan-remaining]');
+    const percentNode = form.querySelector('[data-plan-percent]');
+    if (remainingNode) remainingNode.textContent = String(remaining);
+    if (percentNode) percentNode.textContent = `${percent}% выполнено`;
+  };
+  totalInput.addEventListener('input', syncPlanPreview);
+  completedInput.addEventListener('input', syncPlanPreview);
+  form.onsubmit = async (event) => {
     event.preventDefault();
+    syncPlanPreview();
     const button = event.currentTarget.querySelector('button[type=submit]');
     button.disabled = true;
-    const f = new FormData(event.currentTarget);
+    const data = new FormData(event.currentTarget);
     try {
       await postJson('/api/admin-ultra7/client-schedule', {
         telegram_id: client.telegram_id,
-        subscription_name:f.get('subscription_name'),
-        cleanings_total:Number(f.get('cleanings_total') || 0),
-        cleanings_remaining:Number(f.get('cleanings_remaining') || 0),
-        last_cleaning_at:f.get('last_cleaning_at'),
-        next_cleaning_at:f.get('next_cleaning_at'),
-        schedule_note:f.get('schedule_note'),
+        subscription_name:data.get('subscription_name'),
+        cleanings_total:Number(data.get('cleanings_total') || 0),
+        cleanings_completed:Number(data.get('cleanings_completed') || 0),
+        last_cleaning_at:data.get('last_cleaning_at'),
+        next_cleaning_at:data.get('next_cleaning_at'),
+        schedule_note:data.get('schedule_note'),
       });
       await reload();
-      showToast('График клиента сохранён');
+      showToast('Абонемент и прогресс сохранены');
       el.remove();
       paint(root);
     } catch (error) {
-      showToast(error.message || 'Не удалось сохранить график', true);
+      showToast(error.message || 'Не удалось сохранить абонемент', true);
       button.disabled = false;
     }
   };
@@ -384,7 +413,7 @@ function bind(root) {
       if (!audience) return showToast('В выбранном сегменте нет получателей', true);
       const approved = await modal({
         title:'Отправить рассылку?',
-        text:`Сообщение получат до ${audience} клиентов выбранного сегмента. Отправку нельзя отменить.`,
+        text:`Сообщение получат до ${audience} клиентов выбранного сегмента. Сотрудники автоматически исключены. Отправку нельзя отменить.`,
         confirmText:'Отправить',
       });
       if (!approved) return;
