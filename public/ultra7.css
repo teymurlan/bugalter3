@@ -1358,11 +1358,7 @@ html[data-hc-theme] body.hc-admin-mobile .hc-m-nav button.active{
   border-color:color-mix(in srgb,var(--u7-accent) 24%,transparent)!important;
 }
 html[data-hc-theme] body.hc-admin-mobile .hc-profile-top{
-  margin:
-    calc(-12px - env(safe-area-inset-top,0px))
-    max(-14px,calc(-1 * env(safe-area-inset-right,0px)))
-    0
-    max(-14px,calc(-1 * env(safe-area-inset-left,0px)))!important;
+  margin:calc(-12px - env(safe-area-inset-top,0px)) -14px 0 -14px!important;
   padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px!important;
   background:color-mix(in srgb,var(--u7-bg) 82%,transparent)!important;
   backdrop-filter:blur(24px) saturate(150%)!important;
