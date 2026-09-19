@@ -906,12 +906,11 @@ async function cleanupD1PrelaunchData(env) {
 }
 
 function findD1(env) {
+  // Cloudflare RPC/DO bindings can expose dynamic method proxies, so scanning every
+  // env value can falsely look like D1. Only explicit database binding names count.
   for (const name of ['DB','D1','DATABASE']) {
     const value = env?.[name];
     if (value && typeof value.prepare === 'function') return value;
-  }
-  for (const value of Object.values(env || {})) {
-    if (value && typeof value.prepare === 'function' && typeof value.batch === 'function') return value;
   }
   return null;
 }
