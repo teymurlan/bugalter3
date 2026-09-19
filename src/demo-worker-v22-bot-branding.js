@@ -4,7 +4,7 @@ export { ConsentStore, AppStore };
 
 const CONSENT_VERSION = '2026-09-09-v1';
 const OPERATOR = 'ИП Царегородцева Евгения Андреевна';
-const CLIENT_RELEASE = '63';
+const CLIENT_RELEASE = '64';
 
 export default {
   async fetch(request, env, ctx) {
