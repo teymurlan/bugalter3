@@ -20,14 +20,16 @@ jobs:
           set -euo pipefail
           URL="https://bugalter3.teymurlannn.workers.dev/api/prelaunch-v66-status"
           BODY=""
-          for attempt in 1 2 3 4 5 6; do
-            if BODY="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 "$URL")"; then
-              break
-            fi
-            sleep 5
+          for attempt in 1 2 3; do
+            HTTP="$(curl --silent --show-error --connect-timeout 10 --max-time 30 -w '\n%{http_code}' "$URL")"
+            BODY="$(printf '%s' "$HTTP" | sed '$d')"
+            CODE="$(printf '%s' "$HTTP" | tail -n1)"
+            echo "HTTP $CODE"
+            echo "$BODY"
+            if [ "$CODE" = "200" ]; then break; fi
+            sleep 3
           done
           test -n "$BODY"
-          echo "$BODY"
           BODY="$BODY" node - <<'NODE'
           const data = JSON.parse(process.env.BODY || '{}');
           if (data.ok !== true) throw new Error('Production status is not ok');
