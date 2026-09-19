@@ -1,0 +1,46 @@
+name: Prelaunch Production Verify
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/prelaunch-production-verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger and verify production reset
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://bugalter3.teymurlannn.workers.dev/api/prelaunch-v66-status"
+          BODY=""
+          for attempt in 1 2 3 4 5 6; do
+            if BODY="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 "$URL")"; then
+              break
+            fi
+            sleep 5
+          done
+          test -n "$BODY"
+          echo "$BODY"
+          BODY="$BODY" node - <<'NODE'
+          const data = JSON.parse(process.env.BODY || '{}');
+          if (data.ok !== true) throw new Error('Production status is not ok');
+          if (Number(data.release) !== 66) throw new Error('Production is not release 66');
+          if (data.marker?.status !== 'complete') throw new Error('Prelaunch reset is not complete: ' + JSON.stringify(data.marker));
+          if (data.marker?.protocol !== 'locked-v2') throw new Error('Locked reset protocol not active');
+          if (data.d1_orders !== null && Number(data.d1_orders) !== 0) throw new Error('D1 still has orders: ' + data.d1_orders);
+          if (data.d1_drafts !== null && Number(data.d1_drafts) !== 0) throw new Error('D1 still has drafts: ' + data.d1_drafts);
+          console.log('PRODUCTION_PRELAUNCH_OK');
+          console.log(JSON.stringify({
+            release:data.release,
+            marker:data.marker,
+            d1_orders:data.d1_orders,
+            d1_drafts:data.d1_drafts
+          }, null, 2));
+          NODE
