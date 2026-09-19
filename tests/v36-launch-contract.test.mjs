@@ -40,7 +40,7 @@ test('release 55 wraps release 53 with stable public order numbering while produ
   assert.match(defectRpc, /demo-worker-v44-production\.js/);
   assert.match(worker44, /demo-worker-v43-cache-bust\.js/);
   assert.match(worker44, /\/api\/release-version/);
-  assert.match(worker44, /const RELEASE = '63'/);
+  assert.match(worker44, /const RELEASE = '64'/);
   assert.match(worker44, /isKpPath/);
   assert.match(worker43, /demo-worker-v42-launch-hardening\.js/);
   assert.match(worker42, /MIN_BOOKING_LEAD_MS = 6 \* 60 \* 60 \* 1000/);
