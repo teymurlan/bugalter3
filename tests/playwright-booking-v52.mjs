@@ -46,7 +46,7 @@ async function createApp(initialDraft, availability = { usedM2: 0, remainingM2: 
   const context = await browser.newContext({ ...iphone, locale: 'ru-RU', timezoneId: 'Europe/Moscow' });
   let knownAddressCalls = 0;
   await context.addInitScript(({ key, value }) => {
-    localStorage.setItem('hc-clean-start-generation', 'v45-clean-launch');
+    localStorage.setItem('hc-clean-start-generation', 'v66-final-launch');
     localStorage.setItem(key, JSON.stringify(value));
     localStorage.setItem('hc-demo-orders-v3', '[]');
   }, { key: DRAFT_KEY, value: initialDraft });
@@ -103,6 +103,38 @@ async function run(name, initialDraft, fn, availability) {
 
 await run('первый заказ требует фото', draft(), async (page, knownCalls) => {
   await page.locator('.booking-title').filter({ hasText: 'Куда приехать?' }).waitFor();
+
+  const floorInput = page.locator('[data-field="floor"]');
+  for (const theme of ['light','blue','dark']) {
+    await page.evaluate((value) => { document.documentElement.dataset.hcTheme = value; }, theme);
+    await floorInput.focus();
+    const contrast = await floorInput.evaluate((node) => {
+      const style = getComputedStyle(node);
+      const parse = (value) => {
+        const match = String(value).match(/[\d.]+/g);
+        return match ? match.slice(0,3).map(Number) : [0,0,0];
+      };
+      const luminance = (rgb) => {
+        const channels = rgb.map((value) => {
+          const v = value / 255;
+          return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+        });
+        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+      };
+      const fg = luminance(parse(style.color));
+      const bg = luminance(parse(style.backgroundColor));
+      return {
+        ratio:(Math.max(fg,bg)+0.05)/(Math.min(fg,bg)+0.05),
+        color:style.color,
+        background:style.backgroundColor,
+        caret:style.caretColor,
+      };
+    });
+    assert.ok(contrast.ratio >= 4.5, `Текст активного поля должен читаться в теме ${theme}: ${JSON.stringify(contrast)}`);
+    assert.notEqual(contrast.caret, 'rgba(0, 0, 0, 0)', `Курсор должен быть видим в теме ${theme}`);
+  }
+  await page.evaluate(() => { document.documentElement.dataset.hcTheme = 'light'; });
+
   await page.locator('[data-next]').click();
   await page.getByText('Вы уже заказывали уборку по этому адресу?').waitFor();
   assert.equal(knownCalls(), 0, 'Автоматическая проверка истории адреса больше не должна вызываться');
@@ -172,4 +204,4 @@ await run('общая занятость приходит с сервера', dr
 }, { usedM2: 150, remainingM2: 150 });
 
 await browser.close();
-console.log('\n✅ Release 54: первый/повторный заказ и общая занятость проверены');
+console.log('\n✅ Release 66: поля, первый/повторный заказ и общая занятость проверены');
