@@ -1283,7 +1283,7 @@ html[data-hc-theme] body.hc-admin-mobile .hc-m-head{
   position:sticky!important;
   top:0!important;
   z-index:60!important;
-  margin:calc(-12px - env(safe-area-inset-top,0px)) calc(clamp(12px,3.5vw,22px) * -1) 20px!important;
+  margin:calc(-12px - env(safe-area-inset-top,0px)) calc(0px - clamp(12px,3.5vw,22px)) 20px!important;
   padding:calc(10px + env(safe-area-inset-top,0px)) clamp(12px,3.5vw,22px) 10px!important;
   border-bottom:1px solid var(--u7-glass-line)!important;
   background:var(--u7-glass)!important;
