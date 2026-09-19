@@ -92,12 +92,16 @@ export class AppStore extends BaseAppStore {
       if (!userId) return json({ ok:false, error:'Invalid user' }, 400);
       const key = `${PROFILE_PREFIX}${userId}`;
       const previous = await this.hcState.storage.get(key) || { telegram_id:userId };
+      const cleaningsTotal = nonNegative(body.cleanings_total ?? previous.cleanings_total);
+      const cleaningsRemaining = body.cleanings_used !== undefined && body.cleanings_used !== null
+        ? Math.max(0, cleaningsTotal - Math.min(cleaningsTotal, nonNegative(body.cleanings_used)))
+        : Math.min(cleaningsTotal || Number.MAX_SAFE_INTEGER, nonNegative(body.cleanings_remaining ?? previous.cleanings_remaining));
       const profile = {
         ...previous,
         telegram_id:userId,
         subscription_name:clean(body.subscription_name ?? previous.subscription_name,80),
-        cleanings_total:nonNegative(body.cleanings_total ?? previous.cleanings_total),
-        cleanings_remaining:nonNegative(body.cleanings_remaining ?? previous.cleanings_remaining),
+        cleanings_total:cleaningsTotal,
+        cleanings_remaining:cleaningsRemaining,
         schedule_note:clean(body.schedule_note ?? previous.schedule_note,500),
         last_cleaning_at:clean(body.last_cleaning_at ?? previous.last_cleaning_at,40),
         next_cleaning_at:clean(body.next_cleaning_at ?? previous.next_cleaning_at,40),
@@ -199,6 +203,17 @@ export class AppStore extends BaseAppStore {
     const orders = (Array.isArray(snapshot?.orders) ? snapshot.orders : []).filter((order)=>order && !order.is_test);
     const profilesRaw = await this.hcState.storage.list({ prefix:PROFILE_PREFIX });
     const profiles = [...profilesRaw.values()].filter(Boolean);
+    const staffIds = new Set();
+    try {
+      const staffResponse = await super.fetch(new Request('https://app.internal/staff/list', { method:'GET' }));
+      if (staffResponse?.ok) {
+        const staffData = await staffResponse.json().catch(()=>({}));
+        for (const person of (Array.isArray(staffData?.staff) ? staffData.staff : [])) {
+          const staffId = positiveInt(person?.telegram_id);
+          if (staffId) staffIds.add(staffId);
+        }
+      }
+    } catch {}
     const byId = new Map();
 
     for (const profile of profiles) {
@@ -248,7 +263,8 @@ export class AppStore extends BaseAppStore {
         phone:row.phone || '',
         subscription_name:row.subscription_name || '',
         cleanings_total:row.cleanings_total,
-        cleanings_remaining:row.cleanings_remaining || upcoming.length,
+        cleanings_remaining:(row.cleanings_total > 0 || row.subscription_name) ? row.cleanings_remaining : upcoming.length,
+        cleanings_used:row.cleanings_total > 0 ? Math.max(0, row.cleanings_total - row.cleanings_remaining) : 0,
         schedule_note:row.schedule_note || '',
         completed_count:completed.length,
         active_count:active.length,
@@ -260,7 +276,9 @@ export class AppStore extends BaseAppStore {
         marketing:prefs.marketing !== false,
       });
     }
-    return rows.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ru'));
+    return rows
+      .filter((row)=>!staffIds.has(Number(row.telegram_id)))
+      .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ru'));
   }
 
   async ensurePublicOrderNumbers() {
