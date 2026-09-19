@@ -256,6 +256,7 @@ test('release 64 broadcast guard excludes employees without hiding staff custome
   assert.match(worker, /is_staff:staffIds\.has/);
   assert.match(worker, /marketing !== false && item\.is_staff !== true/);
   assert.match(worker, /marketing !== false && client\.is_staff !== true/);
+  assert.match(worker, /marketing: clients\.filter\(\(item\)=>item\.marketing !== false && item\.is_staff !== true\)\.length/);
   assert.doesNotMatch(worker, /\.filter\(\(row\)=>!staffIds\.has\(Number\(row\.telegram_id\)\)\)/);
 });
 
