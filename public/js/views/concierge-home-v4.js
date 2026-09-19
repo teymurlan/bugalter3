@@ -335,7 +335,7 @@ function paintHome(root,navigate,orders) {
       ? `Черновик: ${draftStepLabel()}`
       : 'Можно оформить новую уборку';
   const planLabel = sub.active
-    ? `Абонемент ${Math.max(0,sub.used)}/${Math.max(0,sub.total)}`
+    ? (sub.total > 0 ? `Абонемент ${Math.max(0,sub.used)}/${Math.max(0,sub.total)}` : (sub.name || 'Абонемент активен'))
     : `${completed.length} ${completed.length === 1 ? 'уборка' : 'уборок'} завершено`;
 
   root.innerHTML = `<div class="cc-home u7-home-v2 u7-home-v3 u7-home-v65">
