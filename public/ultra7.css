@@ -1167,3 +1167,257 @@ html[data-hc-theme] body.client-concierge .modal{
   html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v63{grid-template-columns:1fr}
   html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v63 [data-start-new-order]{min-height:42px}
 }
+
+
+/* HOUSE CLEANING RELEASE 64 — iOS glass navigation + theme-safe admin */
+html[data-hc-theme] body.client-concierge{
+  --hc-glass:color-mix(in srgb,var(--u7-surface) 66%,transparent);
+  --hc-glass-strong:color-mix(in srgb,var(--u7-surface) 78%,transparent);
+  --hc-glass-line:color-mix(in srgb,var(--u7-line) 62%,transparent);
+  --hc-glass-shadow:0 14px 42px color-mix(in srgb,var(--u7-text) 15%,transparent);
+}
+html[data-hc-theme] body.client-concierge #app{
+  padding-bottom:calc(112px + env(safe-area-inset-bottom,0px))!important;
+}
+html[data-hc-theme] body.client-concierge .bottom-nav{
+  min-height:48px!important;
+  height:48px!important;
+  left:12px!important;
+  right:12px!important;
+  bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;
+  width:auto!important;
+  padding:3px 5px!important;
+  border-radius:19px!important;
+  border:1px solid var(--hc-glass-line)!important;
+  background:var(--hc-glass)!important;
+  box-shadow:var(--hc-glass-shadow),inset 0 1px 0 color-mix(in srgb,#fff 28%,transparent)!important;
+  backdrop-filter:blur(28px) saturate(180%)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(180%)!important;
+  overflow:hidden!important;
+}
+html[data-hc-theme] body.client-concierge .bottom-nav::before,
+html[data-hc-theme] body.client-concierge .bottom-nav .nav-item.active::after{
+  display:none!important;
+}
+html[data-hc-theme] body.client-concierge .bottom-nav .nav-item{
+  min-height:40px!important;
+  padding:3px 5px!important;
+  gap:1px!important;
+  border:1px solid transparent!important;
+  border-radius:14px!important;
+  color:var(--u7-muted)!important;
+  background:transparent!important;
+  text-shadow:none!important;
+}
+html[data-hc-theme] body.client-concierge .bottom-nav .nav-icon,
+html[data-hc-theme] body.client-concierge .bottom-nav .nav-icon svg{
+  width:18px!important;
+  height:18px!important;
+}
+html[data-hc-theme] body.client-concierge .bottom-nav .nav-item>span:last-child{
+  font-size:9px!important;
+  line-height:1!important;
+  font-weight:760!important;
+}
+html[data-hc-theme] body.client-concierge .bottom-nav .nav-item.active{
+  color:var(--u7-accent)!important;
+  background:color-mix(in srgb,var(--u7-accent) 12%,var(--hc-glass-strong))!important;
+  border-color:color-mix(in srgb,var(--u7-accent) 24%,transparent)!important;
+  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 18%,transparent)!important;
+}
+html[data-hc-theme="dark"] body.client-concierge{
+  --hc-glass:color-mix(in srgb,#121922 72%,transparent);
+  --hc-glass-strong:color-mix(in srgb,#1a2430 82%,transparent);
+}
+html[data-hc-theme="blue"] body.client-concierge{
+  --hc-glass:color-mix(in srgb,#edf5ff 72%,transparent);
+  --hc-glass-strong:color-mix(in srgb,#f8fbff 82%,transparent);
+}
+html[data-hc-theme] body.client-concierge :is(
+  .cc-profile,.cc-home,.cc-orders,.cc-detail,.cc-faq-page,.hc-rules,.hc-contact-launch,.u7-home-v2,.u7-orders-shell
+){
+  scroll-margin-bottom:112px;
+}
+html[data-hc-theme] body.client-concierge :is(
+  .cc-profile,.cc-home,.cc-orders,.cc-faq-page,.hc-rules
+)>:last-child{
+  margin-bottom:28px!important;
+}
+
+/* Admin becomes a true full-screen themed app instead of a dark framed page. */
+html[data-hc-theme] body.hc-admin-mobile,
+html[data-hc-theme] body.admin-ops-mode.hc-admin-mobile{
+  background:var(--u7-bg)!important;
+  color:var(--u7-text)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile #app{
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0!important;
+  background:var(--u7-bg)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-mobile-shell{
+  width:100%!important;
+  max-width:none!important;
+  min-height:100dvh!important;
+  box-sizing:border-box!important;
+  padding:
+    calc(12px + env(safe-area-inset-top,0px))
+    max(14px,env(safe-area-inset-left,0px))
+    calc(92px + env(safe-area-inset-bottom,0px))
+    max(14px,env(safe-area-inset-right,0px))!important;
+  background:var(--u7-bg)!important;
+  color:var(--u7-text)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile :is(
+  .hc-m-head,.hc-profile-top,.hc-block,.hc-staff-card,.hc-order-card,.hc-profile-hero,.hc-profile-kpis,.hc-profile-actions,
+  .u7-client-card,.u7-toggle-row,.u7-broadcast-history article,.hc-empty
+){
+  color:var(--u7-text)!important;
+  border-color:var(--u7-line)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile :is(
+  .hc-block,.hc-staff-card,.hc-order-card,.hc-profile-hero,.hc-profile-kpis,.hc-profile-actions,.u7-client-card,.hc-empty
+){
+  background:var(--u7-surface)!important;
+  box-shadow:var(--u7-shadow)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile :is(
+  .hc-m-search,.hc-training-mini,.hc-live-order,.hc-order-time,.u7-client-stats>div,.u7-client-next,.u7-audience,
+  .u7-broadcast-history article,.hc-form input,.hc-form select,.hc-form textarea
+){
+  background:var(--u7-surface-2)!important;
+  border-color:var(--u7-line)!important;
+  color:var(--u7-text)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile :is(
+  .hc-m-title h1,.hc-m-kpis b,.hc-home-kpis b,.hc-staff-copy b,.hc-live-order b,.hc-order-time b,
+  .hc-order-line h3,.hc-order-bottom b,.hc-profile-hero h1,.hc-info-row b,.u7-client-card strong,.u7-client-stats b
+){color:var(--u7-text)!important}
+html[data-hc-theme] body.hc-admin-mobile :is(
+  .hc-m-brand small,.hc-m-title p,.hc-m-kpis span,.hc-home-kpis span,.hc-home-kpis small,.hc-staff-copy small,
+  .hc-staff-meta,.hc-order-main p,.hc-order-compact small,.hc-muted,.hc-profile-hero p,.hc-info-row,.u7-client-card small
+){color:var(--u7-muted)!important}
+html[data-hc-theme] body.hc-admin-mobile :is(.hc-m-bell,.hc-m-filter){
+  background:color-mix(in srgb,var(--u7-surface) 78%,transparent)!important;
+  color:var(--u7-accent)!important;
+  border:1px solid color-mix(in srgb,var(--u7-line) 68%,transparent)!important;
+  box-shadow:0 8px 24px color-mix(in srgb,var(--u7-text) 8%,transparent)!important;
+  backdrop-filter:blur(22px) saturate(160%)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(160%)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-m-pills button{
+  background:var(--u7-surface-2)!important;
+  color:var(--u7-muted)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-m-pills button.active{
+  background:color-mix(in srgb,var(--u7-accent) 14%,var(--u7-surface))!important;
+  color:var(--u7-accent)!important;
+  box-shadow:none!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-primary{
+  background:linear-gradient(135deg,var(--u7-accent),var(--u7-accent-2))!important;
+  color:var(--u7-on-accent)!important;
+  box-shadow:0 10px 24px color-mix(in srgb,var(--u7-accent) 20%,transparent)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-m-nav{
+  min-height:50px!important;
+  height:50px!important;
+  left:max(10px,env(safe-area-inset-left,0px))!important;
+  right:max(10px,env(safe-area-inset-right,0px))!important;
+  bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;
+  width:auto!important;
+  max-width:none!important;
+  transform:none!important;
+  padding:3px 5px!important;
+  border:1px solid color-mix(in srgb,var(--u7-line) 62%,transparent)!important;
+  border-radius:19px!important;
+  background:color-mix(in srgb,var(--u7-surface) 68%,transparent)!important;
+  box-shadow:0 14px 42px color-mix(in srgb,var(--u7-text) 15%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 26%,transparent)!important;
+  backdrop-filter:blur(28px) saturate(180%)!important;
+  -webkit-backdrop-filter:blur(28px) saturate(180%)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-m-nav button{
+  min-width:0!important;
+  padding:2px 3px!important;
+  border:1px solid transparent!important;
+  border-radius:14px!important;
+  color:var(--u7-muted)!important;
+  background:transparent!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-m-nav button span{
+  width:18px!important;height:18px!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-m-nav button small{
+  font-size:8.5px!important;line-height:1!important;color:inherit!important
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-m-nav button.active{
+  color:var(--u7-accent)!important;
+  background:color-mix(in srgb,var(--u7-accent) 12%,var(--u7-surface))!important;
+  border-color:color-mix(in srgb,var(--u7-accent) 24%,transparent)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-profile-top{
+  margin:
+    calc(-12px - env(safe-area-inset-top,0px))
+    max(-14px,calc(-1 * env(safe-area-inset-right,0px)))
+    0
+    max(-14px,calc(-1 * env(safe-area-inset-left,0px)))!important;
+  padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px!important;
+  background:color-mix(in srgb,var(--u7-bg) 82%,transparent)!important;
+  backdrop-filter:blur(24px) saturate(150%)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(150%)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-sheet{
+  background:color-mix(in srgb,var(--u7-surface) 90%,transparent)!important;
+  color:var(--u7-text)!important;
+  border:1px solid color-mix(in srgb,var(--u7-line) 70%,transparent)!important;
+  box-shadow:0 -20px 60px color-mix(in srgb,var(--u7-text) 16%,transparent)!important;
+  backdrop-filter:blur(30px) saturate(170%)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(170%)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-sheet-head button{
+  background:var(--u7-surface-2)!important;color:var(--u7-text)!important
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-card-actions button,
+html[data-hc-theme] body.hc-admin-mobile .hc-profile-actions button,
+html[data-hc-theme] body.hc-admin-mobile .hc-detail-actions button{
+  background:var(--u7-surface-2)!important;
+  color:var(--u7-text)!important;
+  border:1px solid var(--u7-line)!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .hc-card-actions button:nth-child(2),
+html[data-hc-theme] body.hc-admin-mobile .hc-profile-actions .primary{
+  background:color-mix(in srgb,var(--u7-accent) 13%,var(--u7-surface))!important;
+  color:var(--u7-accent)!important;
+  border-color:color-mix(in srgb,var(--u7-accent) 28%,var(--u7-line))!important;
+}
+html[data-hc-theme] body.hc-admin-mobile .u7-client-plan-v64{
+  margin-top:12px;padding:11px 12px;border:1px solid color-mix(in srgb,var(--u7-accent) 22%,var(--u7-line));
+  border-radius:14px;background:color-mix(in srgb,var(--u7-accent) 6%,var(--u7-surface));
+}
+html[data-hc-theme] body.hc-admin-mobile .u7-client-plan-v64>div:first-child{
+  display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:end
+}
+html[data-hc-theme] body.hc-admin-mobile .u7-client-plan-v64 span{
+  grid-column:1/-1;color:var(--u7-muted);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em
+}
+html[data-hc-theme] body.hc-admin-mobile .u7-client-plan-v64 b{font-size:12px;color:var(--u7-text)!important}
+html[data-hc-theme] body.hc-admin-mobile .u7-client-plan-v64 em{font-size:11px;font-style:normal;font-weight:850;color:var(--u7-accent)}
+html[data-hc-theme] body.hc-admin-mobile .u7-client-plan-track-v64{
+  height:6px;margin-top:9px;border-radius:99px;background:var(--u7-surface-2);overflow:hidden
+}
+html[data-hc-theme] body.hc-admin-mobile .u7-client-plan-track-v64 i{
+  display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--u7-accent),var(--u7-accent-2))
+}
+html[data-hc-theme] body.hc-admin-mobile .u7-plan-editor-v64{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px
+}
+html[data-hc-theme] body.hc-admin-mobile .u7-plan-editor-summary-v64{
+  grid-column:1/-1;display:grid;grid-template-columns:1fr auto;gap:2px 10px;
+  padding:11px 12px;border-radius:14px;background:color-mix(in srgb,var(--u7-accent) 7%,var(--u7-surface));
+  border:1px solid color-mix(in srgb,var(--u7-accent) 22%,var(--u7-line))
+}
+html[data-hc-theme] body.hc-admin-mobile .u7-plan-editor-summary-v64 span{font-size:10px;color:var(--u7-muted)}
+html[data-hc-theme] body.hc-admin-mobile .u7-plan-editor-summary-v64 b{font-size:18px;color:var(--u7-accent)!important}
+html[data-hc-theme] body.hc-admin-mobile .u7-plan-editor-summary-v64 small{grid-column:1/-1;color:var(--u7-muted)!important}
