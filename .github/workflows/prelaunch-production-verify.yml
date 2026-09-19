@@ -1,4 +1,5 @@
 name: Prelaunch Production Verify
+# retry after reset diagnostics deploy
 
 on:
   pull_request:
