@@ -92,9 +92,10 @@ export class AppStore extends BaseAppStore {
       if (!userId) return json({ ok:false, error:'Invalid user' }, 400);
       const key = `${PROFILE_PREFIX}${userId}`;
       const previous = await this.hcState.storage.get(key) || { telegram_id:userId };
-      const total = nonNegative(body.cleanings_total ?? previous.cleanings_total);
-      const previousRemaining = Math.min(total, nonNegative(previous.cleanings_remaining));
-      const previousCompleted = Math.max(0, total - previousRemaining);
+      const previousTotal = nonNegative(previous.cleanings_total);
+      const previousRemaining = Math.min(previousTotal, nonNegative(previous.cleanings_remaining));
+      const previousCompleted = Math.max(0, previousTotal - previousRemaining);
+      const total = nonNegative(body.cleanings_total ?? previousTotal);
       const completed = Math.min(total, nonNegative(body.cleanings_completed ?? previousCompleted));
       const profile = {
         ...previous,
