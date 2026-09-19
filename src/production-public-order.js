@@ -7,7 +7,9 @@ const ADMIN_SETTINGS_KEY = 'ultra7:admin-settings:v1';
 const USER_PREFS_PREFIX = 'ultra7:user-prefs:';
 const BROADCAST_PREFIX = 'ultra7:broadcast:';
 const PROFILE_PREFIX = 'profile:item:';
+const PRELAUNCH_RESET_KEY = 'system:prelaunch-reset:v66';
 const ACTIVE_STATUSES = new Set(['NEW','REVIEW','CONFIRMED','CLEANER_ASSIGNED','IN_PROGRESS']);
+let prelaunchResetPromise = null;
 
 const DEFAULT_ADMIN_SETTINGS = Object.freeze({
   central_new_order: true,
@@ -37,6 +39,63 @@ export class AppStore extends BaseAppStore {
 
   async fetch(request) {
     const url = new URL(request.url);
+
+    if (url.pathname === '/system/prelaunch-reset-v66/status' && request.method === 'GET') {
+      const marker = await this.hcState.storage.get(PRELAUNCH_RESET_KEY);
+      return json({ ok:true, marker:marker || null });
+    }
+
+    if (url.pathname === '/system/prelaunch-reset-v66/storage' && request.method === 'POST') {
+      const existing = await this.hcState.storage.get(PRELAUNCH_RESET_KEY);
+      if (existing?.status === 'complete' || existing?.status === 'storage_complete') {
+        return json({ ok:true, already:true, marker:existing });
+      }
+
+      const orderRows = await this.hcState.storage.list({ prefix:'order:' });
+      const draftRows = await this.hcState.storage.list({ prefix:'draft:' });
+      const inviteRows = await this.hcState.storage.list({ prefix:'review:invite:' });
+      await deleteStorageKeys(this.hcState.storage, [
+        ...orderRows.keys(),
+        ...draftRows.keys(),
+        ...inviteRows.keys(),
+        PUBLIC_SEQUENCE_KEY,
+      ]);
+
+      const profilesRaw = await this.hcState.storage.list({ prefix:PROFILE_PREFIX });
+      let profilesReset = 0;
+      for (const [key, value] of profilesRaw.entries()) {
+        if (!value || typeof value !== 'object') continue;
+        const profile = resetSubscriptionFields(value);
+        await this.hcState.storage.put(key, profile);
+        profilesReset += 1;
+      }
+
+      const marker = {
+        status:'storage_complete',
+        orders_deleted:orderRows.size,
+        drafts_deleted:draftRows.size,
+        review_invites_deleted:inviteRows.size,
+        profiles_reset:profilesReset,
+        updated_at:new Date().toISOString(),
+      };
+      await this.hcState.storage.put(PRELAUNCH_RESET_KEY, marker);
+      return json({ ok:true, marker });
+    }
+
+    if (url.pathname === '/system/prelaunch-reset-v66/finish' && request.method === 'POST') {
+      const body = await bodyJson(request);
+      const previous = await this.hcState.storage.get(PRELAUNCH_RESET_KEY) || {};
+      const marker = {
+        ...previous,
+        status:'complete',
+        d1_orders_deleted:nonNegative(body.d1_orders_deleted),
+        d1_drafts_deleted:nonNegative(body.d1_drafts_deleted),
+        d1_profiles_reset:nonNegative(body.d1_profiles_reset),
+        completed_at:new Date().toISOString(),
+      };
+      await this.hcState.storage.put(PRELAUNCH_RESET_KEY, marker);
+      return json({ ok:true, marker });
+    }
 
     if (url.pathname === '/ultra7/admin-settings') {
       if (request.method === 'GET') return json({ ok:true, settings:await this.adminSettings() });
@@ -345,6 +404,29 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    if (url.pathname.startsWith('/api/') || url.pathname === '/telegram/webhook') {
+      try {
+        await ensurePrelaunchReset(env);
+      } catch (error) {
+        console.error('Prelaunch reset v66 failed', error);
+        return json({ ok:false, error:'Завершаем предстартовую очистку. Повторите через несколько секунд.' }, 503);
+      }
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/prelaunch-v66-status') {
+      const stub = appStub(env);
+      const markerResponse = await stub?.fetch('https://app.internal/system/prelaunch-reset-v66/status');
+      const marker = markerResponse?.ok ? (await markerResponse.json().catch(()=>({}))).marker : null;
+      const db = findD1(env);
+      let d1Orders = null;
+      let d1Drafts = null;
+      if (db) {
+        try { d1Orders = Number((await db.prepare('SELECT COUNT(*) AS count FROM hc_orders').first())?.count || 0); } catch {}
+        try { d1Drafts = Number((await db.prepare('SELECT COUNT(*) AS count FROM hc_drafts').first())?.count || 0); } catch {}
+      }
+      return json({ ok:true, release:66, marker, d1_orders:d1Orders, d1_drafts:d1Drafts });
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/central-notification-health') {
       return centralNotificationHealth(env);
     }
@@ -642,6 +724,111 @@ function sanitizeUserPrefs(value = {}) {
 function appStub(env) {
   if (!env?.APP_STORE) return null;
   return env.APP_STORE.get(env.APP_STORE.idFromName(APP_STORE_NAME));
+}
+
+async function ensurePrelaunchReset(env) {
+  if (!env?.APP_STORE) return;
+  if (!prelaunchResetPromise) {
+    prelaunchResetPromise = runPrelaunchReset(env).catch((error) => {
+      prelaunchResetPromise = null;
+      throw error;
+    });
+  }
+  return prelaunchResetPromise;
+}
+
+async function runPrelaunchReset(env) {
+  const stub = appStub(env);
+  if (!stub) return;
+
+  const statusResponse = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/status');
+  const statusData = statusResponse?.ok ? await statusResponse.json().catch(()=>({})) : {};
+  if (statusData?.marker?.status === 'complete') return;
+
+  const storageResponse = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/storage', { method:'POST' });
+  if (!storageResponse?.ok) throw new Error('Unable to reset durable prelaunch data');
+
+  let d1OrdersDeleted = 0;
+  let d1DraftsDeleted = 0;
+  let d1ProfilesReset = 0;
+  const db = findD1(env);
+  if (db) {
+    try {
+      const before = await db.prepare('SELECT COUNT(*) AS count FROM hc_orders').first();
+      d1OrdersDeleted = Number(before?.count || 0);
+      await db.prepare('DELETE FROM hc_orders').run();
+    } catch (error) {
+      console.warn('D1 order cleanup skipped', error);
+    }
+
+    try {
+      const before = await db.prepare('SELECT COUNT(*) AS count FROM hc_drafts').first();
+      d1DraftsDeleted = Number(before?.count || 0);
+      await db.prepare('DELETE FROM hc_drafts').run();
+    } catch (error) {
+      console.warn('D1 draft cleanup skipped', error);
+    }
+
+    try {
+      const rows = await db.prepare('SELECT telegram_id, profile_json FROM hc_clients').all();
+      const profiles = Array.isArray(rows?.results) ? rows.results : [];
+      for (const row of profiles) {
+        let profile = {};
+        try { profile = JSON.parse(String(row?.profile_json || '{}')); } catch {}
+        const reset = resetSubscriptionFields(profile);
+        await db.prepare('UPDATE hc_clients SET profile_json = ?, updated_at = ? WHERE telegram_id = ?')
+          .bind(JSON.stringify(reset), new Date().toISOString(), Number(row.telegram_id || 0)).run();
+        d1ProfilesReset += 1;
+      }
+    } catch (error) {
+      console.warn('D1 profile cleanup skipped', error);
+    }
+  }
+
+  const finish = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/finish', {
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({
+      d1_orders_deleted:d1OrdersDeleted,
+      d1_drafts_deleted:d1DraftsDeleted,
+      d1_profiles_reset:d1ProfilesReset,
+    }),
+  });
+  if (!finish?.ok) throw new Error('Unable to finish prelaunch reset');
+}
+
+function findD1(env) {
+  for (const name of ['DB','D1','DATABASE']) {
+    const value = env?.[name];
+    if (value && typeof value.prepare === 'function') return value;
+  }
+  for (const value of Object.values(env || {})) {
+    if (value && typeof value.prepare === 'function' && typeof value.batch === 'function') return value;
+  }
+  return null;
+}
+
+function resetSubscriptionFields(profile) {
+  const value = profile && typeof profile === 'object' ? profile : {};
+  return {
+    ...value,
+    subscription_name:'',
+    cleanings_total:0,
+    cleanings_remaining:0,
+    schedule_note:'',
+    last_cleaning_at:'',
+    next_cleaning_at:'',
+    updated_at:new Date().toISOString(),
+  };
+}
+
+async function deleteStorageKeys(storage, keys) {
+  const unique = [...new Set(keys.filter(Boolean))];
+  for (let index=0; index<unique.length; index+=128) {
+    const chunk = unique.slice(index,index+128);
+    try { await storage.delete(chunk); }
+    catch { for (const key of chunk) await storage.delete(key); }
+  }
 }
 
 function orderTimestamp(order) {

@@ -117,16 +117,24 @@ function homeOrderAction() {
   if (!activeDraft()) {
     return `<button class="u7-home-primary" type="button" data-book-cleaning><span>＋</span> Заказать уборку</button>`;
   }
-  return `<section class="u7-home-draft-v63" aria-label="Незавершённый заказ">
-    <div class="u7-home-draft-icon-v63">↗</div>
-    <div class="u7-home-draft-copy-v63">
-      <span class="u7-eyebrow">НЕЗАВЕРШЁННЫЙ ЗАКАЗ</span>
-      <strong>Продолжить оформление</strong>
-      <small>Вы остановились на этапе: ${escapeHtml(draftStepLabel())}.</small>
+  const step = Math.max(1, Math.min(8, Number(state.draft?.step || 1)));
+  const progress = Math.max(12, Math.round(step / 8 * 100));
+  return `<section class="u7-home-draft-v66" aria-label="Незавершённый заказ">
+    <div class="u7-home-draft-head-v66">
+      <span class="u7-home-draft-badge-v66">Черновик сохранён</span>
+      <span class="u7-home-draft-step-v66">Шаг ${step} из 8</span>
     </div>
-    <div class="u7-home-draft-actions-v63">
-      <button type="button" data-resume-order>Продолжить</button>
-      <button type="button" data-start-new-order>Новый заказ</button>
+    <div class="u7-home-draft-main-v66">
+      <div class="u7-home-draft-icon-v66">↗</div>
+      <div class="u7-home-draft-copy-v66">
+        <strong>Продолжить оформление?</strong>
+        <small>Вы остановились на этапе «${escapeHtml(draftStepLabel())}».</small>
+      </div>
+    </div>
+    <div class="u7-home-draft-progress-v66" aria-hidden="true"><i style="width:${progress}%"></i></div>
+    <div class="u7-home-draft-actions-v66">
+      <button type="button" class="u7-home-draft-resume-v66" data-resume-order><span>Продолжить</span><b>→</b></button>
+      <button type="button" class="u7-home-draft-new-v66" data-start-new-order>Начать новый заказ</button>
     </div>
   </section>`;
 }

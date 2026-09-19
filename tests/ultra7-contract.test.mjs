@@ -22,8 +22,8 @@ const adminMenuWorker = read('src/demo-worker-v39-admin-menu.js');
 const clientExperience = read('public/js/client-experience-v53.js');
 
 test('Ultra 7 shell loads one design layer and three selectable themes', () => {
-  assert.match(index, /house-cleaning-release" content="65/);
-  assert.match(index, /ultra7\.css\?v=65/);
+  assert.match(index, /house-cleaning-release" content="66/);
+  assert.match(index, /ultra7\.css\?v=66/);
   assert.match(index, /ultra7-theme\.js\?v=61/);
   assert.doesNotMatch(index, /referral-v2\.css/);
   for (const id of ['light','dark','blue']) assert.match(theme, new RegExp(`['"]${id}['"]`));
@@ -223,8 +223,8 @@ test('release 61 uses standard emoji on newly refreshed Telegram surfaces', () =
 
 test('release 63 unifies the home booking action and keeps navigation feedback at the top', () => {
   assert.match(home, /function homeOrderAction/);
-  assert.match(home, /u7-home-draft-v63/);
-  assert.match(home, /Новый заказ/);
+  assert.match(home, /u7-home-draft-v66/);
+  assert.match(home, /Начать новый заказ/);
   assert.doesNotMatch(home, /function resumeCard/);
   assert.doesNotMatch(home, /Начать заново/);
   assert.match(css, /HOUSE CLEANING CLIENT 63/);
@@ -285,4 +285,37 @@ test('release 65 start message is compact while keeping client and admin actions
   assert.doesNotMatch(botBranding, /Управляйте уборкой прямо в Telegram/);
   assert.match(botBranding, /Открыть HOUSE CLEANING/);
   assert.match(botBranding, /Панель администратора/);
+});
+
+
+test('release 66 keeps focused field text visible in all themes', () => {
+  assert.match(css, /HOUSE CLEANING RELEASE 66/);
+  assert.match(css, /\.field\.floating:focus-within :is\(\.input,\.textarea,\.select\)/);
+  assert.match(css, /-webkit-text-fill-color:var\(--u7-text\)!important/);
+  assert.match(css, /caret-color:var\(--u7-accent\)!important/);
+  assert.match(css, /data-hc-theme="light"[\s\S]*color-scheme:light/);
+  assert.match(css, /data-hc-theme="dark"[\s\S]*color-scheme:dark/);
+});
+
+test('release 66 presents unfinished booking as one premium decision card', () => {
+  assert.match(home, /u7-home-draft-v66/);
+  assert.match(home, /Черновик сохранён/);
+  assert.match(home, /Шаг \$\{step\} из 8/);
+  assert.match(home, /Продолжить оформление\?/);
+  assert.match(home, /Начать новый заказ/);
+  assert.match(css, /u7-home-draft-progress-v66/);
+  assert.match(css, /u7-home-draft-resume-v66/);
+});
+
+test('release 66 one-time server cleanup removes orders and subscriptions but preserves customer profiles', () => {
+  assert.match(worker, /PRELAUNCH_RESET_KEY = 'system:prelaunch-reset:v66'/);
+  assert.match(worker, /prefix:'order:'/);
+  assert.match(worker, /prefix:'draft:'/);
+  assert.match(worker, /DELETE FROM hc_orders/);
+  assert.match(worker, /DELETE FROM hc_drafts/);
+  assert.match(worker, /resetSubscriptionFields/);
+  assert.match(worker, /subscription_name:''/);
+  assert.match(worker, /cleanings_total:0/);
+  assert.match(worker, /cleanings_remaining:0/);
+  assert.doesNotMatch(worker, /DELETE FROM hc_clients/);
 });

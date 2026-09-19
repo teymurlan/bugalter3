@@ -35,7 +35,7 @@ function telegramStub(){
 async function createApp({orders=[completedOrder,activeOrder],remaining=4,subscription=true}={}){
   const context=await browser.newContext({...iphone,locale:'ru-RU',timezoneId:'Europe/Moscow'});
   await context.addInitScript(({orders,key})=>{
-    localStorage.setItem('hc-clean-start-generation','v45-clean-launch');
+    localStorage.setItem('hc-clean-start-generation','v66-final-launch');
     localStorage.setItem('hc-demo-orders-v3',JSON.stringify(orders));
     localStorage.removeItem(key);
     localStorage.setItem('hc-ultra7-theme-client','light');
@@ -193,4 +193,4 @@ async function assertContrast(locator,label){
 }
 
 await browser.close();
-console.log('\n✅ HOUSE CLEANING release 65 client screens passed');
+console.log('\n✅ HOUSE CLEANING release 66 client screens passed');

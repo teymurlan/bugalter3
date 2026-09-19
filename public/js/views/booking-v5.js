@@ -1,4 +1,4 @@
-import { renderBooking as renderBaseBooking } from './booking-v2.js?v=65';
+import { renderBooking as renderBaseBooking } from './booking-v2.js?v=66';
 import { state } from '../state.js';
 import { showToast } from '../utils.js';
 

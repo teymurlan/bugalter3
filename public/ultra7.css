@@ -1699,3 +1699,187 @@ html[data-hc-theme="dark"] body.client-concierge .u7-home-hero-v65{
   html[data-hc-theme] body.client-concierge .u7-home-hero-facts-v65{gap:6px}
   html[data-hc-theme] body.client-concierge .u7-home-hero-facts-v65>span{padding:9px}
 }
+
+
+/* HOUSE CLEANING RELEASE 66 — keyboard-safe fields + premium draft choice */
+html[data-hc-theme] body.client-concierge :is(input,textarea,select){
+  color:var(--u7-text)!important;
+  -webkit-text-fill-color:var(--u7-text)!important;
+  caret-color:var(--u7-accent)!important;
+}
+html[data-hc-theme] body.client-concierge .field.floating:focus-within :is(.input,.textarea,.select){
+  background:var(--u7-surface-2)!important;
+  color:var(--u7-text)!important;
+  -webkit-text-fill-color:var(--u7-text)!important;
+  border-color:color-mix(in srgb,var(--u7-accent) 72%,var(--u7-line))!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--u7-accent) 13%,transparent)!important;
+  caret-color:var(--u7-accent)!important;
+  opacity:1!important;
+}
+html[data-hc-theme] body.client-concierge .field.floating:focus-within label{
+  color:var(--u7-accent)!important;
+}
+html[data-hc-theme="light"] body.client-concierge :is(input,textarea,select),
+html[data-hc-theme="blue"] body.client-concierge :is(input,textarea,select){
+  color-scheme:light;
+}
+html[data-hc-theme="dark"] body.client-concierge :is(input,textarea,select){
+  color-scheme:dark;
+}
+html[data-hc-theme] body.client-concierge :is(input,textarea)::selection{
+  color:var(--u7-on-accent);
+  background:var(--u7-accent);
+}
+
+/* One clear decision card for an unfinished booking. */
+html[data-hc-theme] body.client-concierge .u7-home-hero-v65>.u7-home-draft-v66{
+  grid-column:1/-1!important;
+  margin-top:2px!important;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-v66{
+  position:relative;
+  display:grid;
+  gap:12px;
+  width:100%;
+  padding:14px;
+  overflow:hidden;
+  border:1px solid color-mix(in srgb,var(--u7-accent) 30%,var(--u7-line));
+  border-radius:20px;
+  background:
+    radial-gradient(circle at 100% 0%,color-mix(in srgb,var(--u7-accent) 12%,transparent),transparent 42%),
+    color-mix(in srgb,var(--u7-surface) 96%,var(--u7-accent) 4%);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 44%,transparent);
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-head-v66{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-badge-v66{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:0 9px;
+  border-radius:999px;
+  color:var(--u7-good)!important;
+  background:color-mix(in srgb,var(--u7-good) 9%,var(--u7-surface));
+  border:1px solid color-mix(in srgb,var(--u7-good) 22%,var(--u7-line));
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.025em;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-step-v66{
+  color:var(--u7-muted)!important;
+  font-size:10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-main-v66{
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr);
+  gap:11px;
+  align-items:center;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-icon-v66{
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:15px;
+  color:var(--u7-on-accent)!important;
+  background:linear-gradient(145deg,var(--u7-accent),var(--u7-accent-2));
+  box-shadow:0 8px 20px color-mix(in srgb,var(--u7-accent) 19%,transparent);
+  font-size:20px;
+  font-weight:900;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-copy-v66{
+  min-width:0;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-copy-v66 strong{
+  display:block;
+  color:var(--u7-text)!important;
+  font-size:16px;
+  line-height:1.15;
+  letter-spacing:-.02em;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-copy-v66 small{
+  display:block;
+  margin-top:4px;
+  color:var(--u7-muted)!important;
+  font-size:10.5px;
+  line-height:1.4;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-progress-v66{
+  height:5px;
+  overflow:hidden;
+  border-radius:999px;
+  background:color-mix(in srgb,var(--u7-muted) 16%,var(--u7-surface-2));
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-progress-v66 i{
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,var(--u7-accent),var(--u7-accent-2));
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v66{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v66 button{
+  appearance:none;
+  border:0;
+  font:inherit;
+  font-weight:900;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-resume-v66{
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:0 15px 0 17px;
+  border-radius:15px;
+  color:var(--u7-on-accent)!important;
+  background:linear-gradient(135deg,var(--u7-accent),var(--u7-accent-2));
+  box-shadow:0 9px 22px color-mix(in srgb,var(--u7-accent) 18%,transparent);
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-resume-v66 b{
+  width:27px;
+  height:27px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  color:var(--u7-on-accent)!important;
+  background:color-mix(in srgb,#fff 17%,transparent);
+  font-size:17px;
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-new-v66{
+  min-height:48px;
+  padding:0 14px;
+  border:1px solid var(--u7-line)!important;
+  border-radius:15px;
+  color:var(--u7-text)!important;
+  background:var(--u7-surface-2)!important;
+  white-space:nowrap;
+  font-size:11px!important;
+}
+html[data-hc-theme="dark"] body.client-concierge .u7-home-draft-v66{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(231,191,93,.10),transparent 42%),
+    #121922;
+}
+html[data-hc-theme="blue"] body.client-concierge .u7-home-draft-v66{
+  background:
+    radial-gradient(circle at 100% 0%,rgba(18,111,229,.11),transparent 42%),
+    #fff;
+}
+@media(max-width:390px){
+  html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v66{
+    grid-template-columns:1fr;
+  }
+  html[data-hc-theme] body.client-concierge .u7-home-draft-new-v66{
+    min-height:42px;
+  }
+}
