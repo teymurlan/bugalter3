@@ -92,19 +92,23 @@ export class AppStore extends BaseAppStore {
       if (!userId) return json({ ok:false, error:'Invalid user' }, 400);
       const key = `${PROFILE_PREFIX}${userId}`;
       const previous = await this.hcState.storage.get(key) || { telegram_id:userId };
+      const total = nonNegative(body.cleanings_total ?? previous.cleanings_total);
+      const previousRemaining = Math.min(total, nonNegative(previous.cleanings_remaining));
+      const previousCompleted = Math.max(0, total - previousRemaining);
+      const completed = Math.min(total, nonNegative(body.cleanings_completed ?? previousCompleted));
       const profile = {
         ...previous,
         telegram_id:userId,
         subscription_name:clean(body.subscription_name ?? previous.subscription_name,80),
-        cleanings_total:nonNegative(body.cleanings_total ?? previous.cleanings_total),
-        cleanings_remaining:nonNegative(body.cleanings_remaining ?? previous.cleanings_remaining),
+        cleanings_total:total,
+        cleanings_remaining:Math.max(0, total - completed),
         schedule_note:clean(body.schedule_note ?? previous.schedule_note,500),
         last_cleaning_at:clean(body.last_cleaning_at ?? previous.last_cleaning_at,40),
         next_cleaning_at:clean(body.next_cleaning_at ?? previous.next_cleaning_at,40),
         updated_at:new Date().toISOString(),
       };
       await this.hcState.storage.put(key, profile);
-      return json({ ok:true, profile });
+      return json({ ok:true, profile:{ ...profile, cleanings_completed:completed } });
     }
 
     if (url.pathname === '/ultra7/broadcast-log') {
@@ -197,13 +201,17 @@ export class AppStore extends BaseAppStore {
   async audienceRows() {
     const snapshot = await this.ensurePublicOrderNumbers();
     const orders = (Array.isArray(snapshot?.orders) ? snapshot.orders : []).filter((order)=>order && !order.is_test);
-    const profilesRaw = await this.hcState.storage.list({ prefix:PROFILE_PREFIX });
+    const [profilesRaw, staffRaw] = await Promise.all([
+      this.hcState.storage.list({ prefix:PROFILE_PREFIX }),
+      this.hcState.storage.list({ prefix:'staff:' }),
+    ]);
     const profiles = [...profilesRaw.values()].filter(Boolean);
+    const staffIds = new Set([...staffRaw.values()].map((item)=>positiveInt(item?.telegram_id)).filter(Boolean));
     const byId = new Map();
 
     for (const profile of profiles) {
       const id = positiveInt(profile.telegram_id);
-      if (!id) continue;
+      if (!id || staffIds.has(id)) continue;
       byId.set(id, {
         telegram_id:id,
         name:clean(profile.name,160),
@@ -220,7 +228,7 @@ export class AppStore extends BaseAppStore {
 
     for (const order of orders) {
       const id = positiveInt(order.client_telegram_id);
-      if (!id) continue;
+      if (!id || staffIds.has(id)) continue;
       const row = byId.get(id) || {
         telegram_id:id,name:'',phone:'',subscription_name:'',cleanings_total:0,cleanings_remaining:0,
         schedule_note:'',profile_last_cleaning_at:'',profile_next_cleaning_at:'',orders:[],
@@ -248,7 +256,8 @@ export class AppStore extends BaseAppStore {
         phone:row.phone || '',
         subscription_name:row.subscription_name || '',
         cleanings_total:row.cleanings_total,
-        cleanings_remaining:row.cleanings_remaining || upcoming.length,
+        cleanings_remaining:row.cleanings_remaining,
+        cleanings_completed:Math.max(0, row.cleanings_total - row.cleanings_remaining),
         schedule_note:row.schedule_note || '',
         completed_count:completed.length,
         active_count:active.length,
@@ -507,9 +516,10 @@ async function handleBroadcast(env, body = {}) {
 
   const stub = appStub(env);
   if (!stub) return json({ ok:false, error:'Storage unavailable' }, 503);
-  const [audienceRes,settingsRes] = await Promise.all([
+  const [audienceRes,settingsRes,staffRes] = await Promise.all([
     stub.fetch('https://app.internal/ultra7/audience'),
     stub.fetch('https://app.internal/ultra7/admin-settings'),
+    stub.fetch('https://app.internal/staff/list'),
   ]);
   if (!audienceRes.ok) return json({ ok:false, error:'Не удалось получить список клиентов' }, 503);
   const audience = await audienceRes.json();
@@ -517,7 +527,9 @@ async function handleBroadcast(env, body = {}) {
   if (settings.marketing_enabled === false) return json({ ok:false, error:'Рассылки отключены в настройках' }, 409);
 
   let clients = Array.isArray(audience.clients) ? audience.clients : [];
-  clients = clients.filter((client)=>client.marketing !== false);
+  const staffData = staffRes.ok ? await staffRes.json().catch(()=>({})) : {};
+  const staffIds = new Set((Array.isArray(staffData?.staff) ? staffData.staff : []).map((item)=>positiveInt(item?.telegram_id)).filter(Boolean));
+  clients = clients.filter((client)=>client.marketing !== false && !staffIds.has(positiveInt(client.telegram_id)));
   if (segment === 'active') clients = clients.filter((client)=>Number(client.active_count||0)>0);
   if (segment === 'completed') clients = clients.filter((client)=>Number(client.completed_count||0)>0);
   if (segment === 'subscription') clients = clients.filter((client)=>Number(client.cleanings_remaining||0)>0);
