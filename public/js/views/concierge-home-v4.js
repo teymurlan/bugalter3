@@ -342,8 +342,8 @@ function paintHome(root,navigate,orders) {
     <header class="u7-home-hero cc-greeting-row u7-home-hero-v65">
       <div class="u7-home-hero-top-v65"><span class="cc-kicker">HOUSE CLEANING</span><span class="u7-home-live-v65">● сервис онлайн</span></div>
       <div class="u7-home-hero-copy-v65"><h1 class="cc-greeting">${escapeHtml(greeting())}, ${escapeHtml(displayName())}!</h1><p>${escapeHtml(heroStatus)}</p></div>
-      <div class="u7-home-hero-facts-v65"><span><b>${escapeHtml(planLabel)}</b><small>ваш кабинет</small></span><span><b>≈ 2 мин</b><small>на новую запись</small></span></div>
       <div class="cc-monogram">HC</div>
+      <div class="u7-home-hero-facts-v65"><span><b>${escapeHtml(planLabel)}</b><small>ваш кабинет</small></span><span><b>≈ 2 мин</b><small>на новую запись</small></span></div>
       ${homeOrderAction()}
     </header>
     ${nearestCard(next)}
