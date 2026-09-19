@@ -22,8 +22,8 @@ const adminMenuWorker = read('src/demo-worker-v39-admin-menu.js');
 const clientExperience = read('public/js/client-experience-v53.js');
 
 test('Ultra 7 shell loads one design layer and three selectable themes', () => {
-  assert.match(index, /house-cleaning-release" content="63/);
-  assert.match(index, /ultra7\.css\?v=63/);
+  assert.match(index, /house-cleaning-release" content="64/);
+  assert.match(index, /ultra7\.css\?v=64/);
   assert.match(index, /ultra7-theme\.js\?v=61/);
   assert.doesNotMatch(index, /referral-v2\.css/);
   for (const id of ['light','dark','blue']) assert.match(theme, new RegExp(`['"]${id}['"]`));
@@ -232,4 +232,21 @@ test('release 63 unifies the home booking action and keeps navigation feedback a
   assert.match(css, /body\.client-concierge:has\(\.hc-fixed-back\) #app/);
   assert.match(css, /body\.client-concierge \.toast\{[\s\S]*top:calc\(env\(safe-area-inset-top/);
   assert.match(css, /body\.client-concierge \.modal-backdrop\{[\s\S]*place-items:start center/);
+});
+
+
+test('release 64 uses adaptive liquid glass and a fullscreen themed admin', () => {
+  assert.match(css, /HOUSE CLEANING RELEASE 64/);
+  assert.match(css, /--u7-glass:/);
+  assert.match(css, /body\.client-concierge \.bottom-nav[\s\S]*height:52px!important/);
+  assert.match(css, /body\.hc-admin-mobile #app[\s\S]*max-width:none!important/);
+  assert.match(css, /body\.hc-admin-mobile \.hc-m-nav[\s\S]*background:var\(--u7-glass\)!important/);
+  assert.match(css, /body\.hc-admin-mobile \.hc-sheet[\s\S]*background:var\(--u7-glass-strong\)!important/);
+  assert.match(css, /u7-client-plan-v64/);
+  assert.match(admin, /Абонемент и график/);
+  assert.match(admin, /name="cleanings_used"/);
+  assert.match(admin, /Все клиенты — без сотрудников/);
+  assert.match(admin, /автоматически исключаются сервером/);
+  assert.match(worker, /cleanings_used/);
+  assert.match(worker, /staffIds/);
 });
