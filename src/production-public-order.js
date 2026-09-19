@@ -525,9 +525,10 @@ async function handleBroadcast(env, body = {}) {
 
   const stub = appStub(env);
   if (!stub) return json({ ok:false, error:'Storage unavailable' }, 503);
-  const [audienceRes,settingsRes] = await Promise.all([
+  const [audienceRes,settingsRes,staffRes] = await Promise.all([
     stub.fetch('https://app.internal/ultra7/audience'),
     stub.fetch('https://app.internal/ultra7/admin-settings'),
+    stub.fetch('https://app.internal/staff/list'),
   ]);
   if (!audienceRes.ok) return json({ ok:false, error:'Не удалось получить список клиентов' }, 503);
   const audience = await audienceRes.json();
@@ -535,7 +536,11 @@ async function handleBroadcast(env, body = {}) {
   if (settings.marketing_enabled === false) return json({ ok:false, error:'Рассылки отключены в настройках' }, 409);
 
   let clients = Array.isArray(audience.clients) ? audience.clients : [];
-  clients = clients.filter((client)=>client.marketing !== false);
+  const staffData = staffRes?.ok ? await staffRes.json().catch(()=>({})) : {};
+  const staffIds = new Set((Array.isArray(staffData?.staff) ? staffData.staff : [])
+    .map((item)=>positiveInt(item?.telegram_id))
+    .filter(Boolean));
+  clients = clients.filter((client)=>client.marketing !== false && !staffIds.has(positiveInt(client.telegram_id)));
   if (segment === 'active') clients = clients.filter((client)=>Number(client.active_count||0)>0);
   if (segment === 'completed') clients = clients.filter((client)=>Number(client.completed_count||0)>0);
   if (segment === 'subscription') clients = clients.filter((client)=>Number(client.cleanings_remaining||0)>0);
