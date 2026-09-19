@@ -13,7 +13,7 @@ function ensureStyle(id, href) {
 }
 
 function loadSpecialStyles() {
-  ensureStyle('hc-admin-mobile-style', '/admin-mobile-v1.css?v=44');
+  ensureStyle('hc-admin-mobile-style', '/admin-mobile-v1.css?v=64');
   if (staffMode) ensureStyle('hc-staff-style', '/staff-v1.css?v=44');
 }
 
@@ -50,8 +50,8 @@ async function startSpecialMode() {
   configureLightApp();
   if (adminMode) {
     const [{ renderAdmin }, { installAdminPolish }] = await Promise.all([
-      import('./views/admin-v6.js?v=59'),
-      import('./admin-v6-polish.js?v=59'),
+      import('./views/admin-v6.js?v=64'),
+      import('./admin-v6-polish.js?v=64'),
     ]);
     await renderAdmin(root, () => {});
     installAdminPolish(root);
@@ -64,7 +64,7 @@ async function startSpecialMode() {
 if (adminMode || staffMode) {
   startSpecialMode().catch(showFatal);
 } else {
-  import('./client-experience-v53.js?v=63')
-    .then(() => import('./app-release-v2.js?v=63'))
+  import('./client-experience-v53.js?v=64')
+    .then(() => import('./app-release-v2.js?v=64'))
     .catch(showFatal);
 }
