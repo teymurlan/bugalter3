@@ -250,3 +250,17 @@ test('release 64 uses adaptive liquid glass and a fullscreen themed admin', () =
   assert.match(worker, /cleanings_used/);
   assert.match(worker, /staffIds/);
 });
+
+
+test('release 64 broadcast guard excludes employees without hiding staff customers', () => {
+  assert.match(worker, /is_staff:staffIds\.has/);
+  assert.match(worker, /marketing !== false && item\.is_staff !== true/);
+  assert.match(worker, /marketing !== false && client\.is_staff !== true/);
+  assert.doesNotMatch(worker, /\.filter\(\(row\)=>!staffIds\.has\(Number\(row\.telegram_id\)\)\)/);
+});
+
+test('client profile edits preserve admin-managed subscription progress', () => {
+  assert.match(profileWorker, /currentResponse/);
+  assert.match(profileWorker, /currentData\.profile/);
+  assert.match(profileWorker, /sanitizeProfile\(\{ \.\.\.\(currentData\.profile \|\| \{\}\), \.\.\.body/);
+});
