@@ -4,7 +4,7 @@ export { ConsentStore, AppStore };
 
 const CONSENT_VERSION = '2026-09-09-v1';
 const OPERATOR = 'ИП Царегородцева Евгения Андреевна';
-const CLIENT_RELEASE = '64';
+const CLIENT_RELEASE = '65';
 
 export default {
   async fetch(request, env, ctx) {
@@ -96,13 +96,8 @@ function mainText() {
   return [
     '🏠 <b>HOUSE CLEANING</b>',
     '',
-    'Управляйте уборкой прямо в Telegram.',
-    '',
-    'Запись, статус заявки, история уборок и помощь менеджера — всё в одном месте.',
-    '',
-    '✨ Быстро, удобно и без лишних звонков.',
-    '',
-    'Выберите нужный раздел ниже.',
+    'Уборка без лишних звонков ✨',
+    'Запись, заявки и помощь менеджера — в одном месте.',
   ].join('\n');
 }
 

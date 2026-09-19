@@ -179,8 +179,8 @@ async function assertContrast(locator,label){
   const {context,page}=await createApp({orders:[completedOrder],remaining:0,subscription:false});
   try{
     assert.equal(await page.locator('.u7-next-cleaning').count(),0,'Без активной уборки блок ближайшей уборки скрыт');
-    assert.equal(await page.locator('.u7-home-summary-v3').count(),1,'Без абонемента показывается прогресс клиента');
-    assert.match(await page.locator('.u7-home-summary-v3').textContent(),/ВАШ ПРОГРЕСС|Ваш прогресс/i);
+    assert.equal(await page.locator('.u7-home-summary-v3').count(),1,'Без абонемента показывается реальная сводка клиента');
+    assert.match(await page.locator('.u7-home-summary-v3').textContent(),/ВАШ КАБИНЕТ|Уборки и график/i);
     assert.equal(await page.locator('.u7-sub-offer-v60').count(),1,'Без абонемента показывается рекламная карточка');
     await page.locator('.u7-sub-offer-media-v60 img').waitFor({state:'visible'});
     assert.equal(await page.locator('.u7-week-v3').count(),0,'Пустой блок 7 дней не показывается');
@@ -193,4 +193,4 @@ async function assertContrast(locator,label){
 }
 
 await browser.close();
-console.log('\n✅ HOUSE CLEANING release 60 client screens passed');
+console.log('\n✅ HOUSE CLEANING release 65 client screens passed');
