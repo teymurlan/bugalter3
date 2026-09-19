@@ -224,7 +224,7 @@ test('release 61 uses standard emoji on newly refreshed Telegram surfaces', () =
 test('release 63 unifies the home booking action and keeps navigation feedback at the top', () => {
   assert.match(home, /function homeOrderAction/);
   assert.match(home, /u7-home-draft-v66/);
-  assert.match(home, /Новый заказ/);
+  assert.match(home, /Начать новый заказ/);
   assert.doesNotMatch(home, /function resumeCard/);
   assert.doesNotMatch(home, /Начать заново/);
   assert.match(css, /HOUSE CLEANING CLIENT 63/);
@@ -308,14 +308,14 @@ test('release 66 presents unfinished booking as one premium decision card', () =
 });
 
 test('release 66 one-time server cleanup removes orders and subscriptions but preserves customer profiles', () => {
-  assert.match(publicOrderWorker, /PRELAUNCH_RESET_KEY = 'system:prelaunch-reset:v66'/);
-  assert.match(publicOrderWorker, /prefix:'order:'/);
-  assert.match(publicOrderWorker, /prefix:'draft:'/);
-  assert.match(publicOrderWorker, /DELETE FROM hc_orders/);
-  assert.match(publicOrderWorker, /DELETE FROM hc_drafts/);
-  assert.match(publicOrderWorker, /resetSubscriptionFields/);
-  assert.match(publicOrderWorker, /subscription_name:''/);
-  assert.match(publicOrderWorker, /cleanings_total:0/);
-  assert.match(publicOrderWorker, /cleanings_remaining:0/);
-  assert.doesNotMatch(publicOrderWorker, /DELETE FROM hc_clients/);
+  assert.match(worker, /PRELAUNCH_RESET_KEY = 'system:prelaunch-reset:v66'/);
+  assert.match(worker, /prefix:'order:'/);
+  assert.match(worker, /prefix:'draft:'/);
+  assert.match(worker, /DELETE FROM hc_orders/);
+  assert.match(worker, /DELETE FROM hc_drafts/);
+  assert.match(worker, /resetSubscriptionFields/);
+  assert.match(worker, /subscription_name:''/);
+  assert.match(worker, /cleanings_total:0/);
+  assert.match(worker, /cleanings_remaining:0/);
+  assert.doesNotMatch(worker, /DELETE FROM hc_clients/);
 });
