@@ -81,7 +81,7 @@ export class AppStore extends BaseAppStore {
           active: clients.filter((item)=>item.active_count>0).length,
           completed: clients.filter((item)=>item.completed_count>0).length,
           subscription: clients.filter((item)=>item.cleanings_remaining>0).length,
-          marketing: clients.filter((item)=>item.marketing !== false).length,
+          marketing: clients.filter((item)=>item.marketing !== false && item.is_staff !== true).length,
         },
       });
     }
@@ -274,11 +274,10 @@ export class AppStore extends BaseAppStore {
         next_service:next?.service_name || '',
         next_address:[next?.city,next?.address].filter(Boolean).join(', '),
         marketing:prefs.marketing !== false,
+        is_staff:staffIds.has(Number(row.telegram_id)),
       });
     }
-    return rows
-      .filter((row)=>!staffIds.has(Number(row.telegram_id)))
-      .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ru'));
+    return rows.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'ru'));
   }
 
   async ensurePublicOrderNumbers() {
@@ -535,7 +534,7 @@ async function handleBroadcast(env, body = {}) {
   if (settings.marketing_enabled === false) return json({ ok:false, error:'Рассылки отключены в настройках' }, 409);
 
   let clients = Array.isArray(audience.clients) ? audience.clients : [];
-  clients = clients.filter((client)=>client.marketing !== false);
+  clients = clients.filter((client)=>client.marketing !== false && client.is_staff !== true);
   if (segment === 'active') clients = clients.filter((client)=>Number(client.active_count||0)>0);
   if (segment === 'completed') clients = clients.filter((client)=>Number(client.completed_count||0)>0);
   if (segment === 'subscription') clients = clients.filter((client)=>Number(client.cleanings_remaining||0)>0);
