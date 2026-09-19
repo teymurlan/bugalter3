@@ -113,13 +113,21 @@ function draftStepLabel() {
   })[step] || 'оформление заказа';
 }
 
-function resumeCard() {
-  if (!activeDraft()) return '';
-  return `<section class="u7-resume-card-v60">
-    <div class="u7-resume-icon-v60">↗</div>
-    <div><span class="u7-eyebrow">НЕЗАВЕРШЁННЫЙ ЗАКАЗ</span><h3>Продолжить оформление</h3><p>Вы остановились на этапе: ${escapeHtml(draftStepLabel())}.</p></div>
-    <button type="button" data-resume-order>Продолжить</button>
-    <button type="button" class="u7-resume-new-v60" data-start-new-order>Начать заново</button>
+function homeOrderAction() {
+  if (!activeDraft()) {
+    return `<button class="u7-home-primary" type="button" data-book-cleaning><span>＋</span> Заказать уборку</button>`;
+  }
+  return `<section class="u7-home-draft-v63" aria-label="Незавершённый заказ">
+    <div class="u7-home-draft-icon-v63">↗</div>
+    <div class="u7-home-draft-copy-v63">
+      <span class="u7-eyebrow">НЕЗАВЕРШЁННЫЙ ЗАКАЗ</span>
+      <strong>Продолжить оформление</strong>
+      <small>Вы остановились на этапе: ${escapeHtml(draftStepLabel())}.</small>
+    </div>
+    <div class="u7-home-draft-actions-v63">
+      <button type="button" data-resume-order>Продолжить</button>
+      <button type="button" data-start-new-order>Новый заказ</button>
+    </div>
   </section>`;
 }
 
@@ -326,10 +334,8 @@ function paintHome(root,navigate,orders) {
     <header class="u7-home-hero cc-greeting-row">
       <div><span class="cc-kicker">HOUSE CLEANING</span><h1 class="cc-greeting">${escapeHtml(greeting())}, ${escapeHtml(displayName())}!</h1><p>Ваша уборка, график и поддержка — в одном месте.</p></div>
       <div class="cc-monogram">HC</div>
-      <button class="u7-home-primary" type="button" data-book-cleaning><span>＋</span> Заказать уборку</button>
+      ${homeOrderAction()}
     </header>
-
-    ${resumeCard()}
     ${nearestCard(next)}
     ${dashboardSummary(orders,next)}
     ${upcomingSection(orders)}
