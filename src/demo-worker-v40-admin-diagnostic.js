@@ -43,14 +43,6 @@ export default {
         }
         return json({ ok: true, adminMatch });
       }
-
-      if (chatId && userId && ['/start', '/menu'].includes(command) && isAdminId(env, userId)) {
-        const response = await baseWorker.fetch(request, env, ctx);
-        const setup = exposeAdminPanel(env, chatId, url.origin);
-        if (ctx?.waitUntil) ctx.waitUntil(setup);
-        else await setup;
-        return response;
-      }
     }
 
     return baseWorker.fetch(request, env, ctx);
