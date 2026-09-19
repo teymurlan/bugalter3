@@ -1250,6 +1250,11 @@ html[data-hc-theme] body.admin-ops-mode.hc-admin-mobile{
   background:var(--u7-bg)!important;
   color:var(--u7-text)!important;
 }
+html[data-hc-theme] body.hc-admin-mobile #app-shell{
+  width:100%!important;
+  min-height:100dvh!important;
+  background:var(--u7-bg)!important;
+}
 html[data-hc-theme] body.hc-admin-mobile #app{
   width:100%!important;
   max-width:none!important;
