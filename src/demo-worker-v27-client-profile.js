@@ -57,7 +57,9 @@ export default {
 
       let body = {};
       try { body = await request.json(); } catch { return json({ ok: false, error: 'Некорректные данные' }, 400); }
-      const profile = sanitizeProfile({ ...body, telegram_id: user.id });
+      const currentResponse = await stub.fetch(`https://app.internal/profile/get?user=${encodeURIComponent(user.id)}`);
+      const currentData = currentResponse.ok ? await currentResponse.json().catch(() => ({})) : {};
+      const profile = sanitizeProfile({ ...(currentData.profile || {}), ...body, telegram_id: user.id });
       const response = await stub.fetch('https://app.internal/profile/save', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
