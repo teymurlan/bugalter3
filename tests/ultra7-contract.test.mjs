@@ -59,7 +59,7 @@ test('referral product surface is disabled while customer settings are available
 test('customer dashboard is ready for current orders, repeat booking and imported cleaning schedules', () => {
   assert.match(home, /subscriptionState/);
   assert.match(home, /cleanings_remaining/);
-  assert.match(home, /ВАШ ПРОГРЕСС/);
+  assert.match(home, /ВАШ КАБИНЕТ/);
   assert.match(home, /subscription-promo-v60\.svg/);
   assert.match(home, /Последняя/);
   assert.match(home, /Следующая/);
