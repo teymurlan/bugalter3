@@ -172,10 +172,11 @@ test('photo order delivery remains asynchronous after booking save', () => {
   assert.match(worker42, /waitUntil/);
 });
 
-test('one-time clean launch no longer clears draft on every reopen', () => {
-  assert.match(launchReset, /current === 'pending'/);
+test('one-time clean launch resets the old draft only once per release generation', () => {
+  assert.match(launchReset, /current === GENERATION/);
+  assert.match(launchReset, /localStorage\.removeItem\(DRAFT_KEY\)/);
   assert.match(launchReset, /localStorage\.setItem\(KEY, GENERATION\)/);
-  assert.doesNotMatch(launchReset, /localStorage\.setItem\(KEY, 'pending'\)/);
+  assert.doesNotMatch(launchReset, /localStorage\.clear\(\)/);
 });
 
 test('release 66 cache-busts the final prelaunch client without invalidating production worker layers', () => {
