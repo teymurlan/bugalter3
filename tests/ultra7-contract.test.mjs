@@ -309,6 +309,13 @@ test('release 66 presents unfinished booking as one premium decision card', () =
 
 test('release 66 one-time server cleanup removes orders and subscriptions but preserves customer profiles', () => {
   assert.match(worker, /PRELAUNCH_RESET_KEY = 'system:prelaunch-reset:v66'/);
+  assert.match(worker, /PRELAUNCH_RESET_PROTOCOL = 'locked-v2'/);
+  assert.match(worker, /prelaunch-reset-v66\/claim/);
+  assert.match(worker, /storage\.transaction/);
+  assert.match(worker, /existing\.owner !== owner/);
+  assert.match(worker, /prelaunch-reset-v66\/fail/);
+  assert.match(worker, /await ensurePrelaunchReset\(env\);[\s\S]{0,260}baseWorker\.scheduled/);
+  assert.match(worker, /cleanupD1PrelaunchData/);
   assert.match(worker, /prefix:'order:'/);
   assert.match(worker, /prefix:'draft:'/);
   assert.match(worker, /DELETE FROM hc_orders/);
@@ -317,5 +324,7 @@ test('release 66 one-time server cleanup removes orders and subscriptions but pr
   assert.match(worker, /subscription_name:''/);
   assert.match(worker, /cleanings_total:0/);
   assert.match(worker, /cleanings_remaining:0/);
+  assert.doesNotMatch(worker, /D1 order cleanup skipped/);
+  assert.doesNotMatch(worker, /D1 draft cleanup skipped/);
   assert.doesNotMatch(worker, /DELETE FROM hc_clients/);
 });
