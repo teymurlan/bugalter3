@@ -45,11 +45,9 @@ export default {
       }
 
       if (chatId && userId && ['/start', '/menu'].includes(command) && isAdminId(env, userId)) {
-        const response = await baseWorker.fetch(request, env, ctx);
-        const setup = exposeAdminPanel(env, chatId, url.origin);
-        if (ctx?.waitUntil) ctx.waitUntil(setup);
-        else await setup;
-        return response;
+        // The regular HOUSE CLEANING menu already contains the admin button.
+        // Do not send a second standalone admin message after /start or /menu.
+        return baseWorker.fetch(request, env, ctx);
       }
     }
 
