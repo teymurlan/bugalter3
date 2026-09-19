@@ -109,3 +109,10 @@ test('release 64 keeps staff out of client broadcasts and does not duplicate the
   assert.match(publicOrderWorker, /filter\(\(row\)=>!staffIds\.has\(Number\(row\.telegram_id\)\)\)/);
   assert.doesNotMatch(worker40, /\['\/start', '\/menu'\][\s\S]{0,260}exposeAdminPanel/);
 });
+
+
+test('broadcast send path rechecks staff IDs immediately before Telegram delivery', () => {
+  assert.match(publicOrderWorker, /staffRes.*staff\/list/s);
+  assert.match(publicOrderWorker, /staffIds = new Set/);
+  assert.match(publicOrderWorker, /client\.marketing !== false && !staffIds\.has\(positiveInt\(client\.telegram_id\)\)/);
+});
