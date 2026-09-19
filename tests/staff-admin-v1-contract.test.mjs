@@ -26,9 +26,9 @@ const publicOrderWorker = read('src/production-public-order.js');
 const wrangler = read('wrangler.jsonc');
 
 test('client booking stays isolated while the client bundle uses current Ultra 7 cache keys', () => {
-  assert.match(index, /app-release-v3\.js\?v=63/);
-  assert.match(entry, /client-experience-v53\.js\?v=63/);
-  assert.match(entry, /app-release-v2\.js\?v=63/);
+  assert.match(index, /app-release-v3\.js\?v=64/);
+  assert.match(entry, /client-experience-v53\.js\?v=64/);
+  assert.match(entry, /app-release-v2\.js\?v=64/);
   assert.doesNotMatch(index, /staff\/staff\.css/);
   assert.doesNotMatch(index, /staff\/app\.js/);
 });
@@ -101,4 +101,11 @@ test('v44 gate and defect RPC remain intact through release 55 public number wra
   assert.match(worker41, /staffExists/);
   assert.match(worker41, /Полный доступ HOUSE CLEANING STAFF есть только у главного администратора/);
   assert.match(worker41, /staffAppUrl\(origin\)/);
+});
+
+
+test('release 64 keeps staff out of client broadcasts and does not duplicate the admin card after start', () => {
+  assert.match(publicOrderWorker, /https:\/\/app\.internal\/staff\/list/);
+  assert.match(publicOrderWorker, /filter\(\(row\)=>!staffIds\.has\(Number\(row\.telegram_id\)\)\)/);
+  assert.doesNotMatch(worker40, /\['\/start', '\/menu'\][\s\S]{0,260}exposeAdminPanel/);
 });
