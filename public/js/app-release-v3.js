@@ -50,8 +50,8 @@ async function startSpecialMode() {
   configureLightApp();
   if (adminMode) {
     const [{ renderAdmin }, { installAdminPolish }] = await Promise.all([
-      import('./views/admin-v6.js?v=65'),
-      import('./admin-v6-polish.js?v=65'),
+      import('./views/admin-v6.js?v=66'),
+      import('./admin-v6-polish.js?v=66'),
     ]);
     await renderAdmin(root, () => {});
     installAdminPolish(root);
@@ -64,7 +64,7 @@ async function startSpecialMode() {
 if (adminMode || staffMode) {
   startSpecialMode().catch(showFatal);
 } else {
-  import('./client-experience-v53.js?v=65')
-    .then(() => import('./app-release-v2.js?v=65'))
+  import('./client-experience-v53.js?v=66')
+    .then(() => import('./app-release-v2.js?v=66'))
     .catch(showFatal);
 }
