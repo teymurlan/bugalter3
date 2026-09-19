@@ -250,3 +250,10 @@ test('release 64 uses adaptive liquid glass and a fullscreen themed admin', () =
   assert.match(worker, /cleanings_used/);
   assert.match(worker, /staffIds/);
 });
+
+
+test('release 64 preserves admin subscription data when a client edits their profile', () => {
+  assert.match(profileWorker, /currentResponse = await stub\.fetch\(\`https:\/\/app\.internal\/profile\/get\?user=/);
+  assert.match(profileWorker, /currentData\.profile \|\| \{\}/);
+  assert.match(profileWorker, /sanitizeProfile\(\{ \.\.\.\(currentData\.profile \|\| \{\}\), \.\.\.body, telegram_id: user\.id \}\)/);
+});
