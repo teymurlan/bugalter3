@@ -19,18 +19,20 @@ const reviewWorker = read('src/demo-worker-v28-notifications.js');
 const profileWorker = read('src/demo-worker-v27-client-profile.js');
 const botBranding = read('src/demo-worker-v22-bot-branding.js');
 const adminMenuWorker = read('src/demo-worker-v39-admin-menu.js');
+const adminDiagnosticWorker = read('src/demo-worker-v40-admin-diagnostic.js');
 const clientExperience = read('public/js/client-experience-v53.js');
 
 test('Ultra 7 shell loads one design layer and three selectable themes', () => {
-  assert.match(index, /house-cleaning-release" content="63/);
-  assert.match(index, /ultra7\.css\?v=63/);
+  assert.match(index, /house-cleaning-release" content="64/);
+  assert.match(index, /ultra7\.css\?v=64/);
   assert.match(index, /ultra7-theme\.js\?v=61/);
   assert.doesNotMatch(index, /referral-v2\.css/);
   for (const id of ['light','dark','blue']) assert.match(theme, new RegExp(`['"]${id}['"]`));
   assert.match(theme, /hc-ultra7-theme-/);
   assert.match(theme, /setHeaderColor/);
   assert.match(css, /\.bottom-nav\{[\s\S]*height:50px!important/);
-  assert.match(css, /\.hc-mobile-shell \.hc-m-nav\{[\s\S]*height:58px!important/);
+  assert.match(css, /HOUSE CLEANING RELEASE 64/);
+  assert.match(css, /body\.hc-admin-mobile \.hc-m-nav\{[\s\S]*height:50px!important/);
 });
 
 test('client navigation returns to the exact previous screen and scroll position', () => {
@@ -114,6 +116,7 @@ test('bot start and admin menus expose the same two actions without duplicate st
   assert.match(adminMenuWorker, /Панель администратора/);
   assert.match(adminMenuWorker, /Выберите нужный раздел/);
   assert.doesNotMatch(adminMenuWorker, /HOUSE CLEANING · Администратор/);
+  assert.doesNotMatch(adminDiagnosticWorker, /\['\/start', '\/menu'\]\.includes\(command\)/);
 });
 
 test('theme bridge replaces legacy dark hardcodes with readable theme variables', () => {
@@ -232,4 +235,29 @@ test('release 63 unifies the home booking action and keeps navigation feedback a
   assert.match(css, /body\.client-concierge:has\(\.hc-fixed-back\) #app/);
   assert.match(css, /body\.client-concierge \.toast\{[\s\S]*top:calc\(env\(safe-area-inset-top/);
   assert.match(css, /body\.client-concierge \.modal-backdrop\{[\s\S]*place-items:start center/);
+});
+
+
+test('release 64 uses theme-aware glass navigation and keeps bottom actions clear', () => {
+  assert.match(css, /HOUSE CLEANING RELEASE 64/);
+  assert.match(css, /--hc-glass:/);
+  assert.match(css, /body\.client-concierge #app\{[\s\S]*padding-bottom:calc\(112px/);
+  assert.match(css, /body\.client-concierge \.bottom-nav\{[\s\S]*height:48px!important/);
+  assert.match(css, /backdrop-filter:blur\(28px\) saturate\(180%\)/);
+  assert.match(css, /bottom-nav \.nav-item\.active[\s\S]*var\(--u7-accent\)/);
+  assert.match(css, /body\.hc-admin-mobile #app\{[\s\S]*max-width:none!important/);
+  assert.match(css, /body\.hc-admin-mobile \.hc-m-nav\{[\s\S]*background:color-mix/);
+});
+
+test('admin subscription progress is editable and marketing excludes staff', () => {
+  assert.match(admin, /name="cleanings_completed"/);
+  assert.match(admin, /data-plan-remaining/);
+  assert.match(admin, /Абонемент и прогресс сохранены/);
+  assert.match(admin, /Сотрудники исключены/);
+  assert.match(worker, /storage\.list\(\{ prefix:'staff:' \}\)/);
+  assert.match(worker, /staffIds\.has/);
+  assert.match(worker, /cleanings_completed/);
+  assert.match(worker, /staff\.filter|staffIds/);
+  assert.match(profileWorker, /currentResponse/);
+  assert.match(profileWorker, /currentData\.profile/);
 });
