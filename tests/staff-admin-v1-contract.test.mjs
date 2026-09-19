@@ -104,8 +104,10 @@ test('v44 gate and defect RPC remain intact through release 55 public number wra
 });
 
 
-test('release 64 keeps staff out of client broadcasts and does not duplicate the admin card after start', () => {
+test('release 64 keeps staff out of broadcasts without hiding staff customers and does not duplicate the admin card after start', () => {
   assert.match(publicOrderWorker, /https:\/\/app\.internal\/staff\/list/);
-  assert.match(publicOrderWorker, /filter\(\(row\)=>!staffIds\.has\(Number\(row\.telegram_id\)\)\)/);
+  assert.match(publicOrderWorker, /is_staff:staffIds\.has\(Number\(row\.telegram_id\)\)/);
+  assert.match(publicOrderWorker, /marketing !== false && client\.is_staff !== true/);
+  assert.doesNotMatch(publicOrderWorker, /filter\(\(row\)=>!staffIds\.has\(Number\(row\.telegram_id\)\)\)/);
   assert.doesNotMatch(worker40, /\['\/start', '\/menu'\][\s\S]{0,260}exposeAdminPanel/);
 });
