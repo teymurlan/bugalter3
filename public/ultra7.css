@@ -1090,3 +1090,80 @@ html[data-hc-theme="blue"] body.client-concierge .u7-progress-summary-v60,
 html[data-hc-theme="blue"] body.client-concierge .u7-plan-summary-v60{
   background:#fff!important;
 }
+
+
+/* HOUSE CLEANING CLIENT 63 — unified home action, fixed top back, top feedback */
+html[data-hc-theme] body.client-concierge .u7-home-draft-v63{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr);
+  gap:10px 12px;
+  width:100%;
+  padding:13px;
+  border:1px solid color-mix(in srgb,var(--u7-accent) 24%,var(--u7-line));
+  border-radius:18px;
+  background:color-mix(in srgb,var(--u7-accent) 5%,var(--u7-surface));
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-icon-v63{
+  width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
+  color:var(--u7-accent);font-size:22px;font-weight:850;
+  background:color-mix(in srgb,var(--u7-accent) 11%,var(--u7-surface));
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-copy-v63{min-width:0;display:grid;align-content:center;gap:2px}
+html[data-hc-theme] body.client-concierge .u7-home-draft-copy-v63 strong{font-size:16px;line-height:1.18;color:var(--u7-text)!important}
+html[data-hc-theme] body.client-concierge .u7-home-draft-copy-v63 small{font-size:11px;line-height:1.35;color:var(--u7-muted)!important}
+html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v63{
+  grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v63 button{
+  min-height:46px;padding:0 16px;border-radius:14px;font:inherit;font-weight:900;border:1px solid transparent
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v63 [data-resume-order]{
+  background:linear-gradient(135deg,var(--u7-accent),var(--u7-accent-2));color:var(--u7-on-accent)
+}
+html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v63 [data-start-new-order]{
+  background:var(--u7-surface-2);color:var(--u7-text);border-color:var(--u7-line)
+}
+html[data-hc-theme] body.client-concierge :is(.cc-back.hc-fixed-back,.hc-booking-back.hc-fixed-back){
+  position:fixed!important;
+  top:calc(env(safe-area-inset-top, 0px) + 10px)!important;
+  left:14px!important;
+  right:auto!important;
+  z-index:1800!important;
+  margin:0!important;
+  min-height:44px!important;
+  max-width:calc(100vw - 28px)!important;
+}
+html[data-hc-theme] body.client-concierge:has(.hc-fixed-back) #app{
+  padding-top:calc(env(safe-area-inset-top, 0px) + 58px)!important;
+}
+html[data-hc-theme] body.client-concierge .toast{
+  position:fixed!important;
+  top:calc(env(safe-area-inset-top, 0px) + 12px)!important;
+  bottom:auto!important;
+  left:50%!important;
+  z-index:2600!important;
+  transform:translate(-50%,-16px)!important;
+  width:min(calc(100% - 28px),520px)!important;
+  pointer-events:none!important;
+}
+html[data-hc-theme] body.client-concierge:has(.hc-fixed-back) .toast{
+  top:calc(env(safe-area-inset-top, 0px) + 66px)!important;
+}
+html[data-hc-theme] body.client-concierge .toast.show{
+  transform:translate(-50%,0)!important;
+}
+html[data-hc-theme] body.client-concierge .modal-backdrop{
+  place-items:start center!important;
+  padding:calc(env(safe-area-inset-top, 0px) + 66px) 16px 18px!important;
+  z-index:2500!important;
+}
+html[data-hc-theme] body.client-concierge .modal{
+  max-height:calc(100dvh - 96px)!important;
+  overflow:auto!important;
+  box-shadow:0 18px 50px color-mix(in srgb,var(--u7-text) 20%,transparent)!important;
+}
+@media(max-width:390px){
+  html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v63{grid-template-columns:1fr}
+  html[data-hc-theme] body.client-concierge .u7-home-draft-actions-v63 [data-start-new-order]{min-height:42px}
+}
