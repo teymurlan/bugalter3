@@ -22,8 +22,8 @@ const adminMenuWorker = read('src/demo-worker-v39-admin-menu.js');
 const clientExperience = read('public/js/client-experience-v53.js');
 
 test('Ultra 7 shell loads one design layer and three selectable themes', () => {
-  assert.match(index, /house-cleaning-release" content="64/);
-  assert.match(index, /ultra7\.css\?v=64/);
+  assert.match(index, /house-cleaning-release" content="65/);
+  assert.match(index, /ultra7\.css\?v=65/);
   assert.match(index, /ultra7-theme\.js\?v=61/);
   assert.doesNotMatch(index, /referral-v2\.css/);
   for (const id of ['light','dark','blue']) assert.match(theme, new RegExp(`['"]${id}['"]`));
@@ -256,4 +256,33 @@ test('release 64 preserves admin subscription data when a client edits their pro
   assert.match(profileWorker, /currentResponse = await stub\.fetch\(\`https:\/\/app\.internal\/profile\/get\?user=/);
   assert.match(profileWorker, /currentData\.profile \|\| \{\}/);
   assert.match(profileWorker, /sanitizeProfile\(\{ \.\.\.\(currentData\.profile \|\| \{\}\), \.\.\.body, telegram_id: user\.id \}\)/);
+});
+
+
+test('release 65 gives every theme readable selection and service price contrast', () => {
+  assert.match(css, /HOUSE CLEANING RELEASE 65/);
+  assert.match(css, /--hc-price-text:/);
+  assert.match(css, /data-hc-theme="blue"[\s\S]*--hc-price-text:#0b5fb9/);
+  assert.match(css, /data-hc-theme="dark"[\s\S]*--hc-price-text:#f3d477/);
+  assert.match(css, /\.hc-service-rate\{[\s\S]*var\(--hc-price-text\)!important/);
+  assert.match(css, /\.addon-card\.selected \.addon-check\{[\s\S]*var\(--hc-check-bg\)!important/);
+  assert.match(css, /\.hc-location-option\.selected/);
+  assert.match(css, /bottom-nav \.nav-item\.active[\s\S]*var\(--u7-accent\)!important/);
+});
+
+test('release 65 home uses real history or subscription state instead of a fake ten-cleaning goal', () => {
+  assert.match(home, /u7-home-v65/);
+  assert.match(home, /u7-home-hero-v65/);
+  assert.match(home, /сервис онлайн/);
+  assert.match(home, /Уборки и график/);
+  assert.match(home, /Оформите первую уборку/);
+  assert.doesNotMatch(home, /const goal = 10/);
+});
+
+test('release 65 start message is compact while keeping client and admin actions', () => {
+  assert.match(botBranding, /Уборка без лишних звонков/);
+  assert.match(botBranding, /Запись, заявки и помощь менеджера/);
+  assert.doesNotMatch(botBranding, /Управляйте уборкой прямо в Telegram/);
+  assert.match(botBranding, /Открыть HOUSE CLEANING/);
+  assert.match(botBranding, /Панель администратора/);
 });
