@@ -22,8 +22,8 @@ const adminMenuWorker = read('src/demo-worker-v39-admin-menu.js');
 const clientExperience = read('public/js/client-experience-v53.js');
 
 test('Ultra 7 shell loads one design layer and three selectable themes', () => {
-  assert.match(index, /house-cleaning-release" content="62/);
-  assert.match(index, /ultra7\.css\?v=61/);
+  assert.match(index, /house-cleaning-release" content="63/);
+  assert.match(index, /ultra7\.css\?v=63/);
   assert.match(index, /ultra7-theme\.js\?v=61/);
   assert.doesNotMatch(index, /referral-v2\.css/);
   for (const id of ['light','dark','blue']) assert.match(theme, new RegExp(`['"]${id}['"]`));
@@ -218,4 +218,18 @@ test('release 61 uses standard emoji on newly refreshed Telegram surfaces', () =
   assert.match(reviewWorker, /⭐ <b>Оцените уборку/);
   assert.match(orderWorker, /🆕 <b>Заявка оформлена/);
   assert.match(botBranding, /🏠 <b>HOUSE CLEANING/);
+});
+
+
+test('release 63 unifies the home booking action and keeps navigation feedback at the top', () => {
+  assert.match(home, /function homeOrderAction/);
+  assert.match(home, /u7-home-draft-v63/);
+  assert.match(home, /Новый заказ/);
+  assert.doesNotMatch(home, /function resumeCard/);
+  assert.doesNotMatch(home, /Начать заново/);
+  assert.match(css, /HOUSE CLEANING CLIENT 63/);
+  assert.match(css, /position:fixed!important;[\s\S]*top:calc\(env\(safe-area-inset-top/);
+  assert.match(css, /body\.client-concierge:has\(\.hc-fixed-back\) #app/);
+  assert.match(css, /body\.client-concierge \.toast\{[\s\S]*top:calc\(env\(safe-area-inset-top/);
+  assert.match(css, /body\.client-concierge \.modal-backdrop\{[\s\S]*place-items:start center/);
 });
