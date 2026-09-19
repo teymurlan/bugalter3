@@ -309,15 +309,25 @@ test('release 66 presents unfinished booking as one premium decision card', () =
 
 test('release 66 one-time server cleanup removes orders and subscriptions but preserves customer profiles', () => {
   assert.match(worker, /PRELAUNCH_RESET_KEY = 'system:prelaunch-reset:v66'/);
-  assert.match(worker, /PRELAUNCH_RESET_PROTOCOL = 'locked-v2'/);
+  assert.match(worker, /PRELAUNCH_RESET_PROTOCOL = 'fenced-v3'/);
   assert.match(worker, /prelaunch-reset-v66\/claim/);
+  assert.match(worker, /prelaunch-reset-v66\/renew/);
   assert.match(worker, /storage\.transaction/);
   assert.match(worker, /existing\.owner !== owner/);
+  assert.match(worker, /nonNegative\(existing\?\.attempt\) !== attempt/);
+  assert.match(worker, /lease_until/);
+  assert.match(worker, /renewResetFence/);
   assert.match(worker, /prelaunch-reset-v66\/fail/);
   assert.match(worker, /isPrelaunchStatus/);
   assert.match(worker, /reset_error:resetError \|\| null/);
   assert.match(worker, /await ensurePrelaunchReset\(env\);[\s\S]{0,260}baseWorker\.scheduled/);
   assert.match(worker, /cleanupD1PrelaunchData/);
+  assert.match(worker, /ensureCleanupD1Schema/);
+  assert.match(worker, /CREATE TABLE IF NOT EXISTS hc_orders/);
+  assert.match(worker, /CREATE TABLE IF NOT EXISTS hc_drafts/);
+  assert.match(worker, /CREATE TABLE IF NOT EXISTS hc_clients/);
+  assert.match(worker, /malformedProfiles/);
+  assert.match(worker, /try \{ profile = JSON\.parse/);
   assert.match(worker, /prefix:'order:'/);
   assert.match(worker, /prefix:'draft:'/);
   assert.match(worker, /DELETE FROM hc_orders/);
