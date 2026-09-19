@@ -8,6 +8,8 @@ const USER_PREFS_PREFIX = 'ultra7:user-prefs:';
 const BROADCAST_PREFIX = 'ultra7:broadcast:';
 const PROFILE_PREFIX = 'profile:item:';
 const PRELAUNCH_RESET_KEY = 'system:prelaunch-reset:v66';
+const PRELAUNCH_RESET_PROTOCOL = 'locked-v2';
+const PRELAUNCH_RESET_LEASE_MS = 60000;
 const ACTIVE_STATUSES = new Set(['NEW','REVIEW','CONFIRMED','CLEANER_ASSIGNED','IN_PROGRESS']);
 let prelaunchResetPromise = null;
 
@@ -45,10 +47,51 @@ export class AppStore extends BaseAppStore {
       return json({ ok:true, marker:marker || null });
     }
 
+    if (url.pathname === '/system/prelaunch-reset-v66/claim' && request.method === 'POST') {
+      const body = await bodyJson(request);
+      const owner = clean(body.owner,80);
+      if (!owner) return json({ ok:false, error:'Reset owner required' }, 400);
+
+      let result = null;
+      await this.hcState.storage.transaction(async (txn) => {
+        const existing = await txn.get(PRELAUNCH_RESET_KEY) || {};
+        if (existing?.status === 'complete' && existing?.protocol === PRELAUNCH_RESET_PROTOCOL) {
+          result = { ok:true, claimed:false, complete:true, marker:existing };
+          return;
+        }
+
+        const startedAt = Number(existing?.started_at || 0);
+        const leaseActive = existing?.status === 'running'
+          && existing?.owner
+          && startedAt > 0
+          && Date.now() - startedAt < PRELAUNCH_RESET_LEASE_MS;
+        if (leaseActive && existing.owner !== owner) {
+          result = { ok:true, claimed:false, running:true, marker:existing };
+          return;
+        }
+
+        const marker = {
+          ...existing,
+          status:'running',
+          protocol:PRELAUNCH_RESET_PROTOCOL,
+          owner,
+          started_at:Date.now(),
+          attempt:nonNegative(existing?.attempt) + 1,
+          error:'',
+          updated_at:new Date().toISOString(),
+        };
+        await txn.put(PRELAUNCH_RESET_KEY, marker);
+        result = { ok:true, claimed:true, marker };
+      });
+      return json(result || { ok:false, error:'Unable to claim reset' }, result ? 200 : 500);
+    }
+
     if (url.pathname === '/system/prelaunch-reset-v66/storage' && request.method === 'POST') {
-      const existing = await this.hcState.storage.get(PRELAUNCH_RESET_KEY);
-      if (existing?.status === 'complete' || existing?.status === 'storage_complete') {
-        return json({ ok:true, already:true, marker:existing });
+      const body = await bodyJson(request);
+      const owner = clean(body.owner,80);
+      const existing = await this.hcState.storage.get(PRELAUNCH_RESET_KEY) || {};
+      if (!owner || existing?.status !== 'running' || existing?.owner !== owner) {
+        return json({ ok:false, error:'Reset lease lost' }, 409);
       }
 
       const orderRows = await this.hcState.storage.list({ prefix:'order:' });
@@ -65,13 +108,16 @@ export class AppStore extends BaseAppStore {
       let profilesReset = 0;
       for (const [key, value] of profilesRaw.entries()) {
         if (!value || typeof value !== 'object') continue;
-        const profile = resetSubscriptionFields(value);
-        await this.hcState.storage.put(key, profile);
+        await this.hcState.storage.put(key, resetSubscriptionFields(value));
         profilesReset += 1;
       }
 
       const marker = {
-        status:'storage_complete',
+        ...existing,
+        status:'running',
+        protocol:PRELAUNCH_RESET_PROTOCOL,
+        owner,
+        storage_complete:true,
         orders_deleted:orderRows.size,
         drafts_deleted:draftRows.size,
         review_invites_deleted:inviteRows.size,
@@ -84,17 +130,41 @@ export class AppStore extends BaseAppStore {
 
     if (url.pathname === '/system/prelaunch-reset-v66/finish' && request.method === 'POST') {
       const body = await bodyJson(request);
+      const owner = clean(body.owner,80);
       const previous = await this.hcState.storage.get(PRELAUNCH_RESET_KEY) || {};
+      if (!owner || previous?.status !== 'running' || previous?.owner !== owner) {
+        return json({ ok:false, error:'Reset lease lost' }, 409);
+      }
       const marker = {
         ...previous,
         status:'complete',
+        protocol:PRELAUNCH_RESET_PROTOCOL,
+        owner:'',
         d1_orders_deleted:nonNegative(body.d1_orders_deleted),
         d1_drafts_deleted:nonNegative(body.d1_drafts_deleted),
         d1_profiles_reset:nonNegative(body.d1_profiles_reset),
         completed_at:new Date().toISOString(),
+        updated_at:new Date().toISOString(),
       };
       await this.hcState.storage.put(PRELAUNCH_RESET_KEY, marker);
       return json({ ok:true, marker });
+    }
+
+    if (url.pathname === '/system/prelaunch-reset-v66/fail' && request.method === 'POST') {
+      const body = await bodyJson(request);
+      const owner = clean(body.owner,80);
+      const previous = await this.hcState.storage.get(PRELAUNCH_RESET_KEY) || {};
+      if (owner && previous?.status === 'running' && previous?.owner === owner) {
+        await this.hcState.storage.put(PRELAUNCH_RESET_KEY, {
+          ...previous,
+          status:'failed',
+          owner:'',
+          error:clean(body.error,500),
+          failed_at:new Date().toISOString(),
+          updated_at:new Date().toISOString(),
+        });
+      }
+      return json({ ok:true });
     }
 
     if (url.pathname === '/ultra7/admin-settings') {
@@ -563,6 +633,12 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
+    try {
+      await ensurePrelaunchReset(env);
+    } catch (error) {
+      console.error('Scheduled work blocked until prelaunch reset completes', error);
+      return;
+    }
     if (typeof baseWorker.scheduled === 'function') return baseWorker.scheduled(controller, env, ctx);
   },
 };
@@ -743,58 +819,84 @@ async function runPrelaunchReset(env) {
 
   const statusResponse = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/status');
   const statusData = statusResponse?.ok ? await statusResponse.json().catch(()=>({})) : {};
-  if (statusData?.marker?.status === 'complete') return;
+  if (statusData?.marker?.status === 'complete'
+    && statusData?.marker?.protocol === PRELAUNCH_RESET_PROTOCOL) return;
 
-  const storageResponse = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/storage', { method:'POST' });
-  if (!storageResponse?.ok) throw new Error('Unable to reset durable prelaunch data');
-
-  let d1OrdersDeleted = 0;
-  let d1DraftsDeleted = 0;
-  let d1ProfilesReset = 0;
-  const db = findD1(env);
-  if (db) {
-    try {
-      const before = await db.prepare('SELECT COUNT(*) AS count FROM hc_orders').first();
-      d1OrdersDeleted = Number(before?.count || 0);
-      await db.prepare('DELETE FROM hc_orders').run();
-    } catch (error) {
-      console.warn('D1 order cleanup skipped', error);
-    }
-
-    try {
-      const before = await db.prepare('SELECT COUNT(*) AS count FROM hc_drafts').first();
-      d1DraftsDeleted = Number(before?.count || 0);
-      await db.prepare('DELETE FROM hc_drafts').run();
-    } catch (error) {
-      console.warn('D1 draft cleanup skipped', error);
-    }
-
-    try {
-      const rows = await db.prepare('SELECT telegram_id, profile_json FROM hc_clients').all();
-      const profiles = Array.isArray(rows?.results) ? rows.results : [];
-      for (const row of profiles) {
-        let profile = {};
-        try { profile = JSON.parse(String(row?.profile_json || '{}')); } catch {}
-        const reset = resetSubscriptionFields(profile);
-        await db.prepare('UPDATE hc_clients SET profile_json = ?, updated_at = ? WHERE telegram_id = ?')
-          .bind(JSON.stringify(reset), new Date().toISOString(), Number(row.telegram_id || 0)).run();
-        d1ProfilesReset += 1;
-      }
-    } catch (error) {
-      console.warn('D1 profile cleanup skipped', error);
-    }
-  }
-
-  const finish = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/finish', {
+  const owner = crypto.randomUUID();
+  const claimResponse = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/claim', {
     method:'POST',
     headers:{'content-type':'application/json'},
-    body:JSON.stringify({
-      d1_orders_deleted:d1OrdersDeleted,
-      d1_drafts_deleted:d1DraftsDeleted,
-      d1_profiles_reset:d1ProfilesReset,
-    }),
+    body:JSON.stringify({ owner }),
   });
-  if (!finish?.ok) throw new Error('Unable to finish prelaunch reset');
+  if (!claimResponse?.ok) throw new Error('Unable to claim prelaunch reset');
+  const claim = await claimResponse.json().catch(()=>({}));
+
+  if (claim?.complete) return;
+  if (!claim?.claimed) {
+    for (let attempt=0; attempt<60; attempt+=1) {
+      await delay(100);
+      const poll = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/status');
+      const data = poll?.ok ? await poll.json().catch(()=>({})) : {};
+      if (data?.marker?.status === 'complete'
+        && data?.marker?.protocol === PRELAUNCH_RESET_PROTOCOL) return;
+      if (data?.marker?.status === 'failed') throw new Error(data?.marker?.error || 'Prelaunch reset failed');
+    }
+    throw new Error('Prelaunch reset is still running');
+  }
+
+  try {
+    const storageResponse = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/storage', {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({ owner }),
+    });
+    if (!storageResponse?.ok) throw new Error('Unable to reset durable prelaunch data');
+
+    const d1 = await cleanupD1PrelaunchData(env);
+    const finish = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/finish', {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({
+        owner,
+        d1_orders_deleted:d1.orders,
+        d1_drafts_deleted:d1.drafts,
+        d1_profiles_reset:d1.profiles,
+      }),
+    });
+    if (!finish?.ok) throw new Error('Unable to finish prelaunch reset');
+  } catch (error) {
+    await stub.fetch('https://app.internal/system/prelaunch-reset-v66/fail', {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({ owner, error:String(error?.message || error || 'Reset failed').slice(0,500) }),
+    }).catch(()=>{});
+    throw error;
+  }
+}
+
+async function cleanupD1PrelaunchData(env) {
+  const db = findD1(env);
+  if (!db) return { orders:0, drafts:0, profiles:0 };
+
+  const orderCount = await db.prepare('SELECT COUNT(*) AS count FROM hc_orders').first();
+  const orders = Number(orderCount?.count || 0);
+  await db.prepare('DELETE FROM hc_orders').run();
+
+  const draftCount = await db.prepare('SELECT COUNT(*) AS count FROM hc_drafts').first();
+  const drafts = Number(draftCount?.count || 0);
+  await db.prepare('DELETE FROM hc_drafts').run();
+
+  const rows = await db.prepare('SELECT telegram_id, profile_json FROM hc_clients').all();
+  const profiles = Array.isArray(rows?.results) ? rows.results : [];
+  let profileCount = 0;
+  for (const row of profiles) {
+    const profile = JSON.parse(String(row?.profile_json || '{}'));
+    const reset = resetSubscriptionFields(profile);
+    await db.prepare('UPDATE hc_clients SET profile_json = ?, updated_at = ? WHERE telegram_id = ?')
+      .bind(JSON.stringify(reset), new Date().toISOString(), Number(row.telegram_id || 0)).run();
+    profileCount += 1;
+  }
+  return { orders, drafts, profiles:profileCount };
 }
 
 function findD1(env) {
