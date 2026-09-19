@@ -166,18 +166,16 @@ function dashboardSummary(list, next) {
     </section>`;
   }
 
-  const goal = 10;
-  const done = completed.length > 0 && completed.length % goal === 0 ? goal : completed.length % goal;
-  const left = Math.max(0, goal - done);
-  const percent = Math.round(done / goal * 100);
-  return `<section class="u7-home-summary u7-home-summary-v3 u7-progress-summary-v60">
-    <div class="u7-home-summary-title"><div><span class="u7-eyebrow">ВАШ ПРОГРЕСС</span><h2>${done} из ${goal} уборок</h2></div><span>${left ? `до цели ещё ${left}` : 'цель выполнена'}</span></div>
-    <div class="u7-plan-progress-v60"><i style="width:${percent}%"></i></div>
+  return `<section class="u7-home-summary u7-home-summary-v3 u7-progress-summary-v60 u7-history-summary-v65">
+    <div class="u7-home-summary-title"><div><span class="u7-eyebrow">ВАШ КАБИНЕТ</span><h2>Уборки и график</h2></div><span>${completed.length ? `${completed.length} выполнено` : 'всё под рукой'}</span></div>
     <div class="u7-service-stats">
       <div class="u7-service-stat"><small>Выполнено</small><b>${completed.length}</b><span>за всё время</span></div>
-      <div class="u7-service-stat"><small>${next ? 'Ближайшая' : 'Следующая цель'}</small><b>${next ? escapeHtml(formatDate(next.date)) : left}</b><span>${next ? escapeHtml(formatTime(next.time)) : 'уборок до 10'}</span></div>
+      <div class="u7-service-stat"><small>Ближайшая</small><b>${next ? escapeHtml(formatDate(next.date)) : '—'}</b><span>${next ? escapeHtml(formatTime(next.time)) : 'пока не запланирована'}</span></div>
     </div>
-    ${last ? `<div class="u7-service-timeline"><div><span>Последняя уборка</span><b>${escapeHtml(formatDate(last.date))} · ${escapeHtml(formatTime(last.time))}</b></div></div>` : ''}
+    ${last || next ? `<div class="u7-service-timeline">
+      ${last ? `<div><span>Последняя уборка</span><b>${escapeHtml(formatDate(last.date))} · ${escapeHtml(formatTime(last.time))}</b></div>` : ''}
+      ${next ? `<div class="is-next"><span>Следующая уборка</span><b>${escapeHtml(formatDate(next.date))} · ${escapeHtml(formatTime(next.time))}</b></div>` : ''}
+    </div>` : '<div class="u7-home-empty-state-v65">Оформите первую уборку — здесь появятся история и ближайшая дата.</div>'}
   </section>`;
 }
 
@@ -329,10 +327,22 @@ function paintHome(root,navigate,orders) {
   const upcoming = activeUpcoming(orders);
   const next = upcoming[0] || null;
   const repeat = repeatableOrder(orders);
+  const completed = completedOrders(orders);
+  const sub = subscriptionState();
+  const heroStatus = next
+    ? `Следующая: ${formatDate(next.date)} · ${formatTime(next.time)}`
+    : activeDraft()
+      ? `Черновик: ${draftStepLabel()}`
+      : 'Можно оформить новую уборку';
+  const planLabel = sub.active
+    ? `Абонемент ${Math.max(0,sub.used)}/${Math.max(0,sub.total)}`
+    : `${completed.length} ${completed.length === 1 ? 'уборка' : 'уборок'} завершено`;
 
-  root.innerHTML = `<div class="cc-home u7-home-v2 u7-home-v3">
-    <header class="u7-home-hero cc-greeting-row">
-      <div><span class="cc-kicker">HOUSE CLEANING</span><h1 class="cc-greeting">${escapeHtml(greeting())}, ${escapeHtml(displayName())}!</h1><p>Ваша уборка, график и поддержка — в одном месте.</p></div>
+  root.innerHTML = `<div class="cc-home u7-home-v2 u7-home-v3 u7-home-v65">
+    <header class="u7-home-hero cc-greeting-row u7-home-hero-v65">
+      <div class="u7-home-hero-top-v65"><span class="cc-kicker">HOUSE CLEANING</span><span class="u7-home-live-v65">● сервис онлайн</span></div>
+      <div class="u7-home-hero-copy-v65"><h1 class="cc-greeting">${escapeHtml(greeting())}, ${escapeHtml(displayName())}!</h1><p>${escapeHtml(heroStatus)}</p></div>
+      <div class="u7-home-hero-facts-v65"><span><b>${escapeHtml(planLabel)}</b><small>ваш кабинет</small></span><span><b>≈ 2 мин</b><small>на новую запись</small></span></div>
       <div class="cc-monogram">HC</div>
       ${homeOrderAction()}
     </header>
