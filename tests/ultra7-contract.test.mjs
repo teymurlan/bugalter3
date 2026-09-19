@@ -314,6 +314,8 @@ test('release 66 one-time server cleanup removes orders and subscriptions but pr
   assert.match(worker, /storage\.transaction/);
   assert.match(worker, /existing\.owner !== owner/);
   assert.match(worker, /prelaunch-reset-v66\/fail/);
+  assert.match(worker, /isPrelaunchStatus/);
+  assert.match(worker, /reset_error:resetError \|\| null/);
   assert.match(worker, /await ensurePrelaunchReset\(env\);[\s\S]{0,260}baseWorker\.scheduled/);
   assert.match(worker, /cleanupD1PrelaunchData/);
   assert.match(worker, /prefix:'order:'/);

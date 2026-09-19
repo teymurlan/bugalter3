@@ -474,7 +474,8 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    if (url.pathname.startsWith('/api/') || url.pathname === '/telegram/webhook') {
+    const isPrelaunchStatus = request.method === 'GET' && url.pathname === '/api/prelaunch-v66-status';
+    if ((url.pathname.startsWith('/api/') || url.pathname === '/telegram/webhook') && !isPrelaunchStatus) {
       try {
         await ensurePrelaunchReset(env);
       } catch (error) {
@@ -483,7 +484,11 @@ export default {
       }
     }
 
-    if (request.method === 'GET' && url.pathname === '/api/prelaunch-v66-status') {
+    if (isPrelaunchStatus) {
+      let resetError = '';
+      try { await ensurePrelaunchReset(env); }
+      catch (error) { resetError = String(error?.message || error || 'Reset failed').slice(0,500); }
+
       const stub = appStub(env);
       const markerResponse = await stub?.fetch('https://app.internal/system/prelaunch-reset-v66/status');
       const marker = markerResponse?.ok ? (await markerResponse.json().catch(()=>({}))).marker : null;
@@ -494,7 +499,8 @@ export default {
         try { d1Orders = Number((await db.prepare('SELECT COUNT(*) AS count FROM hc_orders').first())?.count || 0); } catch {}
         try { d1Drafts = Number((await db.prepare('SELECT COUNT(*) AS count FROM hc_drafts').first())?.count || 0); } catch {}
       }
-      return json({ ok:true, release:66, marker, d1_orders:d1Orders, d1_drafts:d1Drafts });
+      const complete = marker?.status === 'complete' && marker?.protocol === PRELAUNCH_RESET_PROTOCOL && !resetError;
+      return json({ ok:complete, release:66, marker, d1_orders:d1Orders, d1_drafts:d1Drafts, reset_error:resetError || null });
     }
 
     if (request.method === 'GET' && url.pathname === '/api/central-notification-health') {
