@@ -1,10 +1,10 @@
 import { api, isDemoMode } from './api.js';
 import { state } from './state.js';
 import { escapeHtml } from './utils.js';
-import { renderBooking } from './views/booking-v5.js?v=64';
-import { renderConciergeHome } from './views/concierge-home-v4.js?v=64';
-import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=64';
-import { renderConciergeProfile } from './views/concierge-profile-v4.js?v=64';
+import { renderBooking } from './views/booking-v5.js?v=65';
+import { renderConciergeHome } from './views/concierge-home-v4.js?v=65';
+import { renderConciergeOrders } from './views/concierge-orders-v4.js?v=65';
+import { renderConciergeProfile } from './views/concierge-profile-v4.js?v=65';
 import { renderAdmin } from './views/admin-v5.js?v=44';
 
 const tg = window.Telegram?.WebApp;
