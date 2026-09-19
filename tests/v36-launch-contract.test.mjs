@@ -40,7 +40,7 @@ test('release 55 wraps release 53 with stable public order numbering while produ
   assert.match(defectRpc, /demo-worker-v44-production\.js/);
   assert.match(worker44, /demo-worker-v43-cache-bust\.js/);
   assert.match(worker44, /\/api\/release-version/);
-  assert.match(worker44, /const RELEASE = '65'/);
+  assert.match(worker44, /const RELEASE = '66'/);
   assert.match(worker44, /isKpPath/);
   assert.match(worker43, /demo-worker-v42-launch-hardening\.js/);
   assert.match(worker42, /MIN_BOOKING_LEAD_MS = 6 \* 60 \* 60 \* 1000/);
@@ -178,21 +178,29 @@ test('one-time clean launch no longer clears draft on every reopen', () => {
   assert.doesNotMatch(launchReset, /localStorage\.setItem\(KEY, 'pending'\)/);
 });
 
-test('release 65 cache-busts theme contrast and home UX without invalidating production worker layers', () => {
-  assert.match(index, /house-cleaning-release" content="65/);
+test('release 66 cache-busts the final prelaunch client without invalidating production worker layers', () => {
+  assert.match(index, /house-cleaning-release" content="66/);
   assert.match(index, /public-order-number-v55\.js\?v=55/);
   assert.match(index, /client-ui-v53\.css\?v=54/);
-  assert.match(index, /app-release-v3\.js\?v=65/);
-  assert.match(specialEntry, /client-experience-v53\.js\?v=65/);
-  assert.match(specialEntry, /app-release-v2\.js\?v=65/);
-  assert.match(entry, /api-release-v2\.js\?v=65/);
-  assert.match(entry, /api-shared-v50\.js\?v=65/);
-  assert.match(entry, /state-release-v2\.js\?v=65/);
-  assert.match(entry, /app-release\.js\?v=65/);
-  assert.match(app, /booking-v5\.js\?v=65/);
-  assert.match(app, /concierge-home-v4\.js\?v=65/);
-  assert.match(app, /concierge-orders-v4\.js\?v=65/);
-  assert.match(bookingV5, /booking-v2\.js\?v=65/);
+  assert.match(index, /app-release-v3\.js\?v=66/);
+  assert.match(specialEntry, /client-experience-v53\.js\?v=66/);
+  assert.match(specialEntry, /app-release-v2\.js\?v=66/);
+  assert.match(entry, /api-release-v2\.js\?v=66/);
+  assert.match(entry, /api-shared-v50\.js\?v=66/);
+  assert.match(entry, /state-release-v2\.js\?v=66/);
+  assert.match(entry, /app-release\.js\?v=66/);
+  assert.match(app, /booking-v5\.js\?v=66/);
+  assert.match(app, /concierge-home-v4\.js\?v=66/);
+  assert.match(app, /concierge-orders-v4\.js\?v=66/);
+  assert.match(bookingV5, /booking-v2\.js\?v=66/);
   assert.match(clientUi, /hc-resume-card-v53/);
   assert.match(clientUi, /height:64px!important/);
+});
+
+
+test('release 66 performs one local prelaunch draft cleanup without clearing client preferences', () => {
+  assert.match(launchReset, /v66-final-launch/);
+  assert.match(launchReset, /removeItem\(DRAFT_KEY\)/);
+  assert.match(launchReset, /deleteDatabase\('house-cleaning-mini-app'\)/);
+  assert.doesNotMatch(launchReset, /localStorage\.clear\(\)/);
 });
