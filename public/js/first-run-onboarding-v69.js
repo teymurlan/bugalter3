@@ -1,6 +1,15 @@
 (() => {
   const KEY='hc:first-run-onboarding:v1';
-  if(new URLSearchParams(location.search).get('admin')==='1'||new URLSearchParams(location.search).get('staff')==='1') return;
+  const params=new URLSearchParams(location.search);
+  if(params.get('admin')==='1'||params.get('staff')==='1') return;
+
+  // The welcome tour belongs to the real Telegram Mini App only. Standalone
+  // browser/test loads must stay unobstructed, while an actual Telegram client
+  // sees it once on first use.
+  const tg=window.Telegram?.WebApp;
+  const tgUserId=Number(tg?.initDataUnsafe?.user?.id||0);
+  if(!Number.isSafeInteger(tgUserId)||tgUserId<=0) return;
+
   try{if(localStorage.getItem(KEY)==='done')return}catch{}
 
   const slides=[
