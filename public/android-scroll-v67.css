@@ -1,0 +1,37 @@
+/* Android-only scroll recovery for Telegram Mini App */
+html.hc-android-scroll,
+html.hc-android-scroll body {
+  width: 100% !important;
+  min-height: 100% !important;
+  height: auto !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-y !important;
+}
+
+html.hc-android-scroll body {
+  position: relative !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+html.hc-android-scroll #app-shell,
+html.hc-android-scroll #app {
+  min-height: 100dvh !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  touch-action: pan-y !important;
+}
+
+html.hc-android-scroll #app-shell *:not(input):not(textarea):not(select):not(button) {
+  touch-action: pan-y;
+}
+
+html.hc-android-scroll .bottom-nav,
+html.hc-android-scroll button,
+html.hc-android-scroll input,
+html.hc-android-scroll textarea,
+html.hc-android-scroll select {
+  touch-action: manipulation;
+}
