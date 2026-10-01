@@ -6,6 +6,7 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const index = read('public/index.html');
 const css = read('public/mobile-flow-v68.css');
 const client = read('public/js/mobile-flow-v68.js');
+const contacts = read('public/js/contact-links-v30.js');
 const worker = read('src/production-start-fix.js');
 
 test('release 68 safely neutralizes stale prelaunch reset without deleting live production data', () => {
@@ -38,6 +39,9 @@ test('manager action and order sharing are upgraded for mobile clients', () => {
   assert.match(client, /navigator\.share/);
   assert.match(client, /Поделиться заявкой/);
   assert.match(client, /hc-share-order-v68/);
+  assert.match(contacts, /function managerFallback/);
+  assert.match(contacts, /contact-manager-fallback/);
+  assert.doesNotMatch(contacts, /button\.onclick = \(\) => notify\(error\.message/);
 });
 
 test('calendar error fallback stays compact and gives the client a retry action', () => {
