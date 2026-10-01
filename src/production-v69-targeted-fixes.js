@@ -2,7 +2,6 @@ import baseWorker, { ConsentStore as BaseConsentStore, AppStore as BaseAppStore 
 
 const APP_STORE_NAME = 'house-cleaning-app-v1';
 const BOT_USER_PREFIX = 'bot-user:v69:';
-const ACTIVE = new Set(['NEW','REVIEW','CONFIRMED','CLEANER_ASSIGNED','IN_PROGRESS']);
 
 export class ConsentStore extends BaseConsentStore {}
 
@@ -14,6 +13,24 @@ export class AppStore extends BaseAppStore {
 
   async fetch(request) {
     const url = new URL(request.url);
+
+    // Storage-level cancellation invariant: once the client cancelled an order,
+    // no admin route (including legacy /api/demo-admin-store-status) can revive it.
+    if (url.pathname === '/status' && request.method === 'PATCH') {
+      let body = {};
+      try { body = await request.clone().json(); } catch {}
+      const clientId = positiveInt(body?.client_telegram_id);
+      const number = cleanOrderNumber(body?.order_number);
+      const nextStatus = String(body?.status || '');
+      if (clientId && number && nextStatus && nextStatus !== 'CANCELLED') {
+        const currentResponse = await super.fetch(new Request(`https://app.internal/order?user=${encodeURIComponent(clientId)}&number=${encodeURIComponent(number)}`));
+        const current = currentResponse?.ok ? await currentResponse.json().catch(() => null) : null;
+        if (current?.status === 'CANCELLED') {
+          return json({ ok:false, error:'Заявка отменена клиентом. Изменить её статус нельзя.', status:'CANCELLED', order:current }, 409);
+        }
+      }
+    }
+
     if (url.pathname === '/v69/bot-user' && request.method === 'POST') {
       let body = {};
       try { body = await request.json(); } catch {}
@@ -32,10 +49,25 @@ export class AppStore extends BaseAppStore {
       await this.v69State.storage.put(key,row);
       return json({ok:true,user:row});
     }
+
     if (url.pathname === '/v69/bot-users' && request.method === 'GET') {
-      const rows = await this.v69State.storage.list({prefix:BOT_USER_PREFIX});
-      return json({ok:true,users:[...rows.values()].filter(Boolean)});
+      const [registeredRows, menuRows] = await Promise.all([
+        this.v69State.storage.list({prefix:BOT_USER_PREFIX}),
+        this.v69State.storage.list({prefix:'menu:'}),
+      ]);
+      const byId = new Map();
+      for (const row of registeredRows.values()) {
+        const id = positiveInt(row?.telegram_id);
+        if (id) byId.set(id,{...row,telegram_id:id});
+      }
+      // Existing users from before v69 are recovered from saved bot menu records.
+      for (const key of menuRows.keys()) {
+        const id = positiveInt(String(key).slice('menu:'.length));
+        if (id && !byId.has(id)) byId.set(id,{telegram_id:id});
+      }
+      return json({ok:true,users:[...byId.values()]});
     }
+
     return super.fetch(request);
   }
 }
@@ -45,6 +77,12 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
+      // Authenticate before any v69 side effect (registry write / cancellation guard).
+      const expectedSecret = String(env.TELEGRAM_WEBHOOK_SECRET || '').trim();
+      if (expectedSecret && request.headers.get('X-Telegram-Bot-Api-Secret-Token') !== expectedSecret) {
+        return new Response('Unauthorized', { status:401 });
+      }
+
       let update = null;
       try { update = await request.clone().json(); } catch {}
       const actor = update?.message?.from || update?.edited_message?.from || update?.callback_query?.from;
@@ -78,7 +116,22 @@ export default {
       if (clientId && number && nextStatus && nextStatus !== 'CANCELLED') {
         const current = await appOrder(env,clientId,number);
         if (current?.status === 'CANCELLED') {
-          return json({ok:false,error:'Заявка отменена клиентом. Подтвердить или завершить её нельзя.',status:'CANCELLED'},409);
+          return json({ok:false,error:'Заявка отменена клиентом. Подтвердить или завершить её нельзя.',status:'CANCELLED',order:current},409);
+        }
+      }
+    }
+
+    if (url.pathname === '/api/demo-admin-store-status' && request.method === 'POST') {
+      let body = {};
+      try { body = await request.clone().json(); } catch {}
+      const order = body?.order && typeof body.order === 'object' ? body.order : {};
+      const nextStatus = String(body?.status || '');
+      const clientId = positiveInt(order?.client_telegram_id);
+      const number = cleanOrderNumber(order?.order_number);
+      if (clientId && number && nextStatus && nextStatus !== 'CANCELLED') {
+        const current = await appOrder(env,clientId,number);
+        if (current?.status === 'CANCELLED') {
+          return json({ok:false,error:'Заявка отменена клиентом. Изменить её статус нельзя.',status:'CANCELLED',order:current},409);
         }
       }
     }
@@ -123,37 +176,53 @@ async function broadcastAudience(env,adminData={}) {
   const registered = registeredRes?.ok ? (await registeredRes.json().catch(()=>({}))).users || [] : [];
   const staff = staffRes?.ok ? (await staffRes.json().catch(()=>({}))).staff || [] : [];
   const clients = Array.isArray(adminData?.clients) ? adminData.clients : [];
+  const marketingEnabled = adminData?.settings?.marketing_enabled !== false;
   const byId = new Map();
   for (const row of [...registered,...clients,...staff]) {
     const id = positiveInt(row?.telegram_id);
     if (id) byId.set(id,{...(byId.get(id)||{}),...row,telegram_id:id});
   }
+
   const staffIds = new Set(staff.map(x=>positiveInt(x?.telegram_id)).filter(Boolean));
-  const activeIds = new Set(clients.filter(x=>Number(x?.active_count||0)>0).map(x=>positiveInt(x.telegram_id)).filter(Boolean));
   const clientIds = new Set(clients.map(x=>positiveInt(x?.telegram_id)).filter(Boolean));
+  const activeIds = new Set(clients.filter(x=>Number(x?.active_count||0)>0).map(x=>positiveInt(x.telegram_id)).filter(Boolean));
+  const marketingByClient = new Map(clients.map(x=>[positiveInt(x?.telegram_id),x?.marketing !== false]));
   const all = [...byId.values()];
+
+  const clientCanReceive = (id) => clientIds.has(id) && marketingByClient.get(id) !== false && !staffIds.has(id);
+  const allEligible = marketingEnabled
+    ? all.filter(x=>staffIds.has(x.telegram_id) || !clientIds.has(x.telegram_id) || marketingByClient.get(x.telegram_id) !== false)
+    : [];
+  const staffEligible = marketingEnabled ? all.filter(x=>staffIds.has(x.telegram_id)) : [];
+  const activeEligible = marketingEnabled ? all.filter(x=>clientCanReceive(x.telegram_id) && activeIds.has(x.telegram_id)) : [];
+  const inactiveEligible = marketingEnabled ? all.filter(x=>clientCanReceive(x.telegram_id) && !activeIds.has(x.telegram_id)) : [];
+
   return {
-    all, staffIds, activeIds, clientIds,
+    all, allEligible, staffEligible, activeEligible, inactiveEligible,
+    staffIds, activeIds, clientIds, marketingEnabled,
     counts:{
-      all_users:all.length,
-      staff:all.filter(x=>staffIds.has(x.telegram_id)).length,
-      active:all.filter(x=>activeIds.has(x.telegram_id)).length,
-      inactive:all.filter(x=>!staffIds.has(x.telegram_id) && !activeIds.has(x.telegram_id)).length,
+      all_users:allEligible.length,
+      staff:staffEligible.length,
+      active:activeEligible.length,
+      inactive:inactiveEligible.length,
     },
   };
 }
 
 async function sendBroadcastV69(env,body,adminData) {
   if (!env?.TELEGRAM_BOT_TOKEN) return json({ok:false,error:'Telegram bot token is not configured'},503);
+  if (adminData?.settings?.marketing_enabled === false) return json({ok:false,error:'Рассылки отключены в настройках'},409);
+
   const title = clean(body.title,160);
   const message = cleanMultiline(body.message,3500);
   const segment = ['all','staff','active','inactive'].includes(String(body.segment||'')) ? String(body.segment) : 'all';
   if (!message) return json({ok:false,error:'Введите текст рассылки'},400);
+
   const audience = await broadcastAudience(env,adminData);
-  let recipients = audience.all;
-  if (segment === 'staff') recipients = recipients.filter(x=>audience.staffIds.has(x.telegram_id));
-  if (segment === 'active') recipients = recipients.filter(x=>audience.activeIds.has(x.telegram_id));
-  if (segment === 'inactive') recipients = recipients.filter(x=>!audience.staffIds.has(x.telegram_id) && !audience.activeIds.has(x.telegram_id));
+  let recipients = audience.allEligible;
+  if (segment === 'staff') recipients = audience.staffEligible;
+  if (segment === 'active') recipients = audience.activeEligible;
+  if (segment === 'inactive') recipients = audience.inactiveEligible;
   recipients = [...new Map(recipients.map(x=>[x.telegram_id,x])).values()];
   if (!recipients.length) return json({ok:false,error:'В выбранном сегменте нет получателей'},409);
 
@@ -170,12 +239,14 @@ async function sendBroadcastV69(env,body,adminData) {
     for (const result of results) result.status==='fulfilled'?sent++:failed++;
     if (i+12<recipients.length) await delay(80);
   }
+
+  const skipped = Math.max(0, audience.all.length - recipients.length);
   try {
     await appStub(env)?.fetch('https://app.internal/ultra7/broadcast-log',{
-      method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title,message,segment,sent,failed,skipped:0})
+      method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title,message,segment,sent,failed,skipped})
     });
   } catch {}
-  return json({ok:true,sent,failed,skipped:0,segment,audience:recipients.length});
+  return json({ok:true,sent,failed,skipped,segment,audience:recipients.length});
 }
 
 async function registerBotUser(env,user) {
