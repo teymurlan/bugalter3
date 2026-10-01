@@ -14,7 +14,7 @@
     if(segment==='inactive') return Number(counts.inactive||0);
     return Number(counts.all_users ?? counts.all ?? counts.marketing ?? 0);
   }
-  async function patch(){
+  async function patchBroadcast(){
     const form=document.querySelector('[data-broadcast-form]');
     if(!form||form.dataset.v69==='1') return;
     form.dataset.v69='1';
@@ -31,7 +31,16 @@
     select.addEventListener('change',refresh);
     refresh();
   }
-  const observer=new MutationObserver(()=>patch());
+  function patchClient(){
+    document.querySelectorAll('.u7-home-help [data-manager]').forEach(button=>{
+      if(button.dataset.v69==='1') return;
+      button.dataset.v69='1';
+      button.textContent='Написать менеджеру';
+      button.setAttribute('aria-label','Написать менеджеру');
+    });
+  }
+  function patch(){patchClient();patchBroadcast();}
+  const observer=new MutationObserver(patch);
   observer.observe(document.documentElement,{childList:true,subtree:true});
   document.addEventListener('DOMContentLoaded',patch,{once:true});
   patch();
