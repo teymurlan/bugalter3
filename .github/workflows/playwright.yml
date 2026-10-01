@@ -23,7 +23,7 @@ jobs:
       - name: Установить Playwright
         run: |
           npm install --no-save playwright
-          npx playwright install --with-deps webkit
+          npx playwright install --with-deps webkit chromium
 
       - name: Запустить приложение
         run: |
@@ -35,6 +35,9 @@ jobs:
 
       - name: Проверить Ultra 7 UX как на iPhone
         run: node tests/playwright-ultra7-v59.mjs
+
+      - name: Проверить вертикальную прокрутку на Android
+        run: node tests/playwright-android-scroll-v67.mjs
 
       - name: Сохранить скриншоты проверки
         if: always()
