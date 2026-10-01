@@ -97,7 +97,8 @@ body.client-concierge.booking-flow .price-card{
     min-width:0!important;
     flex:1 1 auto!important;
   }
-  .hc-booking-bottom-spacer-v68{height:124px!important;min-height:124px!important;flex-basis:124px!important}
+  /* iPhone WebView needs extra real scroll range below the fixed action dock. */
+  .hc-booking-bottom-spacer-v68{height:176px!important;min-height:176px!important;flex-basis:176px!important}
   .u7-home-draft-actions-v66{
     display:grid!important;
     grid-template-columns:1fr!important;
@@ -123,5 +124,5 @@ body.client-concierge.booking-flow .price-card{
 @media(max-width:390px){
   body.client-concierge.booking-flow #app{padding-bottom:calc(302px + var(--safe-bottom))!important}
   body.client-concierge.booking-flow .wizard-actions{left:9px!important;right:9px!important}
-  .hc-booking-bottom-spacer-v68{height:136px!important;min-height:136px!important;flex-basis:136px!important}
+  .hc-booking-bottom-spacer-v68{height:188px!important;min-height:188px!important;flex-basis:188px!important}
 }
