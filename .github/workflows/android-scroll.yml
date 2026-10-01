@@ -1,0 +1,41 @@
+name: Android Scroll Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  android-scroll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Скачать проект
+        uses: actions/checkout@v4
+
+      - name: Установить Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Установить Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Запустить приложение
+        run: |
+          python3 -m http.server 4173 --directory public > /tmp/server.log 2>&1 &
+          sleep 2
+
+      - name: Проверить вертикальный свайп Android
+        run: node tests/playwright-android-scroll-v67.mjs
+
+      - name: Сохранить скриншот
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-scroll-check
+          path: playwright-android-scroll-v67.png
+          if-no-files-found: ignore
