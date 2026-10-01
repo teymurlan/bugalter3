@@ -48,6 +48,23 @@
     }
   }
 
+  function ensureBookingSpacer() {
+    const dock = root.querySelector('.wizard-actions');
+    if (!dock) {
+      root.querySelector('.hc-booking-bottom-spacer-v68')?.remove();
+      return;
+    }
+    let spacer = root.querySelector('.hc-booking-bottom-spacer-v68');
+    if (!spacer) {
+      spacer = document.createElement('div');
+      spacer.className = 'hc-booking-bottom-spacer-v68';
+      spacer.setAttribute('aria-hidden', 'true');
+      dock.insertAdjacentElement('afterend', spacer);
+    } else if (spacer.previousElementSibling !== dock) {
+      dock.insertAdjacentElement('afterend', spacer);
+    }
+  }
+
   function decorateOrder() {
     const actions = root.querySelector('.hc-order-actions');
     if (!actions || actions.querySelector('[data-share-order]')) return;
@@ -75,6 +92,7 @@
 
   function scan() {
     decorateHome();
+    ensureBookingSpacer();
     decorateOrder();
     compactCalendarError();
   }
