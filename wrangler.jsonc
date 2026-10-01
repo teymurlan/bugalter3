@@ -1,8 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bugalter3",
-  "main": "src/production-start-fix.js",
-  // Previous stable entry kept as a documented rollback target: "main": "src/production-public-order.js"
+  "main": "src/production-v69-targeted-fixes.js",
+  // Previous stable entry kept as a documented rollback target: "main": "src/production-start-fix.js"
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "preview_urls": true,
