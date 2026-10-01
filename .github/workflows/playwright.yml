@@ -36,6 +36,9 @@ jobs:
       - name: Проверить Ultra 7 UX как на iPhone
         run: node tests/playwright-ultra7-v59.mjs
 
+      - name: Проверить мобильный flow release 68
+        run: node tests/playwright-mobile-flow-v68.mjs
+
       - name: Сохранить скриншоты проверки
         if: always()
         uses: actions/upload-artifact@v4

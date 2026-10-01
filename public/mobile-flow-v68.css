@@ -1,0 +1,128 @@
+/* HOUSE CLEANING · Mobile flow release 68 */
+
+/* Booking content must always be scrollable above the fixed Continue dock + bottom navigation. */
+body.client-concierge.booking-flow #app{
+  padding-bottom:calc(286px + var(--safe-bottom))!important;
+  min-height:100dvh!important;
+  box-sizing:border-box!important;
+}
+body.client-concierge.booking-flow .wizard-actions{
+  z-index:80!important;
+  bottom:calc(62px + var(--safe-bottom))!important;
+  left:max(12px,env(safe-area-inset-left))!important;
+  right:max(12px,env(safe-area-inset-right))!important;
+  width:auto!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+}
+.hc-booking-bottom-spacer-v68{
+  display:block!important;
+  width:100%!important;
+  height:112px!important;
+  min-height:112px!important;
+  flex:0 0 112px!important;
+  pointer-events:none!important;
+  visibility:hidden!important;
+}
+body.client-concierge.booking-flow .calendar-card,
+body.client-concierge.booking-flow .option-grid,
+body.client-concierge.booking-flow .form-card,
+body.client-concierge.booking-flow .photo-step,
+body.client-concierge.booking-flow .review-card,
+body.client-concierge.booking-flow .price-card{
+  scroll-margin-bottom:250px!important;
+}
+
+/* A failed calendar request must not leave a huge empty white panel. */
+.hc-calendar-v2 .calendar-strip>.empty-inline,
+.hc-calendar-v2 [data-slots]>.empty-inline{
+  width:100%!important;
+  min-height:64px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:12px 14px!important;
+  box-sizing:border-box!important;
+  text-align:center!important;
+  white-space:normal!important;
+  line-height:1.35!important;
+}
+
+/* The arrow in the unfinished-order card was clipped on narrow phones: remove it completely. */
+.u7-home-draft-resume-v66 b{display:none!important}
+.u7-home-draft-resume-v66{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.u7-home-draft-resume-v66 span{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important}
+
+/* Manager action: make the primary support action obvious and easy to tap. */
+.u7-home-help-v3 button[data-manager]{
+  min-height:42px!important;
+  padding:0 15px!important;
+  border:1px solid color-mix(in srgb,var(--u7-accent) 42%,var(--u7-line))!important;
+  border-radius:13px!important;
+  background:linear-gradient(180deg,var(--u7-accent),var(--u7-accent-2))!important;
+  color:#fff!important;
+  box-shadow:0 8px 20px color-mix(in srgb,var(--u7-accent) 24%,transparent)!important;
+  font:inherit!important;
+  font-size:11px!important;
+  font-weight:850!important;
+  white-space:nowrap!important;
+}
+.u7-home-help-v3 button[data-manager]:active{transform:scale(.97)!important}
+
+/* Extra order action added in release 68. */
+.hc-share-order-v68{
+  border-color:color-mix(in srgb,var(--u7-accent) 30%,var(--u7-line))!important;
+  color:var(--u7-accent)!important;
+  background:color-mix(in srgb,var(--u7-accent) 7%,var(--u7-surface))!important;
+}
+
+@media(max-width:600px){
+  body.client-concierge.booking-flow #app{padding-bottom:calc(294px + var(--safe-bottom))!important}
+  body.client-concierge.booking-flow .wizard-actions{
+    bottom:calc(59px + var(--safe-bottom))!important;
+    gap:8px!important;
+  }
+  body.client-concierge.booking-flow .wizard-actions .wizard-back{
+    flex:0 0 86px!important;
+    min-width:86px!important;
+  }
+  body.client-concierge.booking-flow .wizard-actions .wizard-next{
+    min-width:0!important;
+    flex:1 1 auto!important;
+  }
+  /* iPhone WebView needs extra real scroll range below the fixed action dock. */
+  .hc-booking-bottom-spacer-v68{height:176px!important;min-height:176px!important;flex-basis:176px!important}
+  .u7-home-draft-actions-v66{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:7px!important;
+  }
+  .u7-home-draft-resume-v66,.u7-home-draft-new-v66{
+    width:100%!important;
+    min-height:44px!important;
+    margin:0!important;
+  }
+  .u7-home-help-v3{
+    grid-template-columns:38px minmax(0,1fr)!important;
+    align-items:center!important;
+  }
+  .u7-home-help-v3 button[data-manager]{
+    grid-column:1/-1!important;
+    width:100%!important;
+    min-height:46px!important;
+    font-size:12px!important;
+  }
+}
+
+@media(max-width:390px){
+  body.client-concierge.booking-flow #app{padding-bottom:calc(302px + var(--safe-bottom))!important}
+  body.client-concierge.booking-flow .wizard-actions{left:9px!important;right:9px!important}
+  .hc-booking-bottom-spacer-v68{height:188px!important;min-height:188px!important;flex-basis:188px!important}
+}

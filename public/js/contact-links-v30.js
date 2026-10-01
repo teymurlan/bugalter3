@@ -102,9 +102,9 @@
       notify('Кнопка для личного чата отправлена в Telegram');
       try { tg?.HapticFeedback?.notificationOccurred?.('success'); } catch {}
       setTimeout(() => tg?.close?.(), 250);
-    } catch (error) {
+    } catch {
       button.disabled = false;
-      notify(error.message || 'Не удалось открыть Telegram', true);
+      notify('Не удалось открыть чат. Попробуйте ещё раз.', true);
     }
   }
 
@@ -135,6 +135,13 @@
     });
   }
 
+  function managerFallback(button) {
+    if (!button?.isConnected) return;
+    button.dataset.contactV30 = 'ready';
+    button.disabled = false;
+    button.onclick = () => fallback(button, '/api/contact-manager-fallback', {});
+  }
+
   function upgradeManagerChat(source) {
     if (source.dataset.contactV30) return;
     const button = isolateButton(source);
@@ -147,15 +154,8 @@
         makeAnchor(button, `https://t.me/${username}`, true);
         return;
       }
-      button.dataset.contactV30 = 'ready';
-      button.disabled = false;
-      button.onclick = () => fallback(button, '/api/contact-manager-fallback', {});
-    }).catch((error) => {
-      if (!button.isConnected) return;
-      button.dataset.contactV30 = 'ready';
-      button.disabled = false;
-      button.onclick = () => notify(error.message || 'Не удалось получить контакт менеджера', true);
-    });
+      managerFallback(button);
+    }).catch(() => managerFallback(button));
   }
 
   function upgradeClientChat(source) {
@@ -180,11 +180,11 @@
       button.dataset.contactV30 = 'ready';
       button.disabled = false;
       button.onclick = () => fallback(button, '/api/admin-client-chat-fallback', { client_telegram_id: Number(id) });
-    }).catch((error) => {
+    }).catch(() => {
       if (!button.isConnected) return;
       button.dataset.contactV30 = 'ready';
       button.disabled = false;
-      button.onclick = () => notify(error.message || 'Не удалось получить Telegram клиента', true);
+      button.onclick = () => fallback(button, '/api/admin-client-chat-fallback', { client_telegram_id: Number(id) });
     });
   }
 

@@ -1,11 +1,16 @@
 import baseWorker, { ConsentStore, AppStore } from './production-public-order.js';
+import runtimeWorker from './demo-worker-v53-client-experience.js';
 
 export { ConsentStore, AppStore };
 
 const CONSENT_VERSION = '2026-09-09-v1';
 const OPERATOR = 'ИП Царегородцева Евгения Андреевна';
-const CLIENT_RELEASE = '66';
+const CLIENT_RELEASE = '68';
 const APP_STORE_NAME = 'house-cleaning-app-v1';
+const PRELAUNCH_PROTOCOL = 'locked-v2';
+const PRELAUNCH_OWNER = 'production-runtime-v68';
+let prelaunchNeutralized = false;
+let prelaunchNeutralizePromise = null;
 
 export default {
   async fetch(request, env, ctx) {
@@ -28,6 +33,17 @@ export default {
       }
     }
 
+    const guarded = url.pathname.startsWith('/api/') || url.pathname === '/telegram/webhook';
+    const statusRoute = request.method === 'GET' && url.pathname === '/api/prelaunch-v66-status';
+    if (guarded && !statusRoute) {
+      const safe = await neutralizePrelaunchReset(env);
+      if (!safe) {
+        const fallback = request.clone();
+        const response = await runtimeWorker.fetch(fallback, env, ctx);
+        return withRuntimeHeader(response);
+      }
+    }
+
     return baseWorker.fetch(request, env, ctx);
   },
 
@@ -35,6 +51,70 @@ export default {
     if (typeof baseWorker.scheduled === 'function') return baseWorker.scheduled(controller, env, ctx);
   },
 };
+
+async function neutralizePrelaunchReset(env) {
+  if (prelaunchNeutralized) return true;
+  if (prelaunchNeutralizePromise) return prelaunchNeutralizePromise;
+
+  prelaunchNeutralizePromise = (async () => {
+    const stub = appStub(env);
+    if (!stub) return false;
+
+    try {
+      const statusResponse = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/status');
+      const statusData = statusResponse.ok ? await statusResponse.json().catch(() => ({})) : {};
+      const marker = statusData?.marker || null;
+      if (marker?.status === 'complete' && marker?.protocol === PRELAUNCH_PROTOCOL) {
+        prelaunchNeutralized = true;
+        return true;
+      }
+
+      const claimResponse = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/claim', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ owner: PRELAUNCH_OWNER }),
+      });
+      if (!claimResponse.ok) return false;
+      const claim = await claimResponse.json().catch(() => ({}));
+      if (claim?.complete) {
+        prelaunchNeutralized = true;
+        return true;
+      }
+      if (!claim?.claimed) return false;
+
+      // Release 66 cleanup must never delete live production data anymore.
+      // Mark the old one-time protocol complete without running its destructive storage/D1 cleanup.
+      const finishResponse = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/finish', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          owner: PRELAUNCH_OWNER,
+          d1_orders_deleted: 0,
+          d1_drafts_deleted: 0,
+          d1_profiles_reset: 0,
+        }),
+      });
+      if (!finishResponse.ok) return false;
+      const finished = await finishResponse.json().catch(() => ({}));
+      const complete = finished?.marker?.status === 'complete';
+      if (complete) prelaunchNeutralized = true;
+      return complete;
+    } catch (error) {
+      console.warn('Prelaunch v66 neutralization deferred', error?.message || error);
+      return false;
+    }
+  })().finally(() => {
+    prelaunchNeutralizePromise = null;
+  });
+
+  return prelaunchNeutralizePromise;
+}
+
+function withRuntimeHeader(response) {
+  const headers = new Headers(response.headers);
+  headers.set('X-HC-Runtime-Fallback', 'v68');
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
 
 async function handleStartOrMenu(message, env, origin) {
   const chatId = positiveInt(message?.chat?.id);
