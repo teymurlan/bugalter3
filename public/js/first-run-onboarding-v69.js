@@ -3,12 +3,17 @@
   const params=new URLSearchParams(location.search);
   if(params.get('admin')==='1'||params.get('staff')==='1') return;
 
-  // The welcome tour belongs to the real Telegram Mini App only. Standalone
-  // browser/test loads must stay unobstructed, while an actual Telegram client
-  // sees it once on first use.
+  // Show the welcome tour only in a genuine Telegram Mini App launch. A real
+  // launch contains signed initData (user/auth_date/hash); standalone browsers
+  // and automated mocks must stay unobstructed.
   const tg=window.Telegram?.WebApp;
   const tgUserId=Number(tg?.initDataUnsafe?.user?.id||0);
-  if(!Number.isSafeInteger(tgUserId)||tgUserId<=0) return;
+  const launchData=new URLSearchParams(String(tg?.initData||''));
+  const realTelegramLaunch=Number.isSafeInteger(tgUserId)&&tgUserId>0
+    && Boolean(launchData.get('user'))
+    && Boolean(launchData.get('auth_date'))
+    && Boolean(launchData.get('hash'));
+  if(!realTelegramLaunch) return;
 
   try{if(localStorage.getItem(KEY)==='done')return}catch{}
 
