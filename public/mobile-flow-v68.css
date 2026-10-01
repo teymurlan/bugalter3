@@ -15,6 +15,15 @@ body.client-concierge.booking-flow .wizard-actions{
   max-width:none!important;
   box-sizing:border-box!important;
 }
+.hc-booking-bottom-spacer-v68{
+  display:block!important;
+  width:100%!important;
+  height:112px!important;
+  min-height:112px!important;
+  flex:0 0 112px!important;
+  pointer-events:none!important;
+  visibility:hidden!important;
+}
 body.client-concierge.booking-flow .calendar-card,
 body.client-concierge.booking-flow .option-grid,
 body.client-concierge.booking-flow .form-card,
@@ -88,6 +97,7 @@ body.client-concierge.booking-flow .price-card{
     min-width:0!important;
     flex:1 1 auto!important;
   }
+  .hc-booking-bottom-spacer-v68{height:124px!important;min-height:124px!important;flex-basis:124px!important}
   .u7-home-draft-actions-v66{
     display:grid!important;
     grid-template-columns:1fr!important;
@@ -113,4 +123,5 @@ body.client-concierge.booking-flow .price-card{
 @media(max-width:390px){
   body.client-concierge.booking-flow #app{padding-bottom:calc(302px + var(--safe-bottom))!important}
   body.client-concierge.booking-flow .wizard-actions{left:9px!important;right:9px!important}
+  .hc-booking-bottom-spacer-v68{height:136px!important;min-height:136px!important;flex-basis:136px!important}
 }
