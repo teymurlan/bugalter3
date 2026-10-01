@@ -2,7 +2,7 @@
 
 /* Booking content must always be scrollable above the fixed Continue dock + bottom navigation. */
 body.client-concierge.booking-flow #app{
-  padding-bottom:calc(214px + var(--safe-bottom))!important;
+  padding-bottom:calc(286px + var(--safe-bottom))!important;
   min-height:100dvh!important;
   box-sizing:border-box!important;
 }
@@ -21,7 +21,7 @@ body.client-concierge.booking-flow .form-card,
 body.client-concierge.booking-flow .photo-step,
 body.client-concierge.booking-flow .review-card,
 body.client-concierge.booking-flow .price-card{
-  scroll-margin-bottom:190px!important;
+  scroll-margin-bottom:250px!important;
 }
 
 /* A failed calendar request must not leave a huge empty white panel. */
@@ -75,7 +75,7 @@ body.client-concierge.booking-flow .price-card{
 }
 
 @media(max-width:600px){
-  body.client-concierge.booking-flow #app{padding-bottom:calc(220px + var(--safe-bottom))!important}
+  body.client-concierge.booking-flow #app{padding-bottom:calc(294px + var(--safe-bottom))!important}
   body.client-concierge.booking-flow .wizard-actions{
     bottom:calc(59px + var(--safe-bottom))!important;
     gap:8px!important;
@@ -111,6 +111,6 @@ body.client-concierge.booking-flow .price-card{
 }
 
 @media(max-width:390px){
-  body.client-concierge.booking-flow #app{padding-bottom:calc(226px + var(--safe-bottom))!important}
+  body.client-concierge.booking-flow #app{padding-bottom:calc(302px + var(--safe-bottom))!important}
   body.client-concierge.booking-flow .wizard-actions{left:9px!important;right:9px!important}
 }
