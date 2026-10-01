@@ -29,7 +29,7 @@ const order={
 };
 
 function telegramStub(){
-  return `window.Telegram={WebApp:{initData:'query_id=v68',initDataUnsafe:{user:{id:780068,first_name:'Mobile'}},ready(){},expand(){},disableVerticalSwipes(){},enableVerticalSwipes(){},setHeaderColor(){},setBackgroundColor(){},setBottomBarColor(){},openTelegramLink(url){window.__managerUrl=url},HapticFeedback:{selectionChanged(){},impactOccurred(){},notificationOccurred(){}}}};`;
+  return `window.__openedTelegram=[];window.Telegram={WebApp:{initData:'query_id=v68',initDataUnsafe:{user:{id:780068,first_name:'Mobile'}},ready(){},expand(){},disableVerticalSwipes(){},enableVerticalSwipes(){},setHeaderColor(){},setBackgroundColor(){},setBottomBarColor(){},openTelegramLink(url){window.__openedTelegram.push(url)},HapticFeedback:{selectionChanged(){},impactOccurred(){},notificationOccurred(){}}}};`;
 }
 
 async function setup({initialDraft=null,admin=false,orders=[order]}={}){
@@ -65,7 +65,7 @@ async function setup({initialDraft=null,admin=false,orders=[order]}={}){
   return {context,page};
 }
 
-// Narrow phone: unfinished order arrow removed, support works, and booking content is not trapped under fixed actions.
+// Narrow phone: unfinished order arrow removed, support stays usable, and booking content is not trapped under fixed actions.
 {
   const {context,page}=await setup({initialDraft:draft({step:1})});
   try{
@@ -74,9 +74,11 @@ async function setup({initialDraft=null,admin=false,orders=[order]}={}){
     const manager=page.locator('.u7-home-help-v3 [data-manager]');
     await manager.waitFor({state:'visible'});
     assert.match(await manager.textContent(),/Написать менеджеру/);
+    assert.equal(await page.getByText(/предстартовую очистку/i).count(),0,'На главной не должно быть технической ошибки очистки');
     await manager.click();
-    await page.waitForFunction(()=>Boolean(window.__managerUrl));
-    assert.equal(await page.evaluate(()=>window.__managerUrl),'https://t.me/cleaningspb1');
+    await page.waitForTimeout(120);
+    assert.equal(await page.getByText(/предстартовую очистку/i).count(),0,'Кнопка менеджера не должна показывать техническую ошибку');
+    assert.equal(await page.locator('.toast.error.show').count(),0,'Кнопка менеджера не должна оставлять красную ошибку');
 
     await page.locator('[data-resume-order]').click();
     await page.getByText('Выберите уборку',{exact:true}).waitFor({state:'visible'});
