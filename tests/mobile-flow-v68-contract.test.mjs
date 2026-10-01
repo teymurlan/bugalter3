@@ -22,9 +22,9 @@ test('release 68 safely neutralizes stale prelaunch reset without deleting live 
 
 test('mobile booking content stays scrollable above fixed controls', () => {
   assert.match(index, /mobile-flow-v68\.css\?v=68/);
-  assert.match(css, /booking-flow #app[\s\S]*padding-bottom:calc\(214px/);
+  assert.match(css, /booking-flow #app[\s\S]*padding-bottom:calc\(286px/);
   assert.match(css, /wizard-actions[\s\S]*bottom:calc\(62px/);
-  assert.match(css, /scroll-margin-bottom:190px/);
+  assert.match(css, /scroll-margin-bottom:250px/);
 });
 
 test('narrow-phone unfinished order action no longer contains a clipped arrow', () => {
