@@ -136,7 +136,7 @@ await run('первый заказ требует фото', draft(), async (pag
   await page.evaluate(() => { document.documentElement.dataset.hcTheme = 'light'; });
 
   await page.locator('[data-next]').click();
-  await page.getByText('Вы уже заказывали уборку по этому адресу?').waitFor();
+  await page.getByText('Это первая или повторная уборка?').waitFor();
   assert.equal(knownCalls(), 0, 'Автоматическая проверка истории адреса больше не должна вызываться');
 
   await page.locator('[data-visit-type="first"]').click();
@@ -153,7 +153,7 @@ await run('первый заказ требует фото', draft(), async (pag
 
 await run('повторный заказ сразу открывает дату и время', draft(), async (page, knownCalls) => {
   await page.locator('[data-next]').click();
-  await page.getByText('Вы уже заказывали уборку по этому адресу?').waitFor();
+  await page.getByText('Это первая или повторная уборка?').waitFor();
   await page.locator('[data-visit-type="repeat"]').click();
   await page.locator('[data-next]').click();
 
@@ -169,7 +169,7 @@ await run('повторный заказ сразу открывает дату 
 
   await page.locator('[data-global-booking-back]').waitFor({ state: 'visible' });
   await page.locator('[data-global-booking-back]').click();
-  await page.getByText('Вы уже заказывали уборку по этому адресу?').waitFor();
+  await page.getByText('Это первая или повторная уборка?').waitFor();
   assert.equal(await page.locator('.photo-step').count(), 0, 'Назад из даты не должен вести на фотографии для повторного заказа');
 });
 
@@ -204,4 +204,4 @@ await run('общая занятость приходит с сервера', dr
 }, { usedM2: 150, remainingM2: 150 });
 
 await browser.close();
-console.log('\n✅ Release 66: поля, первый/повторный заказ и общая занятость проверены');
+console.log('\n✅ Release 70: поля, первый/повторный заказ и общая занятость проверены');
