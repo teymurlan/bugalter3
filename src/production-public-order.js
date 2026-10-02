@@ -8,8 +8,8 @@ const USER_PREFS_PREFIX = 'ultra7:user-prefs:';
 const BROADCAST_PREFIX = 'ultra7:broadcast:';
 const PROFILE_PREFIX = 'profile:item:';
 const PRELAUNCH_RESET_KEY = 'system:prelaunch-reset:v66';
-const PRELAUNCH_RESET_PROTOCOL = 'locked-v2';
-const PRELAUNCH_RESET_LEASE_MS = 60000;
+const PRELAUNCH_RESET_PROTOCOL = 'fenced-v3';
+const PRELAUNCH_RESET_LEASE_MS = 15 * 60 * 1000;
 const ACTIVE_STATUSES = new Set(['NEW','REVIEW','CONFIRMED','CLEANER_ASSIGNED','IN_PROGRESS']);
 let prelaunchResetPromise = null;
 
@@ -60,38 +60,70 @@ export class AppStore extends BaseAppStore {
           return;
         }
 
-        const startedAt = Number(existing?.started_at || 0);
+        const leaseUntil = Number(existing?.lease_until || 0);
         const leaseActive = existing?.status === 'running'
           && existing?.owner
-          && startedAt > 0
-          && Date.now() - startedAt < PRELAUNCH_RESET_LEASE_MS;
+          && leaseUntil > Date.now();
         if (leaseActive && existing.owner !== owner) {
           result = { ok:true, claimed:false, running:true, marker:existing };
           return;
         }
 
+        const attempt = nonNegative(existing?.attempt) + 1;
         const marker = {
           ...existing,
           status:'running',
           protocol:PRELAUNCH_RESET_PROTOCOL,
           owner,
+          attempt,
           started_at:Date.now(),
-          attempt:nonNegative(existing?.attempt) + 1,
+          lease_until:Date.now() + PRELAUNCH_RESET_LEASE_MS,
           error:'',
           updated_at:new Date().toISOString(),
         };
         await txn.put(PRELAUNCH_RESET_KEY, marker);
-        result = { ok:true, claimed:true, marker };
+        result = { ok:true, claimed:true, owner, attempt, marker };
       });
       return json(result || { ok:false, error:'Unable to claim reset' }, result ? 200 : 500);
+    }
+
+    if (url.pathname === '/system/prelaunch-reset-v66/renew' && request.method === 'POST') {
+      const body = await bodyJson(request);
+      const owner = clean(body.owner,80);
+      const attempt = nonNegative(body.attempt);
+      let result = null;
+      await this.hcState.storage.transaction(async (txn) => {
+        const existing = await txn.get(PRELAUNCH_RESET_KEY) || {};
+        if (!owner || !attempt || existing?.status !== 'running'
+          || existing?.owner !== owner
+          || nonNegative(existing?.attempt) !== attempt
+          || existing?.protocol !== PRELAUNCH_RESET_PROTOCOL) {
+          result = { ok:false, error:'Reset fence lost' };
+          return;
+        }
+        const marker = {
+          ...existing,
+          lease_until:Date.now() + PRELAUNCH_RESET_LEASE_MS,
+          updated_at:new Date().toISOString(),
+        };
+        await txn.put(PRELAUNCH_RESET_KEY, marker);
+        result = { ok:true, marker };
+      });
+      return json(result || { ok:false, error:'Unable to renew reset fence' }, result?.ok ? 200 : 409);
     }
 
     if (url.pathname === '/system/prelaunch-reset-v66/storage' && request.method === 'POST') {
       const body = await bodyJson(request);
       const owner = clean(body.owner,80);
+      const attempt = nonNegative(body.attempt);
       const existing = await this.hcState.storage.get(PRELAUNCH_RESET_KEY) || {};
-      if (!owner || existing?.status !== 'running' || existing?.owner !== owner) {
-        return json({ ok:false, error:'Reset lease lost' }, 409);
+      if (!owner || !attempt
+        || existing?.status !== 'running'
+        || existing?.owner !== owner
+        || nonNegative(existing?.attempt) !== attempt
+        || existing?.protocol !== PRELAUNCH_RESET_PROTOCOL
+        || Number(existing?.lease_until || 0) <= Date.now()) {
+        return json({ ok:false, error:'Reset fence lost' }, 409);
       }
 
       const orderRows = await this.hcState.storage.list({ prefix:'order:' });
@@ -117,6 +149,8 @@ export class AppStore extends BaseAppStore {
         status:'running',
         protocol:PRELAUNCH_RESET_PROTOCOL,
         owner,
+        attempt,
+        lease_until:Date.now() + PRELAUNCH_RESET_LEASE_MS,
         storage_complete:true,
         orders_deleted:orderRows.size,
         drafts_deleted:draftRows.size,
@@ -131,18 +165,26 @@ export class AppStore extends BaseAppStore {
     if (url.pathname === '/system/prelaunch-reset-v66/finish' && request.method === 'POST') {
       const body = await bodyJson(request);
       const owner = clean(body.owner,80);
+      const attempt = nonNegative(body.attempt);
       const previous = await this.hcState.storage.get(PRELAUNCH_RESET_KEY) || {};
-      if (!owner || previous?.status !== 'running' || previous?.owner !== owner) {
-        return json({ ok:false, error:'Reset lease lost' }, 409);
+      if (!owner || !attempt
+        || previous?.status !== 'running'
+        || previous?.owner !== owner
+        || nonNegative(previous?.attempt) !== attempt
+        || previous?.protocol !== PRELAUNCH_RESET_PROTOCOL
+        || Number(previous?.lease_until || 0) <= Date.now()) {
+        return json({ ok:false, error:'Reset fence lost' }, 409);
       }
       const marker = {
         ...previous,
         status:'complete',
         protocol:PRELAUNCH_RESET_PROTOCOL,
         owner:'',
+        lease_until:0,
         d1_orders_deleted:nonNegative(body.d1_orders_deleted),
         d1_drafts_deleted:nonNegative(body.d1_drafts_deleted),
         d1_profiles_reset:nonNegative(body.d1_profiles_reset),
+        d1_malformed_profiles:nonNegative(body.d1_malformed_profiles),
         completed_at:new Date().toISOString(),
         updated_at:new Date().toISOString(),
       };
@@ -153,12 +195,18 @@ export class AppStore extends BaseAppStore {
     if (url.pathname === '/system/prelaunch-reset-v66/fail' && request.method === 'POST') {
       const body = await bodyJson(request);
       const owner = clean(body.owner,80);
+      const attempt = nonNegative(body.attempt);
       const previous = await this.hcState.storage.get(PRELAUNCH_RESET_KEY) || {};
-      if (owner && previous?.status === 'running' && previous?.owner === owner) {
+      if (owner && attempt
+        && previous?.status === 'running'
+        && previous?.owner === owner
+        && nonNegative(previous?.attempt) === attempt
+        && previous?.protocol === PRELAUNCH_RESET_PROTOCOL) {
         await this.hcState.storage.put(PRELAUNCH_RESET_KEY, {
           ...previous,
           status:'failed',
           owner:'',
+          lease_until:0,
           error:clean(body.error,500),
           failed_at:new Date().toISOString(),
           updated_at:new Date().toISOString(),
@@ -839,8 +887,8 @@ async function runPrelaunchReset(env) {
 
   if (claim?.complete) return;
   if (!claim?.claimed) {
-    for (let attempt=0; attempt<60; attempt+=1) {
-      await delay(100);
+    for (let pollAttempt=0; pollAttempt<120; pollAttempt+=1) {
+      await delay(250);
       const poll = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/status');
       const data = poll?.ok ? await poll.json().catch(()=>({})) : {};
       if (data?.marker?.status === 'complete'
@@ -850,23 +898,30 @@ async function runPrelaunchReset(env) {
     throw new Error('Prelaunch reset is still running');
   }
 
+  const attempt = nonNegative(claim?.attempt || claim?.marker?.attempt);
+  if (!attempt) throw new Error('Prelaunch reset fence was not assigned');
+
   try {
+    await renewResetFence(stub, owner, attempt);
     const storageResponse = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/storage', {
       method:'POST',
       headers:{'content-type':'application/json'},
-      body:JSON.stringify({ owner }),
+      body:JSON.stringify({ owner, attempt }),
     });
     if (!storageResponse?.ok) throw new Error('Unable to reset durable prelaunch data');
 
-    const d1 = await cleanupD1PrelaunchData(env);
+    const d1 = await cleanupD1PrelaunchData(env, () => renewResetFence(stub, owner, attempt));
+    await renewResetFence(stub, owner, attempt);
     const finish = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/finish', {
       method:'POST',
       headers:{'content-type':'application/json'},
       body:JSON.stringify({
         owner,
+        attempt,
         d1_orders_deleted:d1.orders,
         d1_drafts_deleted:d1.drafts,
         d1_profiles_reset:d1.profiles,
+        d1_malformed_profiles:d1.malformedProfiles,
       }),
     });
     if (!finish?.ok) throw new Error('Unable to finish prelaunch reset');
@@ -874,35 +929,67 @@ async function runPrelaunchReset(env) {
     await stub.fetch('https://app.internal/system/prelaunch-reset-v66/fail', {
       method:'POST',
       headers:{'content-type':'application/json'},
-      body:JSON.stringify({ owner, error:String(error?.message || error || 'Reset failed').slice(0,500) }),
+      body:JSON.stringify({ owner, attempt, error:String(error?.message || error || 'Reset failed').slice(0,500) }),
     }).catch(()=>{});
     throw error;
   }
 }
 
-async function cleanupD1PrelaunchData(env) {
-  const db = findD1(env);
-  if (!db) return { orders:0, drafts:0, profiles:0 };
+async function renewResetFence(stub, owner, attempt) {
+  const response = await stub.fetch('https://app.internal/system/prelaunch-reset-v66/renew', {
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({ owner, attempt }),
+  });
+  if (!response?.ok) throw new Error('Prelaunch reset fence lost');
+  return response;
+}
 
+async function cleanupD1PrelaunchData(env, guard = async () => {}) {
+  const db = findD1(env);
+  if (!db) return { orders:0, drafts:0, profiles:0, malformedProfiles:0 };
+
+  await ensureCleanupD1Schema(db);
+
+  await guard();
   const orderCount = await db.prepare('SELECT COUNT(*) AS count FROM hc_orders').first();
   const orders = Number(orderCount?.count || 0);
   await db.prepare('DELETE FROM hc_orders').run();
 
+  await guard();
   const draftCount = await db.prepare('SELECT COUNT(*) AS count FROM hc_drafts').first();
   const drafts = Number(draftCount?.count || 0);
   await db.prepare('DELETE FROM hc_drafts').run();
 
+  await guard();
   const rows = await db.prepare('SELECT telegram_id, profile_json FROM hc_clients').all();
   const profiles = Array.isArray(rows?.results) ? rows.results : [];
   let profileCount = 0;
-  for (const row of profiles) {
-    const profile = JSON.parse(String(row?.profile_json || '{}'));
+  let malformedProfiles = 0;
+  for (let index=0; index<profiles.length; index+=1) {
+    if (index % 25 === 0) await guard();
+    const row = profiles[index];
+    let profile = null;
+    try { profile = JSON.parse(String(row?.profile_json || '{}')); }
+    catch {
+      malformedProfiles += 1;
+      continue;
+    }
     const reset = resetSubscriptionFields(profile);
     await db.prepare('UPDATE hc_clients SET profile_json = ?, updated_at = ? WHERE telegram_id = ?')
       .bind(JSON.stringify(reset), new Date().toISOString(), Number(row.telegram_id || 0)).run();
     profileCount += 1;
   }
-  return { orders, drafts, profiles:profileCount };
+  return { orders, drafts, profiles:profileCount, malformedProfiles };
+}
+
+async function ensureCleanupD1Schema(db) {
+  const statements = [
+    'CREATE TABLE IF NOT EXISTS hc_orders (order_number TEXT PRIMARY KEY, client_telegram_id INTEGER, status TEXT, service_name TEXT, area REAL, date TEXT, time TEXT, address_key TEXT, is_test INTEGER DEFAULT 0, order_json TEXT NOT NULL, updated_at TEXT NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS hc_drafts (telegram_id INTEGER PRIMARY KEY, draft_json TEXT NOT NULL, updated_at TEXT NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS hc_clients (telegram_id INTEGER PRIMARY KEY, profile_json TEXT NOT NULL, updated_at TEXT NOT NULL)',
+  ];
+  for (const sql of statements) await db.prepare(sql).run();
 }
 
 function findD1(env) {
