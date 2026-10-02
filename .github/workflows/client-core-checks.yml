@@ -41,3 +41,5 @@ jobs:
         run: node --test tests/start-command-contract.test.mjs
       - name: Run release 68 mobile flow contract
         run: node --test tests/mobile-flow-v68-contract.test.mjs
+      - name: Run release 70 booking product contract
+        run: node --test tests/product-v70-contract.test.mjs
