@@ -3,7 +3,7 @@ import baseWorker, { ConsentStore, AppStore } from './production-v69-targeted-fi
 export { ConsentStore, AppStore };
 
 const RELEASE = '70';
-let defaultMenuConfiguredAt = 0;
+const CONSENT_VERSION = '2026-09-09-v1';
 
 export default {
   async fetch(request, env, ctx) {
@@ -21,8 +21,10 @@ export default {
       const response = await baseWorker.fetch(request, env, ctx);
       if (trusted && response.ok && env.TELEGRAM_BOT_TOKEN) {
         const userId = positiveInt(update?.message?.from?.id || update?.edited_message?.from?.id || update?.callback_query?.from?.id);
-        const work = configureOpenButtons(env, userId, publicAppUrl(env, url.origin));
-        if (ctx?.waitUntil) ctx.waitUntil(work); else await work;
+        if (userId) {
+          const work = syncOpenButtonForConsent(env, userId, publicAppUrl(env, url.origin));
+          if (ctx?.waitUntil) ctx.waitUntil(work); else await work;
+        }
       }
       return response;
     }
@@ -31,10 +33,7 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
-    if (typeof baseWorker.scheduled === 'function') await baseWorker.scheduled(controller, env, ctx);
-    if (env.TELEGRAM_BOT_TOKEN) {
-      await configureOpenButtons(env, 0, publicAppUrl(env, 'https://bot.housecleaningspb.ru'));
-    }
+    if (typeof baseWorker.scheduled === 'function') return baseWorker.scheduled(controller, env, ctx);
   },
 };
 
@@ -51,31 +50,38 @@ function publicAppUrl(env, origin) {
   return `${base}/?demo=1&release=${RELEASE}`;
 }
 
-async function configureOpenButtons(env, userId, webAppUrl) {
-  const menuButton = {
-    type: 'web_app',
-    text: 'Открыть',
-    web_app: { url:webAppUrl },
-  };
-  const tasks = [];
-
-  if (userId) {
-    tasks.push(telegramSafe(env, 'setChatMenuButton', {
+async function syncOpenButtonForConsent(env, userId, webAppUrl) {
+  const consent = await getConsent(env, userId);
+  const accepted = consent?.status === 'accepted' && consent?.version === CONSENT_VERSION;
+  if (accepted) {
+    await telegramSafe(env, 'setChatMenuButton', {
       chat_id:userId,
-      menu_button:menuButton,
-    }));
+      menu_button:{
+        type:'web_app',
+        text:'Открыть',
+        web_app:{ url:webAppUrl },
+      },
+    });
+    return;
   }
 
-  // Keep the default menu configured as well so new users get the Mini App
-  // launch action before a per-chat refresh is needed. The scheduled Worker
-  // refreshes this automatically, so deployment does not depend on a user
-  // sending /start first.
-  if (Date.now() - defaultMenuConfiguredAt > 6 * 60 * 60 * 1000) {
-    defaultMenuConfiguredAt = Date.now();
-    tasks.push(telegramSafe(env, 'setChatMenuButton', { menu_button:menuButton }));
-  }
+  // A user who has not accepted (or has declined) must not get a Web App
+  // shortcut that bypasses the existing consent gate.
+  await telegramSafe(env, 'setChatMenuButton', {
+    chat_id:userId,
+    menu_button:{ type:'commands' },
+  });
+}
 
-  await Promise.allSettled(tasks);
+async function getConsent(env, userId) {
+  if (!env.CONSENT_STORE || !userId) return null;
+  try {
+    const id = env.CONSENT_STORE.idFromName(String(userId));
+    const response = await env.CONSENT_STORE.get(id).fetch('https://consent.internal/record');
+    return response.ok ? await response.json().catch(() => null) : null;
+  } catch {
+    return null;
+  }
 }
 
 function positiveInt(value) {
