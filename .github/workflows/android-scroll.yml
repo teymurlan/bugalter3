@@ -32,10 +32,15 @@ jobs:
       - name: Проверить вертикальный свайп Android
         run: node tests/playwright-android-scroll-v67.mjs
 
-      - name: Сохранить скриншот
+      - name: Проверить горизонтальный свайп дат и загрузку вместимости
+        run: node tests/playwright-booking-v70.mjs
+
+      - name: Сохранить скриншоты
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: android-scroll-check
-          path: playwright-android-scroll-v67.png
+          path: |
+            playwright-android-scroll-v67.png
+            playwright-booking-v70.png
           if-no-files-found: ignore

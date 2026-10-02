@@ -1,0 +1,60 @@
+/* HOUSE CLEANING · Product release 70 */
+
+/* Android: the nearest-date rail must always be a real horizontal scroller. */
+.calendar-strip[data-calendar]{
+  display:flex!important;
+  grid-template-columns:none!important;
+  flex-wrap:nowrap!important;
+  gap:10px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x pan-y!important;
+  scroll-snap-type:x proximity;
+  scrollbar-width:none;
+  padding:3px 2px 12px!important;
+}
+.calendar-strip[data-calendar]::-webkit-scrollbar{display:none!important}
+.calendar-strip[data-calendar]>.calendar-day{
+  flex:0 0 124px!important;
+  width:124px!important;
+  min-width:124px!important;
+  max-width:124px!important;
+  scroll-snap-align:start;
+}
+.calendar-day .hc-capacity-v70{display:grid;gap:2px;margin-top:7px;font-style:normal;line-height:1.18}
+.calendar-day .hc-capacity-v70 span{font-size:10px;font-weight:750;white-space:nowrap}
+.calendar-day .hc-capacity-v70 .used{color:var(--u7-muted,var(--muted,#75808d))}
+.calendar-day .hc-capacity-v70 .left{color:var(--u7-good,#137a4f)}
+.calendar-day.full .hc-capacity-v70 .left,.calendar-day.insufficient .hc-capacity-v70 .left{color:var(--u7-danger,#bf3f48)}
+
+/* Explicit upload/preparation feedback for slower Android image decoders. */
+.hc-photo-upload-v70{display:none;align-items:center;gap:12px;margin:12px 0;padding:12px 14px;border:1px solid var(--u7-line,var(--line,#e3e8ee));border-radius:16px;background:var(--u7-surface-2,var(--surface-2,#f7f9fc));color:var(--u7-text,var(--text,#111820))}
+.hc-photo-upload-v70.show{display:flex}
+.hc-photo-upload-v70 .spinner{width:23px;height:23px;flex:0 0 auto;border:3px solid color-mix(in srgb,var(--u7-accent,#a86f08) 22%,transparent);border-top-color:var(--u7-accent,#a86f08);border-radius:50%;animation:hc-v70-spin .75s linear infinite}
+.hc-photo-upload-v70.done .spinner{animation:none;border:0;display:grid;place-items:center;background:var(--u7-good,#137a4f);color:#fff;font-weight:900}
+.hc-photo-upload-v70.done .spinner:before{content:'✓'}
+.hc-photo-upload-v70 strong{display:block;font-size:13px}
+.hc-photo-upload-v70 small{display:block;margin-top:2px;color:var(--u7-muted,var(--muted,#75808d));font-size:11px;line-height:1.35}
+.photo-drop.hc-photo-busy-v70{opacity:.65;pointer-events:none}
+@keyframes hc-v70-spin{to{transform:rotate(360deg)}}
+
+/* New one-tap repeat order action. */
+.hc-repeat-order-v70{border:0!important;background:linear-gradient(135deg,var(--u7-accent,#a86f08),var(--u7-accent-2,#7f5204))!important;color:var(--u7-on-accent,#fff)!important;font-weight:850!important;box-shadow:0 10px 24px color-mix(in srgb,var(--u7-accent,#a86f08) 25%,transparent)!important}
+
+/* Visit type wording/details stay compact on small Android screens. */
+.hc-visit-type-card .hc-visit-copy strong{font-size:15px}
+.hc-visit-type-card .hc-visit-copy em{font-style:normal;font-weight:800}
+
+/* Subscription promo: keep the artwork broad and ad-like instead of looking like a progress card. */
+.u7-sub-offer-media-v60{min-height:210px!important}
+.u7-sub-offer-media-v60 img{object-fit:cover!important;object-position:center!important}
+
+@media(max-width:390px){
+  .calendar-strip[data-calendar]>.calendar-day{flex-basis:116px!important;width:116px!important;min-width:116px!important;max-width:116px!important}
+  .calendar-day .hc-capacity-v70 span{font-size:9.5px}
+}
