@@ -8,9 +8,12 @@ test('release 70 worker and assets are active',()=>{
   const wrangler=read('wrangler.jsonc');
   const html=read('public/index.html');
   assert.match(wrangler,/"main"\s*:\s*"src\/production-v70-product\.js"/);
-  assert.match(html,/house-cleaning-release" content="70"/);
+  // Release 66 remains the stable clean-launch generation marker; v70 is
+  // independently cache-busted by its own asset query versions.
+  assert.match(html,/house-cleaning-release" content="66"/);
   assert.match(html,/product-v70\.css\?v=70/);
   assert.match(html,/booking-enhancements-v70\.js\?v=70/);
+  assert.match(html,/app-release-v3\.js\?v=70/);
   assert.match(html,/repeat-order-v70\.js\?v=70/);
 });
 
