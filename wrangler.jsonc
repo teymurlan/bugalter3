@@ -1,8 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bugalter3",
-  "main": "src/production-v69-targeted-fixes.js",
-  // Wrapper chain compatibility markers: "main": "src/production-start-fix.js" -> "main": "src/production-public-order.js"
+  "main": "src/production-v70-product.js",
+  // Wrapper chain compatibility markers: v70 -> v69 -> production-start-fix -> production-public-order
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "preview_urls": true,
