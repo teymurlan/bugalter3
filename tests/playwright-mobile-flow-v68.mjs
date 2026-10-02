@@ -104,7 +104,20 @@ async function setup({initialDraft=null,admin=false,orders=[order]}={}){
     await page.getByText('Выберите дату и время',{exact:true}).waitFor({state:'visible'});
     await page.locator('[data-calendar-date]').first().waitFor({state:'visible'});
     assert.equal(await page.getByText(/предстартовую очистку/i).count(),0);
-    await page.locator('[data-calendar-date]:not([disabled])').first().click();
+
+    // Do not pick "today": late-evening CI runs legitimately have no future time slots left.
+    // Choose the first enabled date that is at least tomorrow so the regression test is time-of-day independent.
+    const tomorrow=futureDay(1);
+    const futureDate=page.locator(`[data-calendar-date]:not([disabled])`).filter({has:page.locator('b')});
+    const count=await futureDate.count();
+    let selected=null;
+    for(let i=0;i<count;i+=1){
+      const item=futureDate.nth(i);
+      const date=await item.getAttribute('data-calendar-date');
+      if(date && date>=tomorrow){ selected=item; break; }
+    }
+    assert.ok(selected,'Должна быть доступна хотя бы одна будущая дата');
+    await selected.click();
     await page.locator('[data-time]:not([disabled])').first().waitFor({state:'visible'});
     await page.locator('[data-time]:not([disabled])').first().click();
     assert.equal(await page.locator('[data-next]').isDisabled(),false,'После выбора даты и времени Продолжить доступно');
