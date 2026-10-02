@@ -42,10 +42,18 @@ function finite(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function setText(node, value) {
+  if (node && node.textContent !== value) node.textContent = value;
+}
+
+function setAttr(node, name, value) {
+  if (node && node.getAttribute(name) !== value) node.setAttribute(name, value);
+}
+
 function decorateCalendar() {
   document.querySelectorAll('.calendar-strip[data-calendar]').forEach((strip) => {
-    strip.dataset.hcHorizontalV70 = '1';
-    strip.setAttribute('aria-label', 'Ближайшие свободные даты. Листайте вправо и влево.');
+    if (strip.dataset.hcHorizontalV70 !== '1') strip.dataset.hcHorizontalV70 = '1';
+    setAttr(strip, 'aria-label', 'Ближайшие свободные даты. Листайте вправо и влево.');
 
     strip.querySelectorAll('[data-calendar-date]').forEach((button) => {
       const date = String(button.dataset.calendarDate || '');
@@ -59,11 +67,12 @@ function decorateCalendar() {
         info = document.createElement('em');
         button.appendChild(info);
       }
-      info.className = 'hc-capacity-v70';
-      info.innerHTML = `<span class="used">Занято ${Math.round(used)} м²</span><span class="left">Осталось ${Math.round(remaining)} м²</span>`;
+      if (info.className !== 'hc-capacity-v70') info.className = 'hc-capacity-v70';
+      const html = `<span class="used">Занято ${Math.round(used)} м²</span><span class="left">Осталось ${Math.round(remaining)} м²</span>`;
+      if (info.innerHTML !== html) info.innerHTML = html;
       const day = button.querySelector('b')?.textContent?.trim() || '';
       const month = button.querySelector('small')?.textContent?.trim() || '';
-      button.setAttribute('aria-label', `${day} ${month}. Занято ${Math.round(used)} м², осталось ${Math.round(remaining)} м²`);
+      setAttr(button, 'aria-label', `${day} ${month}. Занято ${Math.round(used)} м², осталось ${Math.round(remaining)} м²`);
     });
   });
 }
@@ -72,17 +81,17 @@ function decorateVisitType() {
   const first = document.querySelector('[data-visit-type="first"] .hc-visit-copy');
   const repeat = document.querySelector('[data-visit-type="repeat"] .hc-visit-copy');
   if (first) {
-    first.querySelector('strong') && (first.querySelector('strong').textContent = 'Первая уборка');
-    first.querySelector('small') && (first.querySelector('small').textContent = 'Убираемся по этому адресу впервые.');
-    first.querySelector('em') && (first.querySelector('em').textContent = 'Фото объекта обязательно');
+    setText(first.querySelector('strong'), 'Первая уборка');
+    setText(first.querySelector('small'), 'Убираемся по этому адресу впервые.');
+    setText(first.querySelector('em'), 'Фото объекта обязательно');
   }
   if (repeat) {
-    repeat.querySelector('strong') && (repeat.querySelector('strong').textContent = 'Повторная уборка');
-    repeat.querySelector('small') && (repeat.querySelector('small').textContent = 'Мы уже убирались по этому адресу.');
-    repeat.querySelector('em') && (repeat.querySelector('em').textContent = 'Фото можно не добавлять');
+    setText(repeat.querySelector('strong'), 'Повторная уборка');
+    setText(repeat.querySelector('small'), 'Мы уже убирались по этому адресу.');
+    setText(repeat.querySelector('em'), 'Фото можно не добавлять');
   }
   const title = document.querySelector('.hc-visit-type-grid')?.closest('#app')?.querySelector('.booking-title');
-  if (title) title.textContent = 'Это первая или повторная уборка?';
+  setText(title, 'Это первая или повторная уборка?');
 }
 
 function ensureProgress(photoStep) {
@@ -103,10 +112,8 @@ function setPhotoProgress(progress, title, sub, done = false) {
   if (!progress) return;
   progress.classList.add('show');
   progress.classList.toggle('done', Boolean(done));
-  const strong = progress.querySelector('[data-photo-progress-title]');
-  const small = progress.querySelector('[data-photo-progress-sub]');
-  if (strong) strong.textContent = title;
-  if (small) small.textContent = sub;
+  setText(progress.querySelector('[data-photo-progress-title]'), title);
+  setText(progress.querySelector('[data-photo-progress-sub]'), sub);
 }
 
 function rerenderBooking() {
