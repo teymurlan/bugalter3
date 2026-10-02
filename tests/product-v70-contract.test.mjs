@@ -17,12 +17,16 @@ test('release 70 worker and assets are active',()=>{
   assert.match(html,/repeat-order-v70\.js\?v=70/);
 });
 
-test('Telegram Open button is configured through Bot API',()=>{
+test('Telegram Open button is configured only after current consent',()=>{
   const worker=read('src/production-v70-product.js');
   assert.match(worker,/setChatMenuButton/);
   assert.match(worker,/text:\s*'Открыть'/);
   assert.match(worker,/https:\/\/bot\.housecleaningspb\.ru/);
   assert.match(worker,/X-Telegram-Bot-Api-Secret-Token/);
+  assert.match(worker,/getConsent\(env, userId\)/);
+  assert.match(worker,/consent\?\.status === 'accepted'/);
+  assert.match(worker,/consent\?\.version === CONSENT_VERSION/);
+  assert.match(worker,/menu_button:\{ type:'commands' \}/);
 });
 
 test('Android dates use horizontal scrolling and expose capacity',()=>{
