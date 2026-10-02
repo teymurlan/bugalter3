@@ -31,7 +31,10 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
-    if (typeof baseWorker.scheduled === 'function') return baseWorker.scheduled(controller, env, ctx);
+    if (typeof baseWorker.scheduled === 'function') await baseWorker.scheduled(controller, env, ctx);
+    if (env.TELEGRAM_BOT_TOKEN) {
+      await configureOpenButtons(env, 0, publicAppUrl(env, 'https://bot.housecleaningspb.ru'));
+    }
   },
 };
 
@@ -64,7 +67,9 @@ async function configureOpenButtons(env, userId, webAppUrl) {
   }
 
   // Keep the default menu configured as well so new users get the Mini App
-  // launch action before a per-chat refresh is needed.
+  // launch action before a per-chat refresh is needed. The scheduled Worker
+  // refreshes this automatically, so deployment does not depend on a user
+  // sending /start first.
   if (Date.now() - defaultMenuConfiguredAt > 6 * 60 * 60 * 1000) {
     defaultMenuConfiguredAt = Date.now();
     tasks.push(telegramSafe(env, 'setChatMenuButton', { menu_button:menuButton }));
